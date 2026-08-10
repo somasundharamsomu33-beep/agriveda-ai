@@ -1,0 +1,558 @@
+import { CropDiagnosisReport, MarketPriceItem, WeatherInfo, CropCalendar, CommunityPost, UserProfile } from '../types';
+
+export const initialUserProfile: UserProfile = {
+  name: 'Ravi Kumar',
+  phone: '+91 98765 43210',
+  location: 'Vellore, Tamil Nadu, India',
+  farmId: 'FARM-12345',
+  farmSizeAcres: 2.5,
+  primaryCrop: 'Tomato',
+  soilType: 'Red Loamy Soil',
+  language: 'en',
+  avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+};
+
+export const sampleCropImages = [
+  {
+    id: 'sample-early-blight',
+    name: 'Tomato Leaf - Blight Disease',
+    crop: 'Tomato',
+    url: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb231fc?auto=format&fit=crop&w=600&q=80',
+    issue: 'Early Blight Disease (Alternaria solani)',
+    riskLevel: 'High' as const,
+    healthScore: 68,
+    cause: 'High humidity (>85%) combined with fungal infection spores carried by soil splash and rainfall.',
+    treatment: [
+      'Remove and safely destroy severely infected lower leaves.',
+      'Apply recommended Fungicide spray (Mancozeb 75% WP @ 2g/L or Copper Oxychloride).',
+      'Improve air circulation around plant canopy by thinning dense branches.',
+      'Avoid overhead sprinkler irrigation to keep foliage dry.'
+    ],
+    prevention: [
+      'Avoid excess watering and water stagnation in roots.',
+      'Maintain proper plant spacing (60cm x 45cm).',
+      'Conduct regular weekly field monitoring.',
+      'Practice crop rotation with non-solanaceous crops like maize or legumes.'
+    ],
+    fertilizer: 'Balanced NPK 19:19:19 @ 5g/L + Neem oil spray 5ml/L every 10 days for pest resistance.'
+  },
+  {
+    id: 'sample-paddy-blast',
+    name: 'Paddy Rice Leaf - Blast Infection',
+    crop: 'Paddy / Rice',
+    url: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=600&q=80',
+    issue: 'Leaf Blast Disease (Magnaporthe oryzae)',
+    riskLevel: 'Medium' as const,
+    healthScore: 75,
+    cause: 'High nitrogen doses coupled with cool nights and cloudy humid morning weather.',
+    treatment: [
+      'Apply Tricyclazole 75 WP @ 0.6 g/L or Isoprothiolane 40 EC.',
+      'Temporarily suspend additional nitrogenous fertilizer application.',
+      'Maintain proper water level of 2-3 cm in the field to prevent stress.'
+    ],
+    prevention: [
+      'Treat seeds with Pseudomonas fluorescens @ 10g/kg before sowing.',
+      'Avoid heavy split doses of Urea fertilizer.',
+      'Use blast-resistant paddy varieties suitable for region.'
+    ],
+    fertilizer: 'Apply Potash (MOP) @ 25 kg/acre to strengthen cell walls.'
+  },
+  {
+    id: 'sample-cotton-curl',
+    name: 'Cotton Leaf - Yellow Curl Virus',
+    crop: 'Cotton',
+    url: 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=600&q=80',
+    issue: 'Cotton Leaf Curl Virus (CLCuV)',
+    riskLevel: 'High' as const,
+    healthScore: 62,
+    cause: 'Vectored by Whiteflies (Bemisia tabaci) feeding on young plant sap.',
+    treatment: [
+      'Control whitefly vectors using Diafenthiuron 50 WP @ 1g/L.',
+      'Eradicate weed hosts around the farm boundaries.',
+      'Install yellow sticky traps (15-20 traps/acre) to catch adult whiteflies.'
+    ],
+    prevention: [
+      'Grow barrier crops like Bajra or Maize around cotton fields.',
+      'Destroy affected stray plants early in the season.'
+    ],
+    fertilizer: 'Foliar spray of Magnesium Sulphate 1% + Zinc Sulphate 0.5%.'
+  },
+  {
+    id: 'sample-healthy-chilli',
+    name: 'Healthy Green Chilli Field',
+    crop: 'Chilli',
+    url: 'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?auto=format&fit=crop&w=600&q=80',
+    issue: 'No Disease Detected - Healthy Foliage',
+    riskLevel: 'Low' as const,
+    healthScore: 94,
+    cause: 'Optimal soil moisture, balanced organic compost, and clean cultural practices.',
+    treatment: [
+      'Maintain current irrigation and organic manure routine.',
+      'Inspect underside of leaves weekly for early thrips or mite activity.'
+    ],
+    prevention: [
+      'Continue mulching to conserve soil moisture.',
+      'Spray neem cake extract as a biological preventative.'
+    ],
+    fertilizer: 'Apply Vermicompost @ 2 tonnes/acre during flowering stage.'
+  }
+];
+
+export const sampleWeather: WeatherInfo = {
+  temperature: 32,
+  condition: 'Partly Sunny',
+  humidity: 60,
+  windSpeed: 12,
+  rainChance: 10,
+  location: 'Vellore, Tamil Nadu',
+  weeklyTrend: [
+    { day: 'Thu (Today)', temp: 32, rainfall: 2, humidity: 60 },
+    { day: 'Fri', temp: 31, rainfall: 5, humidity: 65 },
+    { day: 'Sat', temp: 29, rainfall: 28, humidity: 82 },
+    { day: 'Sun', temp: 30, rainfall: 12, humidity: 75 },
+    { day: 'Mon', temp: 33, rainfall: 0, humidity: 55 },
+    { day: 'Tue', temp: 34, rainfall: 0, humidity: 50 },
+    { day: 'Wed', temp: 32, rainfall: 18, humidity: 70 },
+  ],
+  forecast: [
+    { day: 'Today', temp: 32, icon: 'sun', condition: 'Sunny & Warm' },
+    { day: 'Fri', temp: 31, icon: 'cloud-sun', condition: 'Partly Cloudy' },
+    { day: 'Sat', temp: 29, icon: 'cloud-rain', condition: 'Light Shower Expected' },
+    { day: 'Sun', temp: 30, icon: 'sun', condition: 'Bright & Mild' },
+    { day: 'Mon', temp: 33, icon: 'sun', condition: 'Clear Sky' },
+  ],
+  alerts: [
+    {
+      id: 'alert-1',
+      title: 'Irrigation Recommended',
+      description: 'Soil moisture is dropping due to dry wind. Irrigation recommended tomorrow morning before 9 AM.',
+      severity: 'info',
+      action: 'Schedule Pump'
+    },
+    {
+      id: 'alert-2',
+      title: 'High Humidity Pest Warning',
+      description: 'Humidity expected to reach 82% on Saturday. High risk of fungal spores spreading in tomato crops.',
+      severity: 'warning',
+      action: 'Apply Neem Spray'
+    }
+  ]
+};
+
+export const sampleMarketPrices: MarketPriceItem[] = [
+  {
+    id: 'm-tomato',
+    cropName: 'Tomato (Hybrid Grade A)',
+    currentPrice: 35,
+    priceChange: 5,
+    percentageChange: 16.6,
+    unit: 'kg',
+    bestMarket: 'Vellore Main Mandi',
+    regionalMarkets: [
+      { marketName: 'Vellore Main Mandi', price: 36, distanceKm: 8, isBest: true },
+      { marketName: 'Chennai Koyambedu', price: 35, distanceKm: 135 },
+      { marketName: 'Bangalore K.R. Market', price: 34, distanceKm: 210 },
+      { marketName: 'Katpadi Local Farmers Market', price: 33, distanceKm: 4 },
+    ],
+    priceHistory: [
+      { date: '25 Jul', price: 28 },
+      { date: '26 Jul', price: 29 },
+      { date: '27 Jul', price: 30 },
+      { date: '28 Jul', price: 31 },
+      { date: '29 Jul', price: 33 },
+      { date: '30 Jul', price: 34 },
+      { date: '31 Jul', price: 35 },
+    ],
+    aiAdvice: 'Prices are trending UP due to lower arrivals from neighboring districts. Recommended to harvest mature crop and bring to Vellore Main Mandi within 48 hours for top returns.'
+  },
+  {
+    id: 'm-paddy',
+    cropName: 'Paddy (Samba Mahsuri / BPT)',
+    currentPrice: 24,
+    priceChange: 1.5,
+    percentageChange: 6.6,
+    unit: 'kg',
+    bestMarket: 'Thanjavur Direct Procurement Center',
+    regionalMarkets: [
+      { marketName: 'Thanjavur DPC', price: 25.5, distanceKm: 90, isBest: true },
+      { marketName: 'Vellore Grain Market', price: 24, distanceKm: 12 },
+      { marketName: 'Arani Rice Mill Hub', price: 24.8, distanceKm: 45 },
+    ],
+    priceHistory: [
+      { date: '25 Jul', price: 22 },
+      { date: '26 Jul', price: 22.5 },
+      { date: '27 Jul', price: 23 },
+      { date: '28 Jul', price: 23 },
+      { date: '29 Jul', price: 23.5 },
+      { date: '30 Jul', price: 24 },
+      { date: '31 Jul', price: 24 },
+    ],
+    aiAdvice: 'Stable government procurement rate supported by high export demand. Moisture content below 14% gets premium price bonus.'
+  },
+  {
+    id: 'm-chilli',
+    cropName: 'Red Chilli (Guntur Teja)',
+    currentPrice: 185,
+    priceChange: -10,
+    percentageChange: -5.1,
+    unit: 'kg',
+    bestMarket: 'Guntur APMC Yard',
+    regionalMarkets: [
+      { marketName: 'Guntur APMC Yard', price: 192, distanceKm: 380, isBest: true },
+      { marketName: 'Vellore Market', price: 185, distanceKm: 10 },
+      { marketName: 'Chennai Wholesale', price: 188, distanceKm: 130 },
+    ],
+    priceHistory: [
+      { date: '25 Jul', price: 200 },
+      { date: '26 Jul', price: 198 },
+      { date: '27 Jul', price: 195 },
+      { date: '28 Jul', price: 192 },
+      { date: '29 Jul', price: 190 },
+      { date: '30 Jul', price: 188 },
+      { date: '31 Jul', price: 185 },
+    ],
+    aiAdvice: 'Prices stabilizing after sudden heavy market inflow. Hold stored dry chillies in cold storage if possible for expected recovery next month.'
+  },
+  {
+    id: 'm-cotton',
+    cropName: 'Cotton (Long Staple)',
+    currentPrice: 62,
+    priceChange: 3,
+    percentageChange: 5.0,
+    unit: 'kg',
+    bestMarket: 'Coimbatore Textile Hub Market',
+    regionalMarkets: [
+      { marketName: 'Coimbatore Market', price: 64, distanceKm: 280, isBest: true },
+      { marketName: 'Vellore Co-op', price: 62, distanceKm: 15 },
+    ],
+    priceHistory: [
+      { date: '25 Jul', price: 58 },
+      { date: '26 Jul', price: 59 },
+      { date: '27 Jul', price: 59 },
+      { date: '28 Jul', price: 60 },
+      { date: '29 Jul', price: 61 },
+      { date: '30 Jul', price: 61 },
+      { date: '31 Jul', price: 62 },
+    ],
+    aiAdvice: 'Textile mill demand is strong. Ensure cotton is free of leaf trash for highest quality grade.'
+  }
+];
+
+export const defaultCropCalendar: CropCalendar = {
+  cropName: 'Tomato',
+  sowingDate: '01 June 2024',
+  totalDurationDays: 120,
+  events: [
+    {
+      id: 'ev-1',
+      dayNumber: 1,
+      dateStr: '01 JUN',
+      title: 'Seed Sowing & Nursery Bed Preparation',
+      category: 'Sowing',
+      description: 'Treat seeds with Trichoderma viride @ 4g/kg. Prepare raised seedbeds with well-rotted FYM compost.',
+      completed: true,
+      recommendedTime: 'Morning 7 AM - 10 AM'
+    },
+    {
+      id: 'ev-2',
+      dayNumber: 15,
+      dateStr: '15 JUN',
+      title: 'Basal Fertilizer Application & Transplanting',
+      category: 'Fertilizer',
+      description: 'Apply Neem cake @ 100kg/acre + NPK 50:50:50 kg/acre in main field before transplanting 25-day seedlings.',
+      completed: true,
+      recommendedTime: 'Late Evening 4 PM - 6 PM'
+    },
+    {
+      id: 'ev-3',
+      dayNumber: 30,
+      dateStr: '30 JUN',
+      title: 'First Irrigation & Staking Support',
+      category: 'Irrigation',
+      description: 'Provide light drip irrigation. Stake indeterminate plants with bamboo sticks and jute twine for erect growth.',
+      completed: false,
+      recommendedTime: 'Early Morning'
+    },
+    {
+      id: 'ev-4',
+      dayNumber: 45,
+      dateStr: '15 JUL',
+      title: 'Disease Check & Flower Induction Spray',
+      category: 'Inspection',
+      description: 'Inspect lower foliage for early blight spots. Spray Micronutrient mixture @ 2.5g/L during flowering initiation.',
+      completed: false,
+      recommendedTime: 'Morning after dew clears'
+    },
+    {
+      id: 'ev-5',
+      dayNumber: 90,
+      dateStr: '30 SEP',
+      title: 'First Fruit Harvesting & Grading',
+      category: 'Harvesting',
+      description: 'Harvest fruits at breaker stage (pink blush) for distant markets or fully red for local mandi sale.',
+      completed: false,
+      recommendedTime: 'Cool early morning hours'
+    }
+  ]
+};
+
+export const sampleCommunityPosts: CommunityPost[] = [
+  {
+    id: 'post-1',
+    authorName: 'Ramesh Patel',
+    authorLocation: 'Vellore, Tamil Nadu',
+    authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
+    timeAgo: '2 hours ago',
+    question: 'How to effectively control leaf curl in chillies without heavy synthetic pesticides?',
+    cropContext: 'Chilli Crop (1.5 Acres)',
+    imageUrl: 'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?auto=format&fit=crop&w=500&q=80',
+    likesCount: 14,
+    repliesCount: 3,
+    replies: [
+      {
+        id: 'rep-1',
+        authorName: 'Dr. S. Swaminathan (Agri Expert)',
+        isExpert: true,
+        text: 'Leaf curl in chilli is primarily transmitted by thrips and whiteflies. Install yellow and blue sticky traps (20 per acre). Spray 5% Neem seed kernel extract (NSKE) along with Lecanicillium lecanii biopesticide @ 5g/L.',
+        timeAgo: '1 hour ago',
+        likes: 12
+      },
+      {
+        id: 'rep-2',
+        authorName: 'Suresh Kumar',
+        isExpert: false,
+        text: 'I used Sour buttermilk spray (1 litre fermented sour curd in 10 litres water) mixed with asafoetida. It reduced sucking pests dramatically in my field!',
+        timeAgo: '45 mins ago',
+        likes: 8
+      }
+    ]
+  },
+  {
+    id: 'post-2',
+    authorName: 'Suresh V.',
+    authorLocation: 'Dharmapuri, Tamil Nadu',
+    authorAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
+    timeAgo: '5 hours ago',
+    question: 'What is the ideal NPK dose for Brinjal crop during early fruit setting phase in clay soil?',
+    cropContext: 'Brinjal / Eggplant',
+    likesCount: 9,
+    repliesCount: 2,
+    replies: [
+      {
+        id: 'rep-3',
+        authorName: 'AgriVeda AI Expert',
+        isExpert: true,
+        text: 'During fruit set, Brinjal requires higher Potassium (K) to boost fruit weight and shine. Apply Nitrogen 30kg + Potash 40kg per acre as top dressing. Maintain moist soil but prevent waterlogging.',
+        timeAgo: '4 hours ago',
+        likes: 10
+      }
+    ]
+  }
+];
+
+export const translations = {
+  en: {
+    welcomeTitle: 'AgriVeda AI',
+    tagline: 'Ancient Farming Wisdom Meets Modern AI',
+    subTagline: 'Empowering Farmers with AI Agricultural Expertise',
+    getStarted: 'Get Started',
+    welcomeBack: 'Welcome Back!',
+    loginSub: 'Login to continue to your digital farm dashboard',
+    phoneLabel: 'Enter Mobile Number',
+    passwordLabel: 'Password',
+    forgotPassword: 'Forgot Password?',
+    loginBtn: 'Login',
+    orContinueWith: 'or continue with',
+    googleSignIn: 'Sign in with Google',
+    newFarmer: 'New Farmer? Create Account',
+    goodMorning: 'Good Morning',
+    farmHealthScore: 'Farm Health Score',
+    veryGood: 'Very Good',
+    todaysOverview: "Today's Overview",
+    weather: 'Weather',
+    irrigation: 'Irrigation',
+    diseaseRisk: 'Disease Risk',
+    marketPrice: 'Market Price',
+    scanCrop: 'Scan Crop',
+    voiceAI: 'Voice AI',
+    analyzeCrop: 'Analyze Crop',
+    diagnosisResult: 'Diagnosis Result',
+    fullReport: 'Full Diagnostic Report',
+    cause: 'Cause & Spore Spread',
+    treatment: 'Recommended Treatment',
+    prevention: 'Prevention Measures',
+    fertilizerSuggestion: 'Fertilizer Suggestion',
+    saveReport: 'Save Report',
+    viewFullReport: 'View Full Report',
+    tapToSpeak: 'Tap to Speak',
+    askQuestion: 'Ask any crop question in your local language...',
+    cropCalendar: 'Smart Crop Calendar',
+    addReminder: 'Add Reminder',
+    weatherAlerts: 'Weather & Farming Alerts',
+    marketInsights: 'Market Insights & Mandi Prices',
+    viewPriceTrend: 'View Price Trend',
+    agriCommunity: 'Agri Community & Expert Q&A',
+    askNow: 'Ask Expert',
+    newPost: 'New Post',
+    myProfile: 'My Profile',
+    myFarms: 'My Farms',
+    diagnosisHistory: 'Diagnosis History',
+    savedReports: 'Saved Reports',
+    settings: 'Settings',
+    language: 'Language',
+    logout: 'Logout'
+  },
+  ta: {
+    welcomeTitle: 'அக்ரிவேதா AI',
+    tagline: 'பண்டைய விவசாய அறிவும் நவீன AI தொழில்நுட்பமும்',
+    subTagline: 'விவசாயிகளுக்கு வழிகாட்டும் செயற்கை நுண்ணறிவு',
+    getStarted: 'தொடங்கவும்',
+    welcomeBack: 'மீண்டும் வருக!',
+    loginSub: 'உங்கள் டிஜிட்டல் பண்ணை டாஷ்போர்டில் உள்நுழையவும்',
+    phoneLabel: 'மொபைல் எண்ணை உள்ளிடவும்',
+    passwordLabel: 'கடவுச்சொல்',
+    forgotPassword: 'கடவுச்சொல்லை மறந்துவிட்டீர்களா?',
+    loginBtn: 'உள்நுழை',
+    orContinueWith: 'அல்லது இதைப் பயன்படுத்தவும்',
+    googleSignIn: 'Google மூலம் உள்நுழைக',
+    newFarmer: 'புதிய விவசாயியா? கணக்கை உருவாக்கவும்',
+    goodMorning: 'காலை வணக்கம்',
+    farmHealthScore: 'பண்ணை ஆரோக்கிய மதிப்பெண்',
+    veryGood: 'மிக நன்று',
+    todaysOverview: 'இன்றைய சுருக்கம்',
+    weather: 'வானிலை',
+    irrigation: 'பாசனம்',
+    diseaseRisk: 'நோய் ஆபத்து',
+    marketPrice: 'சந்தை விலை',
+    scanCrop: 'பயிரை ஸ்கேன் செய்க',
+    voiceAI: 'குரல் உதவி',
+    analyzeCrop: 'பயிரை பகுப்பாய்வு செய்க',
+    diagnosisResult: 'நோய் கண்டறிதல் முடிவு',
+    fullReport: 'முழுமையான அறிக்கை',
+    cause: 'காரணம் மற்றும் பரவல்',
+    treatment: 'பரிந்துரைக்கப்பட்ட சிகிச்சை',
+    prevention: 'தடுப்பு முறைகள்',
+    fertilizerSuggestion: 'உரப் பரிந்துரை',
+    saveReport: 'அறிக்கையை சேமிக்க',
+    viewFullReport: 'முழு அறிக்கையை காண்க',
+    tapToSpeak: 'பேச தட்டவும்',
+    askQuestion: 'உங்கள் தாய்மொழியில் ஏதேனும் விவசாய கேள்வியை கேட்கவும்...',
+    cropCalendar: 'பயிர் காலண்டர்',
+    addReminder: 'நினைவூட்டல் சேர்க்க',
+    weatherAlerts: 'வானிலை மற்றும் எச்சரிக்கைகள்',
+    marketInsights: 'சந்தை நிலவரம் & மண்டை விலைகள்',
+    viewPriceTrend: 'விலை போக்கை காண்க',
+    agriCommunity: 'விவசாயி சமூகம் & வல்லுநர் பதில்கள்',
+    askNow: 'கேள்வி கேட்க',
+    newPost: 'புதிய பதிவு',
+    myProfile: 'என் சுயவிவரம்',
+    myFarms: 'என் பண்ணைகள்',
+    diagnosisHistory: 'முந்தைய ஸ்கேன்கள்',
+    savedReports: 'சேமிக்கப்பட்ட रिपोर्ट्स',
+    settings: 'அமைப்புகள்',
+    language: 'மொழி',
+    logout: 'வெளியேறு'
+  },
+  hi: {
+    welcomeTitle: 'एग्रीवेदा AI',
+    tagline: 'प्राचीन कृषि ज्ञान और आधुनिक AI का संगम',
+    subTagline: 'किसान की जेब में AI कृषि विशेषज्ञ',
+    getStarted: 'शुरू करें',
+    welcomeBack: 'स्वागत है!',
+    loginSub: 'अपने डिजिटल फार्म डैशबोर्ड में लॉगिन करें',
+    phoneLabel: 'मोबाइल नंबर दर्ज करें',
+    passwordLabel: 'पासवर्ड',
+    forgotPassword: 'पासवर्ड भूल गए?',
+    loginBtn: 'लॉगिन करें',
+    orContinueWith: 'या इसके साथ जारी रखें',
+    googleSignIn: 'Google के साथ साइन इन करें',
+    newFarmer: 'नये किसान? खाता बनाएं',
+    goodMorning: 'शुभ प्रभात',
+    farmHealthScore: 'फार्म स्वास्थ्य स्कोर',
+    veryGood: 'बहुत बढ़िया',
+    todaysOverview: 'आज का अवलोकन',
+    weather: 'मौसम',
+    irrigation: 'सिंचाई',
+    diseaseRisk: 'बीमारी का जोखिम',
+    marketPrice: 'मंडी भाव',
+    scanCrop: 'फसल स्कैन करें',
+    voiceAI: 'वॉयस AI सहायक',
+    analyzeCrop: 'फसल का विश्लेषण करें',
+    diagnosisResult: 'निदान परिणाम',
+    fullReport: 'पूर्ण निदान रिपोर्ट',
+    cause: 'कारण और फैलाव',
+    treatment: 'अनुशंसित उपचार',
+    prevention: 'बचाव के उपाय',
+    fertilizerSuggestion: 'उर्वरक सुझाव',
+    saveReport: 'रिपोर्ट सुरक्षित करें',
+    viewFullReport: 'पूर्ण रिपोर्ट देखें',
+    tapToSpeak: 'बोलने के लिए टैप करें',
+    askQuestion: 'अपनी स्थानीय भाषा में कोई भी प्रश्न पूछें...',
+    cropCalendar: 'फसल कैलेंडर',
+    addReminder: 'रिमाइंडर जोड़ें',
+    weatherAlerts: 'मौसम और अलर्ट',
+    marketInsights: 'मंडी भाव और अंतर्दृष्टि',
+    viewPriceTrend: 'मूल्य रुझान देखें',
+    agriCommunity: 'कृषि समुदाय और विशेषज्ञ Q&A',
+    askNow: 'विशेषज्ञ से पूछें',
+    newPost: 'नया पोस्ट',
+    myProfile: 'मेरी प्रोफाइल',
+    myFarms: 'मेरे खेत',
+    diagnosisHistory: 'निदान इतिहास',
+    savedReports: 'सहेजी गई रिपोर्ट',
+    settings: 'सेटिंग्स',
+    language: 'भाषा',
+    logout: 'लॉगआउट'
+  },
+  te: {
+    welcomeTitle: 'అగ్రివేద AI',
+    tagline: 'పురాతన వ్యవసాయ విజ్ఞానం & ఆధునిక AI కలయిక',
+    subTagline: 'రైతుల కోసం డిజిటల్ వ్యవసాయ నిపుణుడు',
+    getStarted: 'ప్రారంభించండి',
+    welcomeBack: 'స్వాగతం!',
+    loginSub: 'మీ డిజిటల్ ఫారమ్ డాష్‌బోర్డ్‌కి లాగిన్ చేయండి',
+    phoneLabel: 'మొబైల్ సంఖ్య నమోదు చేయండి',
+    passwordLabel: 'పాస్‌వర్డ్',
+    forgotPassword: 'పాస్‌వర్డ్ మర్చిపోయారా?',
+    loginBtn: 'లాగిన్',
+    orContinueWith: 'లేదా తో కొనసాగండి',
+    googleSignIn: 'Google తో సైన్ ఇన్ చేయండి',
+    newFarmer: 'కొత్త రైతా? ఖాతాను సృష్టించండి',
+    goodMorning: 'శుభోదయం',
+    farmHealthScore: 'పొలం ఆరోగ్య స్కోర్',
+    veryGood: 'చాలా బాగుంది',
+    todaysOverview: 'ఈరోజు ముఖ్యాంశాలు',
+    weather: 'వాతావరణం',
+    irrigation: 'నీటిపారుదల',
+    diseaseRisk: 'తెగులు ప్రమాదం',
+    marketPrice: 'మార్కెట్ ధర',
+    scanCrop: 'పంటను స్కాన్ చేయండి',
+    voiceAI: 'వాయిస్ AI',
+    analyzeCrop: 'పంటను విశ్లేషించండి',
+    diagnosisResult: 'వ్యాధి నిర్ధారణ ఫలితం',
+    fullReport: 'పూర్తి నివేదిక',
+    cause: 'కారణం మరియు వ్యాప్తి',
+    treatment: 'సూచించిన చికిత్స',
+    prevention: 'నివారణ చర్యలు',
+    fertilizerSuggestion: 'ఎరువుల సూచన',
+    saveReport: 'నివేదికను సేవ్ చేయండి',
+    viewFullReport: 'పూర్తి నివేదిక చూడండి',
+    tapToSpeak: 'మాట్లాడటానికి నొక్కండి',
+    askQuestion: 'మీ ప్రాంతీయ భాషలో సందేహాలు అడగండి...',
+    cropCalendar: 'పంట క్యాలెండర్',
+    addReminder: 'రిమైండర్ జోడించండి',
+    weatherAlerts: 'వాతావరణ హెచ్చరికలు',
+    marketInsights: 'మార్కెట్ ధరల సమాచారం',
+    viewPriceTrend: 'ధరల ట్రెండ్ చూడండి',
+    agriCommunity: 'రైతు కమ్యూనిటీ & నిపుణులు',
+    askNow: 'అడగండి',
+    newPost: 'కొత్త పోస్ట్',
+    myProfile: 'నా ప్రొఫైల్',
+    myFarms: 'నా పొలాలు',
+    diagnosisHistory: 'స్కాన్ చరిత్ర',
+    savedReports: 'సేవ్ చేసిన నివేదికలు',
+    settings: 'సెట్టింగ్‌లు',
+    language: 'భాష',
+    logout: 'లాగౌట్'
+  }
+};

@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile data for registered farmers",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "location": { "type": "string", "maxLength": 100 },
+        "farmId": { "type": "string", "maxLength": 50 },
+        "farmSizeAcres": { "type": "number" },
+        "primaryCrop": { "type": "string", "maxLength": 100 },
+        "soilType": { "type": "string", "maxLength": 50 },
+        "language": { "type": "string", "maxLength": 10 },
+        "avatarUrl": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "language"]
+    },
+    "CropDiagnosisReport": {
+      "title": "CropDiagnosisReport",
+      "description": "Saved AI disease diagnosis report for a crop photo",
+      "type": "object",
+      "properties": {
+        "reportId": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "cropType": { "type": "string", "maxLength": 100 },
+        "soilType": { "type": "string", "maxLength": 50 },
+        "location": { "type": "string", "maxLength": 100 },
+        "imageUrl": { "type": "string", "maxLength": 2000 },
+        "detectedIssue": { "type": "string", "maxLength": 200 },
+        "confidence": { "type": "number" },
+        "riskLevel": { "type": "string", "maxLength": 20 },
+        "farmHealthScore": { "type": "number" },
+        "cause": { "type": "string", "maxLength": 1000 },
+        "fertilizerSuggestion": { "type": "string", "maxLength": 1000 },
+        "aiNotes": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reportId", "userId", "cropType", "detectedIssue"]
+    },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "Farmer community Q&A discussion post",
+      "type": "object",
+      "properties": {
+        "postId": { "type": "string", "maxLength": 128 },
+        "authorId": { "type": "string", "maxLength": 128 },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "authorLocation": { "type": "string", "maxLength": 100 },
+        "authorAvatar": { "type": "string", "maxLength": 500 },
+        "question": { "type": "string", "maxLength": 1000 },
+        "cropContext": { "type": "string", "maxLength": 100 },
+        "imageUrl": { "type": "string", "maxLength": 2000 },
+        "likesCount": { "type": "number" },
+        "repliesCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["postId", "authorId", "authorName", "question"]
+    },
+    "PostReply": {
+      "title": "PostReply",
+      "description": "Reply to a community discussion post",
+      "type": "object",
+      "properties": {
+        "replyId": { "type": "string", "maxLength": 128 },
+        "postId": { "type": "string", "maxLength": 128 },
+        "authorId": { "type": "string", "maxLength": 128 },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "isExpert": { "type": "boolean" },
+        "text": { "type": "string", "maxLength": 1000 },
+        "likes": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["replyId", "postId", "authorId", "authorName", "text"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores profile settings and user information"
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/CropDiagnosisReport" },
+      "description": "Stores crop AI disease diagnosis history for users"
+    },
+    "/community_posts/{postId}": {
+      "schema": { "$ref": "#/entities/CommunityPost" },
+      "description": "Community posts and farmer discussions"
+    },
+    "/community_posts/{postId}/replies/{replyId}": {
+      "schema": { "$ref": "#/entities/PostReply" },
+      "description": "Replies to a specific community post"
+    }
+  }
+}

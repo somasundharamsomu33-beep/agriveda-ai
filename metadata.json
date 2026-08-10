@@ -1,0 +1,11 @@
+{
+  "name": "AgriVeda AI",
+  "description": "Ancient Farming Wisdom Meets Modern AI - AI Crop Diagnosis, Voice Assistant in Local Languages, Weather Alerts, Market Insights, Smart Crop Calendar, and Agri Community.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

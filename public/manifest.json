@@ -1,0 +1,22 @@
+{
+  "short_name": "AgriVeda",
+  "name": "AgriVeda AI - Offline Rural Farming Assistant",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=192&q=80",
+      "type": "image/jpeg",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=512&q=80",
+      "type": "image/jpeg",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait",
+  "description": "AI-Powered Crop Doctor & Mandi Price Advisory for Indian Farmers with Offline Support"
+}

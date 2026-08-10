@@ -1,0 +1,911 @@
+import React, { useState } from 'react';
+import {
+  Sun, CloudSun, CloudRain, Droplets, ShieldAlert, TrendingUp, TrendingDown,
+  Camera, Mic, ChevronRight, Activity, CalendarCheck, Sparkles, CheckCircle2,
+  Clock, AlertCircle, Sprout, ShieldCheck, Zap, RefreshCw, MapPin, Thermometer, Wind,
+  BarChart2, LineChart as LineChartIcon, Layers
+} from 'lucide-react';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Area,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
+import { UserProfile, CropDiagnosisReport, ActiveTab } from '../types';
+import { translations, sampleCropImages, sampleWeather } from '../data/mockData';
+import { WeeklyAgriTipCard } from './WeeklyAgriTipCard';
+
+interface DashboardViewProps {
+  profile: UserProfile;
+  setActiveTab: (tab: ActiveTab) => void;
+  onSelectReport: (report: CropDiagnosisReport) => void;
+  latestReport?: CropDiagnosisReport | null;
+}
+
+export interface SmartActionItem {
+  id: string;
+  title: string;
+  category: 'Irrigation' | 'Fertilization' | 'Pest Control' | 'Harvest';
+  priority: 'HIGH' | 'MEDIUM' | 'NORMAL';
+  dueDate: string;
+  bestTime: string;
+  fieldPlot: string;
+  cropPhase: string;
+  aiReason: string;
+  completed: boolean;
+  snoozedUntil?: string;
+}
+
+export const DashboardView: React.FC<DashboardViewProps> = ({
+  profile,
+  setActiveTab,
+  onSelectReport,
+  latestReport
+}) => {
+  const t = translations[profile.language] || translations.en;
+
+  // Initial Smart Action Items based on local crop calendar and current conditions
+  const [actions, setActions] = useState<SmartActionItem[]>([
+    {
+      id: 'action-1',
+      title: 'Deep Drip Irrigation & Moisture Boost',
+      category: 'Irrigation',
+      priority: 'HIGH',
+      dueDate: 'Today (31 Jul)',
+      bestTime: '4:30 PM - 6:00 PM (Cooler Hours)',
+      fieldPlot: `${profile.primaryCrop || 'Tomato'} • Field Plot 1`,
+      cropPhase: 'Day 28 • Flowering & Fruit Set Stage',
+      aiReason: 'High heat forecast tomorrow (33°C). Pre-wet soil root zone to protect early blossom set.',
+      completed: false
+    },
+    {
+      id: 'action-2',
+      title: 'NPK 19:19:19 + Zinc Boron Foliar Spray',
+      category: 'Fertilization',
+      priority: 'HIGH',
+      dueDate: 'Tomorrow (01 Aug)',
+      bestTime: 'Early Morning (7:00 AM - 9:00 AM)',
+      fieldPlot: `${profile.primaryCrop || 'Tomato'} • Nursery & Main Bed`,
+      cropPhase: 'Day 29 • Vegetative Growth Peak',
+      aiReason: 'Scheduled local crop calendar recommendation for rapid canopy & root establishment.',
+      completed: false
+    },
+    {
+      id: 'action-3',
+      title: 'Preventative Neem Seed Kernel Spray (5%)',
+      category: 'Pest Control',
+      priority: 'MEDIUM',
+      dueDate: 'In 2 Days (02 Aug)',
+      bestTime: 'Evening after dew dries',
+      fieldPlot: `${profile.primaryCrop || 'Tomato'} • North Ridge`,
+      cropPhase: 'Day 30 • Active Foliage Phase',
+      aiReason: 'Preventative barrier against thrips & whiteflies before weekend rainfall.',
+      completed: false
+    },
+    {
+      id: 'action-4',
+      title: 'Breaker-Stage Fruit Inspection & Selective Harvest',
+      category: 'Harvest',
+      priority: 'NORMAL',
+      dueDate: 'In 4 Days (04 Aug)',
+      bestTime: 'Morning 6:00 AM',
+      fieldPlot: `${profile.primaryCrop || 'Tomato'} • Maturity Zone B`,
+      cropPhase: 'Pre-Harvest Pick',
+      aiReason: 'Vellore Mandi prices trending UP (+16.6%). Harvest pink blush tomatoes for highest market return.',
+      completed: false
+    }
+  ]);
+
+  const [activePriorityFilter, setActivePriorityFilter] = useState<'ALL' | 'HIGH' | 'PENDING'>('ALL');
+
+  // 6-Month Historical Crop Growth & Health Data for Recharts visualization
+  const cropGrowthHistory = [
+    { month: 'Feb', yield: 18.5, healthScore: 76, soilMoisture: 62 },
+    { month: 'Mar', yield: 21.0, healthScore: 82, soilMoisture: 68 },
+    { month: 'Apr', yield: 24.5, healthScore: 86, soilMoisture: 74 },
+    { month: 'May', yield: 22.0, healthScore: 79, soilMoisture: 61 },
+    { month: 'Jun', yield: 28.0, healthScore: 90, soilMoisture: 80 },
+    { month: 'Jul', yield: 32.5, healthScore: 95, soilMoisture: 85 }
+  ];
+
+  const [activeChartMetric, setActiveChartMetric] = useState<'all' | 'yield' | 'health'>('all');
+
+  // Farm health score from report or default 85
+  const healthScore = latestReport?.farmHealthScore || 85;
+
+  const toggleActionComplete = (id: string) => {
+    setActions(prev =>
+      prev.map(act => (act.id === id ? { ...act, completed: !act.completed } : act))
+    );
+  };
+
+  const snoozeAction = (id: string) => {
+    setActions(prev =>
+      prev.map(act => (act.id === id ? { ...act, dueDate: 'Snoozed +1 Day' } : act))
+    );
+  };
+
+  const filteredActions = actions.filter(act => {
+    if (activePriorityFilter === 'HIGH') return act.priority === 'HIGH' && !act.completed;
+    if (activePriorityFilter === 'PENDING') return !act.completed;
+    return true;
+  });
+
+  const completedCount = actions.filter(a => a.completed).length;
+
+  return (
+    <div className="space-y-5 pb-20 animate-in fade-in">
+      
+      {/* Top Banner & Greeting - Professional Dark Navy Banner */}
+      <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-sm border border-slate-800 relative overflow-hidden">
+        {/* Background decorative subtle accent */}
+        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-600/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2.5 py-0.5 rounded-md border border-blue-500/20">
+                {profile.farmId}
+              </span>
+              <span className="text-xs text-slate-400 font-medium">
+                {profile.location}
+              </span>
+            </div>
+            <h2 className="text-2xl font-bold mt-1 text-white tracking-tight">
+              {t.goodMorning}, {profile.name}! 👋
+            </h2>
+            <p className="text-xs text-slate-300 mt-0.5 font-medium">
+              Primary Crop: <span className="font-bold text-blue-400">{profile.primaryCrop}</span> ({profile.farmSizeAcres} Acres)
+            </p>
+          </div>
+
+          <button
+            onClick={() => setActiveTab('profile')}
+            className="w-11 h-11 rounded-xl border border-slate-700 overflow-hidden shadow-sm shrink-0 hover:border-blue-400 transition-colors"
+          >
+            <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
+          </button>
+        </div>
+      </div>
+
+      {/* Farm Health Gauge Card */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {/* Circular Score Gauge */}
+          <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+              <path
+                className="text-slate-100"
+                strokeWidth="3.5"
+                stroke="currentColor"
+                fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+              <path
+                className="text-blue-600 transition-all duration-1000 ease-out"
+                strokeDasharray={`${healthScore}, 100`}
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                stroke="currentColor"
+                fill="none"
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+            </svg>
+            <div className="absolute text-center">
+              <span className="text-lg font-bold text-slate-900">{healthScore}</span>
+              <span className="text-[9px] text-slate-400 font-bold block leading-none">/100</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900">{t.farmHealthScore}</h3>
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-100 text-emerald-800">
+                {healthScore >= 80 ? t.veryGood : 'Requires Attention'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Based on recent crop scans, irrigation balance, and pest resistance levels.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveTab('scan')}
+          className="w-full sm:w-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors shrink-0 border border-blue-200/60"
+        >
+          <Activity className="w-3.5 h-3.5 text-blue-600" />
+          <span>Re-evaluate Health</span>
+        </button>
+      </div>
+
+      {/* Mini Weather Summary Card - 3-Day Regional Forecast & Temperature Trend */}
+      <div className="bg-white rounded-2xl p-4.5 shadow-2xs border border-slate-200 space-y-3.5">
+        {/* Card Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200/60">
+              <Sun className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  3-Day Regional Forecast
+                </h3>
+                <span className="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60 flex items-center gap-1">
+                  <MapPin className="w-2.5 h-2.5" />
+                  {profile.location.split(',')[0]}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Live microclimate trend &amp; temperature forecast for {profile.location}
+              </p>
+            </div>
+          </div>
+
+          {/* Temp Trend Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-lg border border-amber-200/70 text-[11px] font-bold text-amber-800">
+            <TrendingDown className="w-3.5 h-3.5 text-amber-600" />
+            <span>32°C → 29°C (-3°C Drop)</span>
+          </div>
+        </div>
+
+        {/* 3-Day Forecast Cards Row */}
+        <div className="grid grid-cols-3 gap-2.5">
+          {/* Day 1: Today */}
+          <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/70 flex flex-col items-center text-center hover:bg-slate-50 transition-colors">
+            <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Today</span>
+            <div className="my-1.5 p-2 bg-amber-100/60 rounded-full text-amber-600">
+              <Sun className="w-5 h-5 text-amber-500" />
+            </div>
+            <span className="text-base font-extrabold text-slate-900">32°C</span>
+            <span className="text-[10px] font-semibold text-amber-700 mt-0.5">Sunny &amp; Warm</span>
+            <span className="text-[9px] font-medium text-slate-500 mt-1 flex items-center gap-0.5">
+              <Droplets className="w-2.5 h-2.5 text-blue-500" /> 60% Hum
+            </span>
+          </div>
+
+          {/* Day 2: Tomorrow */}
+          <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/70 flex flex-col items-center text-center hover:bg-slate-50 transition-colors">
+            <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Fri (Tomorrow)</span>
+            <div className="my-1.5 p-2 bg-sky-100/60 rounded-full text-sky-600">
+              <CloudSun className="w-5 h-5 text-sky-600" />
+            </div>
+            <span className="text-base font-extrabold text-slate-900">31°C</span>
+            <span className="text-[10px] font-semibold text-sky-700 mt-0.5">Partly Cloudy</span>
+            <span className="text-[9px] font-medium text-slate-500 mt-1 flex items-center gap-0.5">
+              <CloudRain className="w-2.5 h-2.5 text-blue-500" /> 5mm Rain
+            </span>
+          </div>
+
+          {/* Day 3: Saturday */}
+          <div className="bg-blue-50/60 rounded-xl p-3 border border-blue-200/80 flex flex-col items-center text-center relative overflow-hidden">
+            <span className="text-[10px] font-bold uppercase text-blue-800 tracking-wider">Sat (Day 3)</span>
+            <div className="my-1.5 p-2 bg-blue-100 rounded-full text-blue-600">
+              <CloudRain className="w-5 h-5 text-blue-600" />
+            </div>
+            <span className="text-base font-extrabold text-slate-900">29°C</span>
+            <span className="text-[10px] font-bold text-blue-700 mt-0.5">Moderate Rain</span>
+            <span className="text-[9px] font-bold text-blue-800 bg-blue-100/80 px-1.5 py-0.5 rounded-md mt-1">
+              28mm Rainfall
+            </span>
+          </div>
+        </div>
+
+        {/* Temperature Trend Bar & Farming Advisory */}
+        <div className="pt-1 border-t border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-medium text-slate-600 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200/60">
+            <div className="flex items-center gap-2">
+              <Thermometer className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="text-slate-700">
+                <strong className="text-slate-900 font-bold">Temperature Trend:</strong> 32°C → 31°C → 29°C (-3°C drop before weekend shower)
+              </span>
+            </div>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-md self-start sm:self-auto shrink-0">
+              <span>🌧️ Hold spray on Saturday</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Today's Overview Grid */}
+      <div>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            {t.todaysOverview}
+          </h3>
+          <span className="text-[10px] text-slate-400 font-medium">Live Synced</span>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          
+          {/* Weather Card */}
+          <div
+            onClick={() => setActiveTab('calendar')}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col justify-between hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+          >
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-semibold text-slate-500">{t.weather}</span>
+              <div className="p-1 rounded-md bg-amber-50 text-amber-600">
+                <Sun className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-xl font-bold text-slate-900">32°C</p>
+              <p className="text-[11px] font-medium text-amber-700">Sunny & Clear</p>
+            </div>
+          </div>
+
+          {/* Irrigation Card */}
+          <div
+            onClick={() => setActiveTab('calendar')}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col justify-between hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+          >
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-semibold text-slate-500">{t.irrigation}</span>
+              <div className="p-1 rounded-md bg-blue-50 text-blue-600">
+                <Droplets className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-xs font-bold text-slate-900">Recommended</p>
+              <p className="text-[11px] font-medium text-blue-600">Today 4:30 PM</p>
+            </div>
+          </div>
+
+          {/* Disease Risk Card */}
+          <div
+            onClick={() => setActiveTab('scan')}
+            className="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col justify-between hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
+          >
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-xs font-semibold text-slate-500">{t.diseaseRisk}</span>
+              <div className="p-1 rounded-md bg-emerald-50 text-emerald-600">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-xl font-bold text-slate-900">Low</p>
+              <p className="text-[11px] font-medium text-emerald-700">No Outbreak</p>
+            </div>
+          </div>
+
+          {/* Market Price Card */}
+          <div
+            onClick={() => setActiveTab('market')}
+            className="bg-slate-900 text-white border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between hover:border-slate-700 hover:shadow-sm transition-all cursor-pointer"
+          >
+            <div className="flex items-center justify-between text-slate-300">
+              <span className="text-xs font-semibold text-slate-400">{t.marketPrice}</span>
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="mt-3">
+              <p className="text-xl font-bold text-amber-400">₹35<span className="text-xs font-normal text-slate-300">/kg</span></p>
+              <p className="text-[10px] font-bold text-slate-300 flex items-center gap-1">
+                <span className="text-emerald-400">▲ +16.6%</span> Tomato
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Quick Action Buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => setActiveTab('scan')}
+          className="p-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transform active:scale-98 transition-all"
+        >
+          <Camera className="w-4 h-4 text-white" />
+          <span>{t.scanCrop}</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('assistant')}
+          className="p-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transform active:scale-98 transition-all border border-slate-800"
+        >
+          <Mic className="w-4 h-4 text-blue-400" />
+          <span>{t.voiceAI}</span>
+        </button>
+      </div>
+
+      {/* Weekly Agri-Tip Card (Gemini AI Seasonal Advisory) */}
+      <WeeklyAgriTipCard
+        location={profile.location}
+        primaryCrop={profile.primaryCrop}
+        language={profile.language}
+        onAskAssistant={() => setActiveTab('assistant')}
+      />
+
+      {/* 6-MONTH CROP GROWTH & YIELD HISTORY CHART (RECHARTS) */}
+      <div className="bg-white rounded-2xl p-4.5 sm:p-5 shadow-2xs border border-slate-200 space-y-4">
+        {/* Header & Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-200/80 shadow-2xs">
+              <BarChart2 className="w-5 h-5 text-emerald-700" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900">
+                  Crop Growth &amp; Yield History
+                </h3>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Last 6 Months
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Harvest Yield (Qtl/Acre) &amp; Plot Health Index trajectory
+              </p>
+            </div>
+          </div>
+
+          {/* Metric Selector Tabs */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl self-start sm:self-auto border border-slate-200/80">
+            <button
+              onClick={() => setActiveChartMetric('all')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                activeChartMetric === 'all'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All Metrics
+            </button>
+            <button
+              onClick={() => setActiveChartMetric('yield')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                activeChartMetric === 'yield'
+                  ? 'bg-emerald-700 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Yield Only
+            </button>
+            <button
+              onClick={() => setActiveChartMetric('health')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all ${
+                activeChartMetric === 'health'
+                  ? 'bg-blue-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Health Index
+            </button>
+          </div>
+        </div>
+
+        {/* Highlight Quick Stats Chips */}
+        <div className="grid grid-cols-3 gap-2 bg-slate-50/80 p-3 rounded-xl border border-slate-200/70 text-center">
+          <div>
+            <span className="text-[9px] font-bold text-slate-400 uppercase block">Jul Peak Yield</span>
+            <span className="text-sm font-black text-emerald-700">32.5 <span className="text-[10px] font-normal">Qtl/Acre</span></span>
+          </div>
+          <div className="border-x border-slate-200/80 px-1">
+            <span className="text-[9px] font-bold text-slate-400 uppercase block">6-Mo Avg Health</span>
+            <span className="text-sm font-black text-blue-700">86% <span className="text-[10px] font-normal">Score</span></span>
+          </div>
+          <div>
+            <span className="text-[9px] font-bold text-slate-400 uppercase block">Total Output</span>
+            <span className="text-sm font-black text-slate-900">+75% <span className="text-[10px] text-emerald-600 font-bold">▲ Growth</span></span>
+          </div>
+        </div>
+
+        {/* Recharts Area/Line Chart */}
+        <div className="w-full h-56 pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={cropGrowthHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                </linearGradient>
+                <linearGradient id="healthGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0.05}/>
+                </linearGradient>
+              </defs>
+
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="month" tickLine={false} axisLine={{ stroke: '#cbd5e1' }} tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600 }} />
+              
+              <YAxis yAxisId="left" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#64748b' }} domain={[0, 40]} />
+              <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: '#64748b' }} domain={[50, 100]} />
+
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-slate-900 text-white p-3 rounded-xl shadow-xl border border-slate-700 text-xs space-y-1">
+                        <p className="font-extrabold text-emerald-400 uppercase tracking-wider text-[10px]">
+                          {label} 2026 Performance
+                        </p>
+                        {payload.map((entry: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between gap-3 text-[11px] font-bold">
+                            <span style={{ color: entry.color }}>{entry.name}:</span>
+                            <span className="text-white">
+                              {entry.value} {entry.name.includes('Yield') ? 'Qtl/Acre' : '%'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+
+              <Legend
+                wrapperStyle={{ paddingTop: 10, fontSize: 11, fontWeight: 600 }}
+                iconType="circle"
+              />
+
+              {(activeChartMetric === 'all' || activeChartMetric === 'yield') && (
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="yield"
+                  name="Crop Yield (Qtl/Acre)"
+                  stroke="#059669"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#yieldGradient)"
+                />
+              )}
+
+              {(activeChartMetric === 'all' || activeChartMetric === 'health') && (
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="healthScore"
+                  name="Health Score (%)"
+                  stroke="#2563eb"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: '#2563eb', strokeWidth: 2, stroke: '#ffffff' }}
+                  activeDot={{ r: 6 }}
+                />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Insight Caption */}
+        <div className="flex items-center gap-2 p-2.5 bg-emerald-50/70 rounded-xl border border-emerald-200/60 text-[11px] font-medium text-emerald-950">
+          <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>
+            <strong>AI Growth Analysis:</strong> Your plot yield increased consistently from 18.5 to 32.5 Qtl/Acre with balanced NPK split dosing &amp; early disease scanning.
+          </span>
+        </div>
+      </div>
+
+      {/* PRIORITIZED SMART ACTION CARDS SECTION */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        
+        {/* Section Header */}
+        <div className="px-5 py-3.5 bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                <span>Smart Action Cards</span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-blue-600 text-white font-extrabold">
+                  {actions.filter(a => !a.completed).length} Tasks
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-300">
+                AI Prioritized reminders tailored to local crop calendar &amp; weather
+              </p>
+            </div>
+          </div>
+
+          {/* Priority Filters */}
+          <div className="flex items-center gap-1.5 self-start sm:self-auto bg-slate-800/80 p-1 rounded-lg border border-slate-700">
+            <button
+              onClick={() => setActivePriorityFilter('ALL')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${
+                activePriorityFilter === 'ALL'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              All ({actions.length})
+            </button>
+            <button
+              onClick={() => setActivePriorityFilter('HIGH')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${
+                activePriorityFilter === 'HIGH'
+                  ? 'bg-red-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Urgent 🔥
+            </button>
+            <button
+              onClick={() => setActivePriorityFilter('PENDING')}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-colors ${
+                activePriorityFilter === 'PENDING'
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Pending ({actions.length - completedCount})
+            </button>
+          </div>
+        </div>
+
+        {/* Action Cards List */}
+        <div className="p-4 space-y-3">
+          {filteredActions.length === 0 ? (
+            <div className="text-center py-6 text-slate-500">
+              <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+              <p className="text-xs font-bold text-slate-800">All prioritized farm tasks completed!</p>
+              <p className="text-[11px] text-slate-500">Your crop is in optimal health according to the calendar.</p>
+            </div>
+          ) : (
+            filteredActions.map((action) => {
+              const isHigh = action.priority === 'HIGH';
+              const isDone = action.completed;
+
+              return (
+                <div
+                  key={action.id}
+                  className={`rounded-xl p-4 border transition-all relative overflow-hidden ${
+                    isDone
+                      ? 'bg-slate-50/80 border-slate-200 opacity-70'
+                      : isHigh
+                      ? 'bg-amber-50/40 border-amber-300 shadow-sm'
+                      : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
+                  }`}
+                >
+                  {/* Left priority accent indicator */}
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1.5 ${
+                      isDone
+                        ? 'bg-slate-300'
+                        : isHigh
+                        ? 'bg-amber-500'
+                        : action.category === 'Irrigation'
+                        ? 'bg-blue-500'
+                        : action.category === 'Fertilization'
+                        ? 'bg-emerald-500'
+                        : 'bg-purple-500'
+                    }`}
+                  />
+
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pl-1">
+                    
+                    {/* Content Section */}
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      
+                      {/* Top Badges */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Category Badge */}
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wide ${
+                            action.category === 'Irrigation'
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : action.category === 'Fertilization'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : action.category === 'Pest Control'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                              : 'bg-purple-100 text-purple-800 border border-purple-200'
+                          }`}
+                        >
+                          {action.category === 'Irrigation' && <Droplets className="w-3 h-3" />}
+                          {action.category === 'Fertilization' && <Sprout className="w-3 h-3" />}
+                          {action.category === 'Pest Control' && <ShieldCheck className="w-3 h-3" />}
+                          {action.category === 'Harvest' && <TrendingUp className="w-3 h-3" />}
+                          {action.category}
+                        </span>
+
+                        {/* Priority Badge */}
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            isHigh
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : action.priority === 'MEDIUM'
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {isHigh ? '🔥 High Priority' : `${action.priority} Priority`}
+                        </span>
+
+                        {/* Plot / Field info */}
+                        <span className="text-[10px] text-slate-500 font-semibold truncate">
+                          {action.fieldPlot}
+                        </span>
+                      </div>
+
+                      {/* Action Title */}
+                      <h4 className={`text-xs sm:text-sm font-bold ${isDone ? 'line-through text-slate-500' : 'text-slate-900'}`}>
+                        {action.title}
+                      </h4>
+
+                      {/* Schedule details & AI reason */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600 font-medium">
+                        <span className="flex items-center gap-1 font-bold text-slate-800">
+                          <Clock className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Due: {action.dueDate}</span>
+                        </span>
+                        <span className="text-slate-500 font-normal">
+                          Best Window: <strong className="text-slate-700">{action.bestTime}</strong>
+                        </span>
+                      </div>
+
+                      <div className="p-2 rounded-lg bg-slate-100/80 border border-slate-200/80 text-[11px] text-slate-700 leading-snug font-medium flex items-start gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                        <span>
+                          <strong>AI Advisory Reason:</strong> {action.aiReason}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex sm:flex-col items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <button
+                        onClick={() => toggleActionComplete(action.id)}
+                        className={`w-full sm:w-auto px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm ${
+                          isDone
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{isDone ? 'Completed' : 'Mark Done'}</span>
+                      </button>
+
+                      {!isDone && (
+                        <button
+                          onClick={() => snoozeAction(action.id)}
+                          className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Snooze</span>
+                        </button>
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer Link */}
+        <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-[11px] text-slate-500 font-medium">
+            Based on Tamil Nadu Agriculture Advisory &amp; Local Mandi Cycle
+          </span>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+          >
+            <span>Full Crop Calendar</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+      </div>
+
+      {/* Recent Diagnosis & Advisory Preview */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-5 py-3.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Recent Crop Scan Diagnosis
+            </h3>
+          </div>
+          <button
+            onClick={() => setActiveTab('scan')}
+            className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-0.5"
+          >
+            <span>View All</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="p-4">
+          <div
+            onClick={() => {
+              if (latestReport) {
+                onSelectReport(latestReport);
+              } else {
+                const demo = sampleCropImages[0];
+                onSelectReport({
+                  id: 'demo-1',
+                  timestamp: 'Today, 9:15 AM',
+                  cropType: demo.crop,
+                  soilType: 'Red Soil',
+                  location: profile.location,
+                  imageUrl: demo.url,
+                  detectedIssue: demo.issue,
+                  confidence: 94,
+                  riskLevel: demo.riskLevel,
+                  farmHealthScore: demo.healthScore,
+                  cause: demo.cause,
+                  treatment: demo.treatment,
+                  prevention: demo.prevention,
+                  fertilizerSuggestion: demo.fertilizer
+                });
+              }
+            }}
+            className="bg-slate-50 hover:bg-blue-50/40 rounded-xl p-3.5 border border-slate-200 transition-colors cursor-pointer flex items-center gap-3"
+          >
+            <img
+              src={latestReport?.imageUrl || sampleCropImages[0].url}
+              alt="Scanned crop"
+              className="w-16 h-16 rounded-lg object-cover shrink-0 border border-slate-200"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  {latestReport?.cropType || 'Tomato'} • {latestReport?.timestamp || 'Today'}
+                </span>
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-red-100 text-red-700">
+                  {latestReport?.riskLevel || 'High Risk'}
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-slate-900 truncate mt-0.5">
+                {latestReport?.detectedIssue || 'Early Blight Disease (Alternaria solani)'}
+              </h4>
+              <p className="text-[11px] text-slate-600 line-clamp-1 mt-0.5">
+                Confidence: <span className="font-bold text-blue-600">{latestReport?.confidence || 92}%</span> — Recommended Fungicide Spray & Leaf Pruning
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Upcoming Farm Calendar Tasks */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-5 py-3.5 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4 text-blue-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Next Smart Crop Schedule
+            </h3>
+          </div>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className="text-xs font-bold text-blue-600 hover:underline"
+          >
+            {t.cropCalendar}
+          </button>
+        </div>
+
+        <div className="p-4">
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+            <div>
+              <span className="text-[10px] font-bold text-blue-700 uppercase px-2 py-0.5 bg-blue-100 rounded-md">
+                15 JUN • Day 15
+              </span>
+              <p className="text-xs font-bold text-slate-800 mt-1.5">
+                Basal Fertilizer & Transplanting
+              </p>
+              <p className="text-[11px] text-slate-600">
+                Apply Neem cake @ 100kg/acre + NPK 50:50:50 kg/acre
+              </p>
+            </div>
+            <button
+              onClick={() => setActiveTab('calendar')}
+              className="px-3 py-1 bg-slate-900 text-white font-bold text-xs rounded-lg hover:bg-slate-800 shadow-sm"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+};

@@ -12,17 +12,20 @@ import { WeatherView } from './components/WeatherView';
 import { MarketInsightsView } from './components/MarketInsightsView';
 import { CommunityView } from './components/CommunityView';
 import { ProfileView } from './components/ProfileView';
+import { MarketplaceView } from './components/MarketplaceView';
+import { SeedBankView } from './components/SeedBankView';
 
 import { ActiveTab, CropDiagnosisReport } from './types';
 import { useFirebase } from './context/FirebaseContext';
-import { Bell, X, ShieldAlert } from 'lucide-react';
+import { Bell, X, ShieldAlert, Bot, Sparkles } from 'lucide-react';
 
 export default function App() {
-  const { profile, setProfile, savedReports, saveReport } = useFirebase();
+  const { user, profile, setProfile, savedReports, saveReport } = useFirebase();
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [assistantSeedQuery, setAssistantSeedQuery] = useState<string | undefined>(undefined);
 
   const [activeReport, setActiveReport] = useState<CropDiagnosisReport | null>(null);
 
@@ -71,7 +74,18 @@ export default function App() {
         )}
 
         {activeTab === 'assistant' && (
-          <VoiceAssistantView profile={profile} />
+          <VoiceAssistantView profile={profile} initialQuery={assistantSeedQuery} />
+        )}
+
+        {activeTab === 'seedbank' && (
+          <SeedBankView
+            profile={profile}
+            setActiveTab={setActiveTab}
+            onAskAssistantWithSeed={(seedName) => {
+              setAssistantSeedQuery(seedName);
+              setActiveTab('assistant');
+            }}
+          />
         )}
 
         {activeTab === 'calendar' && (
@@ -80,6 +94,10 @@ export default function App() {
 
         {activeTab === 'market' && (
           <MarketInsightsView profile={profile} />
+        )}
+
+        {activeTab === 'marketplace' && (
+          <MarketplaceView profile={profile} userId={user?.uid} />
         )}
 
         {activeTab === 'weather' && (
@@ -122,6 +140,7 @@ export default function App() {
         onClose={() => setShowAuthModal(false)}
         profile={profile}
         setProfile={setProfile}
+        setActiveTab={setActiveTab}
       />
 
       {/* Notifications Drawer */}
@@ -173,6 +192,21 @@ export default function App() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Floating AI Copilot Quick Assistant FAB */}
+      {activeTab !== 'assistant' && (
+        <button
+          onClick={() => setActiveTab('assistant')}
+          className="fixed bottom-20 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold px-4 py-3 rounded-full shadow-2xl hover:shadow-emerald-500/30 flex items-center gap-2 border border-emerald-400/40 hover:scale-105 active:scale-95 transition-all group animate-bounce"
+        >
+          <div className="relative">
+            <Bot className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping"></span>
+          </div>
+          <span className="text-xs font-black">AI Copilot</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
+        </button>
       )}
 
       {/* Bottom Navigation Bar */}

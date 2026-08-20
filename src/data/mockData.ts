@@ -1,4 +1,4 @@
-import { CropDiagnosisReport, MarketPriceItem, WeatherInfo, CropCalendar, CommunityPost, UserProfile } from '../types';
+import { CropDiagnosisReport, MarketPriceItem, WeatherInfo, CropCalendar, CommunityPost, UserProfile, SeedBankItem } from '../types';
 
 export const initialUserProfile: UserProfile = {
   name: 'Ravi Kumar',
@@ -10,6 +10,13 @@ export const initialUserProfile: UserProfile = {
   soilType: 'Red Loamy Soil',
   language: 'en',
   avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+  cropVariety: 'Arka Rakshak',
+  sowingDate: '01 June 2024',
+  cropAgeDays: 32,
+  irrigationMethod: 'Drip Irrigation',
+  seedVariety: 'Heirloom Nattu Thakkali',
+  seedBankName: 'Vellore Organic Farmers Seed Trust',
+  recentCropProblems: 'Minor leaf yellowing on lower branches'
 };
 
 export const sampleCropImages = [
@@ -350,6 +357,93 @@ export const sampleCommunityPosts: CommunityPost[] = [
   }
 ];
 
+export const sampleSeedBankItems: SeedBankItem[] = [
+  {
+    id: 'sb-1',
+    seedVariety: 'Seeraga Samba Heritage Paddy',
+    cropType: 'Paddy / Rice',
+    availableQuantityKg: 180,
+    seedBankLocation: 'Vellore Community Seed Vault, Tamil Nadu',
+    seedBankName: 'Vellore Organic Farmers Seed Trust',
+    storageInformation: 'Dry airtight clay urns layered with dried neem leaves and turmeric powder.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 45,
+      moisturePercent: 11.2
+    },
+    germinationRatePercent: 94,
+    preservationMethod: 'Traditional Neem & Clay Ash Layering',
+    contactPerson: 'K. Ramanathan (Seed Custodian)',
+    contactPhone: '+91 94432 10987',
+    image: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-2',
+    seedVariety: 'Country Tomato (Nattu Thakkali)',
+    cropType: 'Tomato',
+    availableQuantityKg: 45,
+    seedBankLocation: 'Dharmapuri Seed Exchange Center',
+    seedBankName: 'Dharmapuri Heirloom Preservation Hub',
+    storageInformation: 'Sun-dried seed pulp coated with fermented wood ash stored in sealed copper vessels.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 24,
+      humidityPercent: 40,
+      moisturePercent: 9.0
+    },
+    germinationRatePercent: 91,
+    preservationMethod: 'Traditional Cow-Dung & Ash Coating',
+    contactPerson: 'M. Lakshmi Ammal',
+    contactPhone: '+91 98421 55432',
+    image: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb231fc?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-3',
+    seedVariety: 'Drought Resistant Finger Millet (Kezhvaragu / Ragi)',
+    cropType: 'Millets',
+    availableQuantityKg: 320,
+    seedBankLocation: 'Salem Dryland Farming Collective',
+    seedBankName: 'Salem Millet & Heritage Vault',
+    storageInformation: 'Subterranean earthen grain granary lined with paddy husk and camphor.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 20,
+      humidityPercent: 38,
+      moisturePercent: 8.5
+    },
+    germinationRatePercent: 96,
+    preservationMethod: 'Underground Pit Granary Preservation',
+    contactPerson: 'P. Shanmugam',
+    contactPhone: '+91 97890 12345',
+    image: 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-4',
+    seedVariety: 'Guntur Native Red Chilli (Kanthari Type)',
+    cropType: 'Chilli',
+    availableQuantityKg: 60,
+    seedBankLocation: 'Guntur Spices Seed Bank, AP',
+    seedBankName: 'Andhra Indigenous Seed Savers',
+    storageInformation: 'Smoked dry pod preservation in jute sacks elevated above earthen soil.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 23,
+      humidityPercent: 42,
+      moisturePercent: 10.1
+    },
+    germinationRatePercent: 89,
+    preservationMethod: 'Smoked Pod Storage Method',
+    contactPerson: 'V. Venkateswarlu',
+    contactPhone: '+91 91234 56789',
+    image: 'https://images.unsplash.com/photo-1591857177580-dc82b9ac4e1e?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  }
+];
+
 export const translations = {
   en: {
     welcomeTitle: 'AgriVeda AI',
@@ -375,6 +469,11 @@ export const translations = {
     marketPrice: 'Market Price',
     scanCrop: 'Scan Crop',
     voiceAI: 'Voice AI',
+    seedBank: 'Seed Bank',
+    seedBankTitle: 'Community Seed Bank',
+    seedBankSub: 'Preserving Native Heritage & Traditional Seeds',
+    availableSeeds: 'Available Seed Varieties',
+    requestExchange: 'Request Seed Exchange',
     analyzeCrop: 'Analyze Crop',
     diagnosisResult: 'Diagnosis Result',
     fullReport: 'Full Diagnostic Report',
@@ -385,7 +484,7 @@ export const translations = {
     saveReport: 'Save Report',
     viewFullReport: 'View Full Report',
     tapToSpeak: 'Tap to Speak',
-    askQuestion: 'Ask any crop question in your local language...',
+    askQuestion: 'Ask any crop, weather or seed question in your local language...',
     cropCalendar: 'Smart Crop Calendar',
     addReminder: 'Add Reminder',
     weatherAlerts: 'Weather & Farming Alerts',
@@ -426,6 +525,11 @@ export const translations = {
     marketPrice: 'சந்தை விலை',
     scanCrop: 'பயிரை ஸ்கேன் செய்க',
     voiceAI: 'குரல் உதவி',
+    seedBank: 'விதை வங்கி',
+    seedBankTitle: 'சமூக விதை வங்கி',
+    seedBankSub: 'பாரம்பரிய நாட்டு விதைகள் பாதுகாப்பு மையம்',
+    availableSeeds: 'கிடைக்கும் பாரம்பரிய விதைகள்',
+    requestExchange: 'விதை பரிமாற்ற கோரிக்கை',
     analyzeCrop: 'பயிரை பகுப்பாய்வு செய்க',
     diagnosisResult: 'நோய் கண்டறிதல் முடிவு',
     fullReport: 'முழுமையான அறிக்கை',
@@ -477,6 +581,11 @@ export const translations = {
     marketPrice: 'मंडी भाव',
     scanCrop: 'फसल स्कैन करें',
     voiceAI: 'वॉयस AI सहायक',
+    seedBank: 'बीज बैंक',
+    seedBankTitle: 'सामुदायिक बीज बैंक',
+    seedBankSub: 'पारंपरिक और देसी बीजों का संरक्षण केंद्र',
+    availableSeeds: 'उपलब्ध बीज किस्में',
+    requestExchange: 'बीज विनिमय अनुरोध',
     analyzeCrop: 'फसल का विश्लेषण करें',
     diagnosisResult: 'निदान परिणाम',
     fullReport: 'पूर्ण निदान रिपोर्ट',
@@ -528,6 +637,11 @@ export const translations = {
     marketPrice: 'మార్కెట్ ధర',
     scanCrop: 'పంటను స్కాన్ చేయండి',
     voiceAI: 'వాయిస్ AI',
+    seedBank: 'విత్తన బ్యాంకు',
+    seedBankTitle: 'కమ్యూనిటీ విత్తన బ్యాంకు',
+    seedBankSub: 'సాంప్రదాయ దేశీ విత్తనాల సంరక్షణ కేంద్రం',
+    availableSeeds: 'అందుబాటులో ఉన్న విత్తన రకాలు',
+    requestExchange: 'విత్తన మార్పిడి అభ్యర్థన',
     analyzeCrop: 'పంటను విశ్లేషించండి',
     diagnosisResult: 'వ్యాధి నిర్ధారణ ఫలితం',
     fullReport: 'పూర్తి నివేదిక',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Calendar, Camera, TrendingUp, Mic, Users, User } from 'lucide-react';
+import { Home, Calendar, Camera, ShoppingBasket, Mic, Users, User, Sprout } from 'lucide-react';
 import { ActiveTab, Language } from '../types';
 import { translations } from '../data/mockData';
 
@@ -19,8 +19,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const navItems = [
     { id: 'home' as ActiveTab, label: 'Home', icon: Home },
     { id: 'calendar' as ActiveTab, label: 'Calendar', icon: Calendar },
+    { id: 'seedbank' as ActiveTab, label: 'Seed Bank', icon: Sprout },
     { id: 'scan' as ActiveTab, label: 'Scan AI', icon: Camera, isCenter: true },
-    { id: 'market' as ActiveTab, label: 'Market', icon: TrendingUp },
     { id: 'assistant' as ActiveTab, label: 'Voice AI', icon: Mic },
     { id: 'community' as ActiveTab, label: 'Community', icon: Users },
     { id: 'profile' as ActiveTab, label: 'Profile', icon: User },

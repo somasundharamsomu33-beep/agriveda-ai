@@ -10,6 +10,89 @@ export interface UserProfile {
   soilType: string;
   language: Language;
   avatarUrl: string;
+  role?: UserRole;
+  plan?: 'free' | 'pro';
+  cropVariety?: string;
+  sowingDate?: string;
+  cropAgeDays?: number;
+  irrigationMethod?: string;
+  seedVariety?: string;
+  seedBankName?: string;
+  recentCropProblems?: string;
+}
+
+export type UserRole = 
+  | 'farmer' 
+  | 'vendor' 
+  | 'retail_vendor' 
+  | 'wholesale_vendor' 
+  | 'input_vendor' 
+  | 'agronomist' 
+  | 'business' 
+  | 'student';
+
+export type AgriIntentCategory =
+  | 'Crop Management'
+  | 'Disease / Pest'
+  | 'Soil'
+  | 'Fertilizer'
+  | 'Irrigation'
+  | 'Weather'
+  | 'Crop Calendar'
+  | 'Seed Information'
+  | 'Seed Bank'
+  | 'Market / Mandi'
+  | 'Agricultural Expert'
+  | 'Vendor / Product'
+  | 'B2B'
+  | 'B2C'
+  | 'General Agricultural Question';
+
+export interface SeedBankItem {
+  id: string;
+  seedVariety: string;
+  cropType: string;
+  availableQuantityKg: number;
+  seedBankLocation: string;
+  seedBankName: string;
+  storageInformation: string;
+  isAvailable: boolean;
+  storageCondition: {
+    tempCelsius: number;
+    humidityPercent: number;
+    moisturePercent: number;
+  };
+  germinationRatePercent: number;
+  preservationMethod: string;
+  contactPerson: string;
+  contactPhone: string;
+  image?: string;
+  isHeritageVariety?: boolean;
+}
+
+export interface MarketplaceProduct {
+  id: string;
+  name: string;
+  category: 'Vegetables' | 'Fruits' | 'Spices' | 'Dry goods' | 'Fertilizer' | 'Seeds' | 'Equipment';
+  seller: string;
+  location: string;
+  price: number;
+  retailPrice?: number;
+  unit: string;
+  availableQty: number;
+  rating: number;
+  image: string;
+  certified?: boolean;
+  subsidy?: string;
+}
+
+export interface PriceQuote {
+  id: string;
+  product: string;
+  quantity: string;
+  buyer: string;
+  quotedPrice: number;
+  status: 'Open' | 'Responded' | 'Accepted';
 }
 
 export interface CropScanInput {
@@ -111,8 +194,16 @@ export interface VoiceMessage {
   sender: 'user' | 'assistant';
   text: string;
   language: Language;
+  intentCategory?: AgriIntentCategory;
   audioUrl?: string;
+  attachedImage?: string;
   timestamp: string;
+  actionCard?: {
+    type: 'fertilizer' | 'weather' | 'market' | 'diagnosis' | 'seedbank' | 'crop_calendar';
+    title: string;
+    data: any;
+  };
+  suggestedFollowups?: string[];
 }
 
 export interface CommunityReply {
@@ -149,6 +240,8 @@ export type ActiveTab =
   | 'calendar'
   | 'scan'
   | 'market'
+  | 'marketplace'
   | 'assistant'
   | 'community'
+  | 'seedbank'
   | 'profile';

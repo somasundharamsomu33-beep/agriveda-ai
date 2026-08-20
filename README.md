@@ -106,3 +106,28 @@ PORT=5000
 JWT_SECRET="super-secret-production-key"
 GEMINI_API_KEY="AI_KEY_FROM_GOOGLE"
 ```
+# AgriVeda
+
+## Marketplace backend
+
+The marketplace uses Firebase Authentication and Cloud Firestore. The client API lives in `src/lib/marketplace.ts`; it supports listings, private quotes, vendor profiles and orders.
+
+### Firestore collections
+
+| Collection | Purpose |
+| --- | --- |
+| `users/{uid}` | User profile, role and preferences |
+| `vendor_profiles/{uid}` | Business details and vendor verification status |
+| `marketplace_listings/{id}` | Farmer, produce-vendor and farm-input listings |
+| `marketplace_quotes/{id}` | Private buyer-to-seller price negotiations |
+| `marketplace_orders/{id}` | Confirmed trade, delivery and order status |
+
+### Deploy securely
+
+1. Create a Firebase project and enable Email/Password and Google sign-in in Authentication.
+2. Replace `firebase-applet-config.json` with the Firebase web app configuration for that project.
+3. Deploy the rules in `firestore.rules` using `firebase deploy --only firestore:rules`.
+4. Verify a vendor’s business details through an admin-only Cloud Function or an admin dashboard before setting `vendor_profiles/{uid}.verificationStatus` to `approved`.
+5. For payments, KYC, subsidy eligibility and loan decisions, use verified bank/government APIs or a reviewed back-office process. Do not treat the app’s guidance text as an eligibility decision.
+
+The UI retains sample catalogue items until real `marketplace_listings` records are added. Once active records exist, the app automatically displays the Firestore catalogue.

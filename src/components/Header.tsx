@@ -136,10 +136,20 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
+            {/* Direct Sign In / Join Button */}
+            <button
+              onClick={onOpenAuth}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign In / Join</span>
+            </button>
+
             {/* User Profile Pill */}
             <button
               onClick={onOpenAuth}
-              className="flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium transition-all"
+              className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium transition-all"
+              title="View Profile & Switch Roles"
             >
               <img
                 src={profile.avatarUrl}
@@ -148,9 +158,8 @@ export const Header: React.FC<HeaderProps> = ({
               />
               <div className="hidden lg:block text-left">
                 <p className="font-bold text-white text-[11px] leading-tight">{profile.name}</p>
-                <p className="text-[10px] text-slate-400 font-normal leading-none">{profile.farmId}</p>
+                <p className="text-[10px] text-emerald-400 font-bold uppercase leading-none">{profile.role || 'Farmer'}</p>
               </div>
-              <User className="w-3.5 h-3.5 text-slate-400 lg:hidden" />
             </button>
 
           </div>

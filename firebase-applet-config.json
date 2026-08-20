@@ -1,4 +1,5 @@
 {
+  "apiKey": "AIzaSyFakeKeyForLocalDev123456789",
   "projectId": "agriveda-5df34",
   "authDomain": "agriveda-5df34.firebaseapp.com",
   "storageBucket": "agriveda-5df34.firebasestorage.app"

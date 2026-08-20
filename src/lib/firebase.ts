@@ -1,7 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer, enableIndexedDbPersistence } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+import rawFirebaseConfig from '../../firebase-applet-config.json';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyFakeKeyForLocalDev123456789",
+  ...rawFirebaseConfig,
+};
 
 const app = initializeApp(firebaseConfig);
 

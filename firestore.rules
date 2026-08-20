@@ -47,5 +47,42 @@ service cloud.firestore {
         allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
       }
     }
+
+    // Marketplace catalogue. Public read enables farmers and nearby customers to browse.
+    // Each seller can only create or manage their own listings.
+    match /marketplace_listings/{listingId} {
+      allow read: if resource.data.isActive == true || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.isActive is bool
+        && request.resource.data.price is number
+        && request.resource.data.availableQty is number;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    // Quotes are private to the buyer and the listing seller.
+    match /marketplace_quotes/{quoteId} {
+      allow create: if isSignedIn()
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.quotedPrice is number;
+      allow read: if isSignedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+      allow update: if isSignedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // An order remains visible only to its buyer and seller.
+    match /marketplace_orders/{orderId} {
+      allow create: if isSignedIn() && request.resource.data.buyerId == request.auth.uid;
+      allow read, update: if isSignedIn() && (resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // Vendors submit a profile; an admin must set verificationStatus to approved.
+    match /vendor_profiles/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.verificationStatus == 'pending';
+      allow update: if isOwner(userId) && request.resource.data.verificationStatus == resource.data.verificationStatus;
+      allow list, delete: if false;
+    }
   }
 }

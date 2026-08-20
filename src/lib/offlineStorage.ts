@@ -102,15 +102,12 @@ export function registerServiceWorker() {
         });
     });
   } else if ('serviceWorker' in navigator) {
-    // Also register in development to enable rural low-connectivity testing
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => {
-        console.log('[AgriVeda SW Dev] Registered successfully with scope:', reg.scope);
-      })
-      .catch((err) => {
-        console.warn('[AgriVeda SW Dev] Registration notice:', err);
-      });
+    // Unregister any stale service worker in development to allow Vite HMR and prevent blank screen
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (let registration of registrations) {
+        registration.unregister();
+      }
+    });
   }
 }
 

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sun, CloudSun, CloudRain, Droplets, ShieldAlert, TrendingUp, TrendingDown,
   Camera, Mic, ChevronRight, Activity, CalendarCheck, Sparkles, CheckCircle2,
   Clock, AlertCircle, Sprout, ShieldCheck, Zap, RefreshCw, MapPin, Thermometer, Wind,
-  BarChart2, LineChart as LineChartIcon, Layers, Store, Handshake, ShoppingBag, Users, Building2, Tractor
+  BarChart2, LineChart as LineChartIcon, Layers, Store, Handshake, ShoppingBag, Users, Building2, Tractor, Send, Tag, Plus
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -414,84 +415,130 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </button>
       </div>
 
-      {/* MULTI-ROLE B2B & B2C MARKETPLACE HUB WIDGET ON DASHBOARD */}
-      <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white rounded-3xl p-5 shadow-lg border border-slate-800 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+      {/* MULTI-ROLE B2B & B2C FRAMER MARKETPLACE DASHBOARD WIDGET */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white rounded-3xl p-5 shadow-xl border border-slate-800 space-y-4 relative overflow-hidden"
+      >
+        <div className="absolute -right-16 -top-16 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Header & Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3 relative z-10">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              <Store className="w-5 h-5" />
+            <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 backdrop-blur-md">
+              <Store className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-white">Live B2B &amp; B2C Agri Marketplace</h3>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <span>Framer Marketplace Live Hub</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </h3>
                 <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase bg-emerald-500 text-slate-950 rounded-full">
-                  Multi-Role Trade Active
+                  Verified Mandi Trade
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Direct Sourcing • Mandi Price Slabs • Bulk Sourcing RFQs</p>
+              <p className="text-xs text-slate-400 font-medium">Direct Grower Sourcing • Daily Mandi Spot Slabs • B2B Tonnage Pools</p>
             </div>
           </div>
 
-          <button
-            onClick={() => setActiveTab('market')}
-            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all self-start sm:self-auto"
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setActiveTab('marketplace')}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all self-start sm:self-auto cursor-pointer"
           >
-            <span>Browse Full Marketplace</span>
+            <span>Launch Full Marketplace</span>
             <ChevronRight className="w-4 h-4" />
+          </motion.button>
+        </div>
+
+        {/* Live Ticker & Tonnage Pool Banner */}
+        <div className="bg-slate-900/90 p-3 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs relative z-10">
+          <div className="flex items-center gap-2 text-slate-300">
+            <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="font-bold text-amber-400">Live Mandi Ticker:</span>
+            <span className="text-slate-200">Paddy ₹24.5/kg • Ragi ₹42/kg • Tomato ₹28/kg • Chilli ₹185/kg</span>
+          </div>
+
+          <button 
+            onClick={() => setActiveTab('marketplace')}
+            className="text-[11px] font-extrabold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 shrink-0 cursor-pointer"
+          >
+            <span>🌾 Join 45T Paddy Pool (+18% Margin)</span>
+            <ArrowRight className="w-3 h-3" />
           </button>
         </div>
 
-        {/* Live Marketplace Highlights Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
-          <div 
-            onClick={() => setActiveTab('market')}
-            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-emerald-500/40 cursor-pointer transition-all"
+        {/* Framer Animated Produce Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1 relative z-10">
+          <motion.div 
+            whileHover={{ y: -3, scale: 1.01 }}
+            onClick={() => setActiveTab('marketplace')}
+            className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/90 space-y-2 hover:border-emerald-500/50 cursor-pointer transition-all shadow-md group"
           >
             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-              <span>🌾 Paddy Rice (Seeraga Samba)</span>
-              <span className="text-emerald-400">🏢 B2B Bulk</span>
+              <span className="flex items-center gap-1 text-slate-300">🌾 Seeraga Samba Rice</span>
+              <span className="text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-800/60">🏢 B2B Bulk</span>
             </div>
-            <p className="text-base font-black text-white">₹65 <span className="text-xs font-normal text-slate-400">/kg</span></p>
-            <p className="text-[10px] text-emerald-300 font-semibold">2,400 kg Available • Vellore FPC</p>
-          </div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-lg font-black text-white group-hover:text-emerald-400 transition-colors">₹65 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+              <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">+14.2%</span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-semibold">2,400 kg Available • Vellore FPC</p>
+          </motion.div>
 
-          <div 
-            onClick={() => setActiveTab('market')}
-            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-purple-500/40 cursor-pointer transition-all"
+          <motion.div 
+            whileHover={{ y: -3, scale: 1.01 }}
+            onClick={() => setActiveTab('marketplace')}
+            className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/90 space-y-2 hover:border-purple-500/50 cursor-pointer transition-all shadow-md group"
           >
             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-              <span>🌱 Organic Ragi Millet</span>
-              <span className="text-purple-400">🌐 B2B + B2C</span>
+              <span className="flex items-center gap-1 text-slate-300">🌱 Organic Finger Millet</span>
+              <span className="text-purple-400 bg-purple-950/80 px-2 py-0.5 rounded-md border border-purple-800/60">🌐 B2B + B2C</span>
             </div>
-            <p className="text-base font-black text-white">₹42 <span className="text-xs font-normal text-slate-400">/kg</span></p>
-            <p className="text-[10px] text-purple-300 font-semibold">1,800 kg Available • Salem Collective</p>
-          </div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-lg font-black text-white group-hover:text-purple-400 transition-colors">₹42 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+              <span className="text-[10px] font-extrabold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">+8.5%</span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-semibold">1,800 kg Available • Salem Pool</p>
+          </motion.div>
 
-          <div 
-            onClick={() => setActiveTab('market')}
-            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-blue-500/40 cursor-pointer transition-all"
+          <motion.div 
+            whileHover={{ y: -3, scale: 1.01 }}
+            onClick={() => setActiveTab('marketplace')}
+            className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/90 space-y-2 hover:border-blue-500/50 cursor-pointer transition-all shadow-md group"
           >
             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-              <span>🫘 Organic Green Gram (Moong)</span>
-              <span className="text-blue-400">🏢 B2B Tonnage</span>
+              <span className="flex items-center gap-1 text-slate-300">🫘 Organic Green Gram</span>
+              <span className="text-blue-400 bg-blue-950/80 px-2 py-0.5 rounded-md border border-blue-800/60">🏢 B2B Tonnage</span>
             </div>
-            <p className="text-base font-black text-white">₹95 <span className="text-xs font-normal text-slate-400">/kg</span></p>
-            <p className="text-[10px] text-blue-300 font-semibold">1,200 kg Available • Dharmapuri</p>
-          </div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-lg font-black text-white group-hover:text-blue-400 transition-colors">₹95 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+              <span className="text-[10px] font-extrabold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">Sun-Dried</span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-semibold">1,200 kg Available • Dharmapuri</p>
+          </motion.div>
 
-          <div 
-            onClick={() => setActiveTab('market')}
-            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-amber-500/40 cursor-pointer transition-all"
+          <motion.div 
+            whileHover={{ y: -3, scale: 1.01 }}
+            onClick={() => setActiveTab('marketplace')}
+            className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800/90 space-y-2 hover:border-amber-500/50 cursor-pointer transition-all shadow-md group"
           >
             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-              <span>🍅 Country Tomato (Nattu)</span>
-              <span className="text-amber-400">🛒 B2C Farm Direct</span>
+              <span className="flex items-center gap-1 text-slate-300">🍅 Country Tomato (Nattu)</span>
+              <span className="text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded-md border border-amber-800/60">🛒 B2C Farm</span>
             </div>
-            <p className="text-base font-black text-white">₹28 <span className="text-xs font-normal text-slate-400">/kg</span></p>
-            <p className="text-[10px] text-amber-300 font-semibold">850 kg Available • Picked Today</p>
-          </div>
+            <div className="flex items-baseline justify-between">
+              <p className="text-lg font-black text-white group-hover:text-amber-400 transition-colors">₹28 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+              <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Fresh Pick</span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-semibold">850 kg Available • Picked Today</p>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Weekly Agri-Tip Card (Gemini AI Seasonal Advisory) */}
       <WeeklyAgriTipCard

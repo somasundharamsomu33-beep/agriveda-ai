@@ -1,11 +1,96 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BadgeIndianRupee, CheckCircle2, ChevronRight, Crown, Handshake, MapPin, Search, Send, 
   ShoppingBasket, Tractor, Users, Filter, Plus, Building2, Store, Truck, ShieldCheck, 
-  ArrowUpRight, Sparkles, Scale, AlertCircle, Info, RefreshCw, X, Layers, PhoneCall, Check, Tag
+  ArrowUpRight, Sparkles, Scale, AlertCircle, Info, RefreshCw, X, Layers, PhoneCall, Check, Tag,
+  TrendingUp, TrendingDown, BarChart2, SlidersHorizontal, Zap, PackageCheck, Award, ArrowRight
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip
+} from 'recharts';
 import { MarketplaceProduct, PriceQuote, UserProfile } from '../types';
 import { createMarketplaceListing, createPriceQuote, getMarketplaceListings, getMyQuotes, MarketplaceListing } from '../lib/marketplace';
+
+// Mandi Price Trend Data for Interactive Framer Radar Chart
+const mandiPriceTrends: Record<string, { name: string; unit: string; current: number; change: string; isUp: boolean; data: { day: string; price: number }[] }> = {
+  paddy: {
+    name: 'Seeraga Samba Paddy',
+    unit: '₹/kg',
+    current: 65,
+    change: '+14.2%',
+    isUp: true,
+    data: [
+      { day: '01 Aug', price: 56 },
+      { day: '05 Aug', price: 58 },
+      { day: '10 Aug', price: 60 },
+      { day: '15 Aug', price: 62 },
+      { day: '20 Aug', price: 65 }
+    ]
+  },
+  ragi: {
+    name: 'Organic Finger Millet (Ragi)',
+    unit: '₹/kg',
+    current: 42,
+    change: '+8.5%',
+    isUp: true,
+    data: [
+      { day: '01 Aug', price: 38 },
+      { day: '05 Aug', price: 39 },
+      { day: '10 Aug', price: 40 },
+      { day: '15 Aug', price: 41 },
+      { day: '20 Aug', price: 42 }
+    ]
+  },
+  tomato: {
+    name: 'Country Tomato (Nattu)',
+    unit: '₹/kg',
+    current: 28,
+    change: '-6.5%',
+    isUp: false,
+    data: [
+      { day: '01 Aug', price: 34 },
+      { day: '05 Aug', price: 32 },
+      { day: '10 Aug', price: 30 },
+      { day: '15 Aug', price: 29 },
+      { day: '20 Aug', price: 28 }
+    ]
+  },
+  chilli: {
+    name: 'Guntur Teja Red Chilli',
+    unit: '₹/kg',
+    current: 185,
+    change: '+18.0%',
+    isUp: true,
+    data: [
+      { day: '01 Aug', price: 155 },
+      { day: '05 Aug', price: 162 },
+      { day: '10 Aug', price: 170 },
+      { day: '15 Aug', price: 178 },
+      { day: '20 Aug', price: 185 }
+    ]
+  },
+  dap: {
+    name: 'Water Soluble DAP 18:46:0',
+    unit: '₹/bag',
+    current: 1350,
+    change: '0.0% (Subsidized)',
+    isUp: true,
+    data: [
+      { day: '01 Aug', price: 1350 },
+      { day: '05 Aug', price: 1350 },
+      { day: '10 Aug', price: 1350 },
+      { day: '15 Aug', price: 1350 },
+      { day: '20 Aug', price: 1350 }
+    ]
+  }
+};
 
 // Rich diverse mock catalogue spanning Grains, Millets, Pulses, Vegetables, Fruits, Spices, Inputs
 const initialProduceList: MarketplaceProduct[] = [
@@ -195,6 +280,8 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
   const [tradeFilter, setTradeFilter] = useState<'all' | 'b2b' | 'b2c'>('all');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'popular' | 'price-low' | 'price-high' | 'qty-high'>('popular');
+  const [activeMandiCrop, setActiveMandiCrop] = useState<string>('paddy');
   
   const [quotes, setQuotes] = useState<PriceQuote[]>(initialQuotesList);
   const [localProduceList, setLocalProduceList] = useState<MarketplaceProduct[]>(initialProduceList);
@@ -207,6 +294,7 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
   
   const [showSellModal, setShowSellModal] = useState(false);
   const [showCollectiveModal, setShowCollectiveModal] = useState(false);
+  const [selectedProductDetail, setSelectedProductDetail] = useState<MarketplaceProduct | null>(null);
   const [notice, setNotice] = useState('');
 
   // Form state for posting new listing
@@ -246,13 +334,23 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
   const activeProducts = catalogue === 'produce' ? localProduceList : localInputsList;
 
   const visibleProducts = useMemo(() => {
-    return activeProducts.filter(p => {
+    let filtered = activeProducts.filter(p => {
       const matchCategory = selectedCategory === 'All' || p.category === selectedCategory;
       const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.seller.toLowerCase().includes(searchQuery.toLowerCase());
       const matchTrade = tradeFilter === 'all' || p.tradeType === 'both' || p.tradeType === tradeFilter;
       return matchCategory && matchSearch && matchTrade;
     });
-  }, [activeProducts, selectedCategory, searchQuery, tradeFilter]);
+
+    if (sortBy === 'price-low') {
+      filtered = [...filtered].sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price-high') {
+      filtered = [...filtered].sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'qty-high') {
+      filtered = [...filtered].sort((a, b) => b.availableQty - a.availableQty);
+    }
+
+    return filtered;
+  }, [activeProducts, selectedCategory, searchQuery, tradeFilter, sortBy]);
 
   // Handle posting a new listing (Farmers & Vendors)
   const handleCreateListing = async (e: React.FormEvent) => {
@@ -339,194 +437,280 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
     setQuotePriceInput('');
   };
 
+  const selectedMandiData = mandiPriceTrends[activeMandiCrop] || mandiPriceTrends.paddy;
+
   return (
-    <div className="space-y-6 pb-20 animate-in fade-in max-w-6xl mx-auto">
+    <div className="space-y-6 pb-20 max-w-6xl mx-auto">
       
-      {/* Hero Banner with Multi-Role Trading Engine */}
-      <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-6 sm:p-8 shadow-2xl overflow-hidden relative border border-slate-800">
-        <div className="absolute -right-6 -bottom-6 text-9xl opacity-10 select-none pointer-events-none">🚜</div>
+      {/* Top Framer Ambient Header */}
+      <motion.section 
+        initial={{ opacity: 0, y: -15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white p-6 sm:p-8 shadow-2xl overflow-hidden relative border border-slate-800/80"
+      >
+        <div className="absolute -right-10 -bottom-10 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 -top-10 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-              <Handshake className="w-3.5 h-3.5" /> Multi-Role Trade Ecosystem
-            </span>
-            <span className="px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5" /> Certified Direct Sourcing
-            </span>
+        <div className="relative z-10 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 backdrop-blur-md">
+                <Handshake className="w-3.5 h-3.5 text-emerald-400" /> Framer Multi-Role Trade Engine
+              </span>
+              <span className="px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 backdrop-blur-md">
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Certified Direct Sourcing
+              </span>
+            </div>
+
+            {/* Quick Mandi Live Ticker Badge */}
+            <div className="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-full border border-slate-700/80 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="text-slate-300">Live Mandi Index:</span>
+              <span className="text-emerald-400 font-mono font-black">₹2,840 / Qtl</span>
+            </div>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-            AgriVeda B2B & B2C Marketplace
-          </h1>
+          <div className="max-w-3xl space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight tracking-tight flex items-center gap-3">
+              <span>AgriVeda Marketplace Dashboard</span>
+              <Sparkles className="w-7 h-7 text-emerald-400 animate-pulse hidden sm:inline-block" />
+            </h1>
 
-          <p className="text-sm text-slate-300 font-medium leading-relaxed">
-            Connecting <strong className="text-emerald-400">Farmers</strong>, <strong className="text-amber-400">Wholesale Vendors</strong>, and <strong className="text-cyan-400">Direct Buyers</strong>. Sourcing fresh harvest in bulk tonnage or selling retail at transparent daily Mandi prices.
-          </p>
+            <p className="text-sm text-slate-300 font-medium leading-relaxed">
+              Connect directly with verified growers, wholesale buyers, and equipment vendors. Trade fresh farm harvest in bulk tonnage or retail with transparent daily Mandi prices.
+            </p>
+          </div>
+
+          {/* Key Metrics Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800/80 backdrop-blur-sm">
+              <p className="text-[10px] uppercase font-bold text-slate-400">Total Tonnage Live</p>
+              <p className="text-xl font-black text-white mt-0.5">8,320 <span className="text-xs font-semibold text-emerald-400">kg</span></p>
+            </div>
+            <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800/80 backdrop-blur-sm">
+              <p className="text-[10px] uppercase font-bold text-slate-400">Farmer Collectives</p>
+              <p className="text-xl font-black text-white mt-0.5">45+ <span className="text-xs font-semibold text-amber-400">Pools</span></p>
+            </div>
+            <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800/80 backdrop-blur-sm">
+              <p className="text-[10px] uppercase font-bold text-slate-400">Average Savings</p>
+              <p className="text-xl font-black text-white mt-0.5">+18.5% <span className="text-xs font-semibold text-blue-400">Margin</span></p>
+            </div>
+            <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800/80 backdrop-blur-sm">
+              <p className="text-[10px] uppercase font-bold text-slate-400">Active RFQ Requests</p>
+              <p className="text-xl font-black text-white mt-0.5">{quotes.length} <span className="text-xs font-semibold text-purple-400">Quotes</span></p>
+            </div>
+          </div>
 
           {/* Action Row */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setShowSellModal(true)}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-black text-xs shadow-lg flex items-center gap-2 transform active:scale-95 transition-all"
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center gap-2 cursor-pointer transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>List Crop Harvest / Inputs for Sale</span>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setShowCollectiveModal(true)}
-              className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs flex items-center gap-2 transition-all"
+              className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs flex items-center gap-2 cursor-pointer transition-all"
             >
               <Users className="w-4 h-4" />
               <span>Join Farmer Collective (Bulk Pool)</span>
-            </button>
+            </motion.button>
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* Role & Catalogue Navigation Bar */}
-      <section className="bg-slate-900 p-2 sm:p-3 rounded-2xl border border-slate-800 shadow-md flex flex-wrap items-center justify-between gap-3">
-        {/* Main Tabs */}
-        <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
-          <button
-            onClick={() => { setCatalogue('produce'); setSelectedCategory('All'); }}
-            className={`px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 ${
-              catalogue === 'produce'
-                ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Store className="w-4 h-4" />
-            <span>Farm Produce (Harvest)</span>
-          </button>
+      {/* Interactive Framer Mandi Price Radar Chart */}
+      <motion.section 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-200">
+              <TrendingUp className="w-5 h-5 text-amber-700" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                <span>Interactive Mandi Price Radar</span>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200">
+                  Real-time Regional Trends
+                </span>
+              </h2>
+              <p className="text-xs text-slate-500 font-medium">Daily spot price trajectory in Mandis across Vellore, Salem, &amp; Guntur</p>
+            </div>
+          </div>
 
-          <button
-            onClick={() => { setCatalogue('inputs'); setSelectedCategory('All'); }}
-            className={`px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 ${
-              catalogue === 'inputs'
-                ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Tractor className="w-4 h-4" />
-            <span>Agri Inputs & Machinery</span>
-          </button>
+          {/* Crop Selector Tabs */}
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto scrollbar-none">
+            {Object.keys(mandiPriceTrends).map(key => {
+              const item = mandiPriceTrends[key];
+              const isActive = activeMandiCrop === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveMandiCrop(key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-extrabold whitespace-nowrap transition-all ${
+                    isActive ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {item.name.split(' ')[0]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Trade Mode Filter (B2B Bulk vs B2C Retail) */}
-        <div className="flex items-center gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs">
-          <span className="text-[10px] font-bold text-slate-500 uppercase px-2">Trade Mode:</span>
-          {(['all', 'b2b', 'b2c'] as const).map(mode => (
+        {/* Selected Crop Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+            <span className="text-[10px] uppercase font-extrabold text-slate-400 block">Selected Commodity</span>
+            <p className="font-black text-slate-900 text-sm">{selectedMandiData.name}</p>
+            <div className="flex items-baseline gap-2 pt-1">
+              <span className="text-2xl font-black text-slate-900">₹{selectedMandiData.current}</span>
+              <span className="text-xs font-semibold text-slate-500">{selectedMandiData.unit}</span>
+              <span className={`text-xs font-black px-2 py-0.5 rounded-md ${
+                selectedMandiData.isUp ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+              }`}>
+                {selectedMandiData.change}
+              </span>
+            </div>
+          </div>
+
+          {/* Recharts Area Chart */}
+          <div className="md:col-span-3 h-36 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={selectedMandiData.data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-slate-900 text-white p-2 rounded-xl text-xs font-bold shadow-lg border border-slate-800">
+                          <p>{payload[0].payload.day}: <span className="text-emerald-400">₹{payload[0].value} / kg</span></p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area type="monotone" dataKey="price" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#priceGradient)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Navigation & Filter Control Bar */}
+      <section className="bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-md space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Main Tabs */}
+          <div className="flex items-center gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
             <button
-              key={mode}
-              onClick={() => setTradeFilter(mode)}
-              className={`px-3 py-1.5 rounded-lg font-extrabold uppercase text-[10px] transition-all ${
-                tradeFilter === mode
-                  ? 'bg-slate-800 text-emerald-400 border border-slate-700'
-                  : 'text-slate-400 hover:text-slate-200'
+              onClick={() => { setCatalogue('produce'); setSelectedCategory('All'); }}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                catalogue === 'produce'
+                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              {mode === 'all' ? 'All Trade' : mode === 'b2b' ? '🏢 B2B Bulk' : '🛒 B2C Retail'}
+              <Store className="w-4 h-4" />
+              <span>Farm Produce (Harvest)</span>
             </button>
-          ))}
+
+            <button
+              onClick={() => { setCatalogue('inputs'); setSelectedCategory('All'); }}
+              className={`px-4 py-2 rounded-lg text-xs font-black transition-all flex items-center gap-2 cursor-pointer ${
+                catalogue === 'inputs'
+                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Tractor className="w-4 h-4" />
+              <span>Agri Inputs &amp; Machinery</span>
+            </button>
+          </div>
+
+          {/* Trade Mode Filter */}
+          <div className="flex items-center gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs">
+            <span className="text-[10px] font-bold text-slate-500 uppercase px-2 hidden sm:inline">Trade:</span>
+            {(['all', 'b2b', 'b2c'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setTradeFilter(mode)}
+                className={`px-3 py-1.5 rounded-lg font-extrabold uppercase text-[10px] transition-all cursor-pointer ${
+                  tradeFilter === mode
+                    ? 'bg-slate-800 text-emerald-400 border border-slate-700'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {mode === 'all' ? 'All Trade' : mode === 'b2b' ? '🏢 B2B Bulk' : '🛒 B2C Retail'}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Market Stats & Daily Price Slabs */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        
-        {/* Card 1: Farmer Collectives */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:border-emerald-500/40 transition-all">
-          <div className="flex items-center justify-between text-emerald-700 mb-2">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              <span className="text-xs font-black uppercase tracking-wider">Farmer Groups</span>
-            </div>
-            <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full">
-              45+ Collectives
-            </span>
-          </div>
-          <p className="text-sm font-black text-slate-900">Pool Harvest for Tonnage Supply</p>
-          <p className="text-xs text-slate-500 mt-1">Combine paddy, ragi, or pulses with neighboring farmers to secure +18% higher B2B contracts.</p>
-          <button
-            onClick={() => setShowCollectiveModal(true)}
-            className="mt-3 text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
-          >
-            <span>Explore Farmer Pools</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Card 2: Mandi Price Slabs */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:border-amber-500/40 transition-all">
-          <div className="flex items-center justify-between text-amber-700 mb-2">
-            <div className="flex items-center gap-2">
-              <BadgeIndianRupee className="w-5 h-5" />
-              <span className="text-xs font-black uppercase tracking-wider">Daily Mandi Slab</span>
-            </div>
-            <span className="text-[10px] font-extrabold bg-amber-50 text-amber-800 px-2 py-0.5 rounded-full">
-              Live Mandi Ticker
-            </span>
-          </div>
-          <div className="flex items-baseline justify-between mt-1">
-            <p className="text-base font-black text-slate-900">Paddy ₹24.5/kg • Ragi ₹42/kg</p>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">Tomato ₹35/kg • Chilli ₹185/kg (Vellore &amp; Guntur Mandis)</p>
-        </div>
-
-        {/* Card 3: Vendor & Equipment Schemes */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:border-blue-500/40 transition-all">
-          <div className="flex items-center justify-between text-blue-700 mb-2">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5" />
-              <span className="text-xs font-black uppercase tracking-wider">Vendor &amp; B2B Portal</span>
-            </div>
-            <span className="text-[10px] font-extrabold bg-blue-50 text-blue-800 px-2 py-0.5 rounded-full">
-              FSSAI / GST Verified
-            </span>
-          </div>
-          <p className="text-sm font-black text-slate-900">Subsidized Machinery &amp; Inputs</p>
-          <p className="text-xs text-slate-500 mt-1">Direct government notified prices for Neem Urea, DAP, and certified pureline seeds.</p>
-          <button
-            onClick={() => setNotice('Vendor Pro tools are active for verified B2B buyers and input sellers.')}
-            className="mt-3 text-xs font-bold text-blue-700 hover:text-blue-800 flex items-center gap-1"
-          >
-            <span>Verified Vendor Directory</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-      </section>
-
-      {/* Main Product Catalogue */}
+      {/* Main Product Catalogue Section */}
       <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
         
-        {/* Search & Category Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100">
+        {/* Search, Sort & Category Controls */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-100">
           <div>
             <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-              <span>A–Z Product &amp; Crop Catalogue</span>
+              <span>{catalogue === 'produce' ? '🌾 Farm Fresh Produce Catalogue' : '🚜 Agri Inputs &amp; Machinery Hub'}</span>
               <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
                 {visibleProducts.length} items
               </span>
             </h2>
             <p className="text-xs text-slate-500 font-medium">
               {catalogue === 'produce' 
-                ? 'Fresh grains, millets, pulses, vegetables & spices directly from growers' 
-                : 'Government certified fertilizers, seeds, tools and farm machinery'}
+                ? 'Grains, millets, pulses, vegetables & spices directly from registered growers' 
+                : 'Government certified fertilizers, pureline seeds, tools and farm machinery'}
             </p>
           </div>
 
-          <div className="relative min-w-[240px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search by crop, variety or vendor..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50"
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Search Input */}
+            <div className="relative min-w-[220px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search crop, variety or seller..."
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50/50"
+              />
+            </div>
+
+            {/* Sort By Dropdown */}
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value as any)}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="popular">Popularity / Rating</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="qty-high">Quantity: Highest Available</option>
+            </select>
           </div>
         </div>
 
@@ -538,7 +722,7 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all border ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all border cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                     : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
@@ -549,119 +733,150 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
             ))}
         </div>
 
-        {/* Product Cards Grid */}
+        {/* Animated Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pt-2">
-          {visibleProducts.map(product => (
-            <article 
-              key={product.id} 
-              className="rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all flex flex-col justify-between bg-white group"
-            >
-              <div>
-                {/* Header Image & Badge */}
-                <div className="h-32 bg-gradient-to-br from-slate-100 via-emerald-50 to-slate-100 flex items-center justify-center text-6xl relative group-hover:scale-105 transition-transform">
-                  <span>{product.image}</span>
-                  
-                  {product.tradeType && (
-                    <span className={`absolute top-2 left-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shadow-xs ${
-                      product.tradeType === 'b2b'
-                        ? 'bg-blue-600 text-white border-blue-500'
-                        : product.tradeType === 'b2c'
-                        ? 'bg-emerald-600 text-white border-emerald-500'
-                        : 'bg-purple-600 text-white border-purple-500'
-                    }`}>
-                      {product.tradeType === 'b2b' ? '🏢 B2B Wholesale' : product.tradeType === 'b2c' ? '🛒 B2C Retail' : '🌐 B2B + B2C'}
-                    </span>
-                  )}
+          <AnimatePresence mode="popLayout">
+            {visibleProducts.map(product => (
+              <motion.article 
+                layout
+                key={product.id} 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                whileHover={{ y: -4 }}
+                className="rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all flex flex-col justify-between bg-white group border-slate-200/90"
+              >
+                <div>
+                  {/* Header Image & Badge */}
+                  <div className="h-32 bg-gradient-to-br from-slate-100 via-emerald-50 to-slate-100 flex items-center justify-center text-6xl relative overflow-hidden">
+                    <span className="transform group-hover:scale-110 transition-transform duration-300">{product.image}</span>
+                    
+                    {product.tradeType && (
+                      <span className={`absolute top-2 left-2 text-[10px] font-black uppercase px-2 py-0.5 rounded-md border shadow-xs ${
+                        product.tradeType === 'b2b'
+                          ? 'bg-blue-600 text-white border-blue-500'
+                          : product.tradeType === 'b2c'
+                          ? 'bg-emerald-600 text-white border-emerald-500'
+                          : 'bg-purple-600 text-white border-purple-500'
+                      }`}>
+                        {product.tradeType === 'b2b' ? '🏢 B2B Wholesale' : product.tradeType === 'b2c' ? '🛒 B2C Retail' : '🌐 B2B + B2C'}
+                      </span>
+                    )}
 
-                  {product.certified && (
-                    <span className="absolute top-2 right-2 p-1 bg-white/90 backdrop-blur-xs rounded-full shadow-xs text-emerald-600" title="Certified Organic / FSSAI Quality">
-                      <CheckCircle2 className="w-4 h-4" />
-                    </span>
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-700 transition-colors">
-                      {product.name}
-                    </h3>
+                    {product.certified && (
+                      <span className="absolute top-2 right-2 p-1 bg-white/90 backdrop-blur-xs rounded-full shadow-xs text-emerald-600" title="Certified Organic / FSSAI Quality">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </span>
+                    )}
                   </div>
 
-                  <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
-                    <Store className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{product.seller}</span>
-                  </p>
+                  {/* Content */}
+                  <div className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-extrabold text-sm text-slate-900 group-hover:text-emerald-700 transition-colors">
+                        {product.name}
+                      </h3>
+                    </div>
 
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    <span>{product.location}</span>
-                  </p>
-
-                  {product.harvestDate && (
-                    <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 inline-block px-2 py-0.5 rounded-md">
-                      🌱 {product.harvestDate}
+                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                      <Store className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{product.seller}</span>
                     </p>
-                  )}
 
-                  {/* Price & Minimum Order */}
-                  <div className="pt-2 flex items-baseline justify-between border-t border-slate-100">
-                    <div>
-                      <p className="text-lg font-black text-slate-900">
-                        ₹{product.price}<span className="text-xs font-normal text-slate-500">/{product.unit}</span>
+                    <p className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      <span>{product.location}</span>
+                    </p>
+
+                    {product.harvestDate && (
+                      <p className="text-[10px] font-bold text-emerald-700 bg-emerald-50 inline-block px-2 py-0.5 rounded-md">
+                        🌱 {product.harvestDate}
                       </p>
-                      {product.retailPrice && product.retailPrice !== product.price && (
-                        <p className="text-[10px] text-slate-400 line-through">Retail ₹{product.retailPrice}</p>
-                      )}
+                    )}
+
+                    {/* Stock Progress Bar */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                        <span>Stock Available</span>
+                        <span className="text-slate-900 font-black">{product.availableQty} {product.unit}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-500 rounded-full"
+                          style={{ width: `${Math.min(100, (product.availableQty / 3000) * 100)}%` }}
+                        />
+                      </div>
                     </div>
 
-                    <div className="text-right">
-                      <p className="text-[10px] font-extrabold text-slate-600">Stock: {product.availableQty} {product.unit}</p>
+                    {/* Price & Minimum Order */}
+                    <div className="pt-2 flex items-baseline justify-between border-t border-slate-100">
+                      <div>
+                        <p className="text-lg font-black text-slate-900">
+                          ₹{product.price}<span className="text-xs font-normal text-slate-500">/{product.unit}</span>
+                        </p>
+                        {product.retailPrice && product.retailPrice !== product.price && (
+                          <p className="text-[10px] text-slate-400 line-through">Retail ₹{product.retailPrice}</p>
+                        )}
+                      </div>
+
                       {product.minOrderQty && (
-                        <p className="text-[10px] text-amber-700 font-bold">MOQ: {product.minOrderQty} {product.unit}</p>
+                        <div className="text-right">
+                          <p className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                            MOQ: {product.minOrderQty} {product.unit}
+                          </p>
+                        </div>
                       )}
                     </div>
+
+                    {product.subsidy && (
+                      <p className="text-[10px] font-bold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                        💡 {product.subsidy}
+                      </p>
+                    )}
                   </div>
-
-                  {product.subsidy && (
-                    <p className="text-[10px] font-bold text-amber-800 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                      💡 {product.subsidy}
-                    </p>
-                  )}
                 </div>
-              </div>
 
-              {/* Action Button */}
-              <div className="p-4 pt-0">
-                <button
-                  onClick={() => setShowQuoteModal(product)}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{catalogue === 'produce' ? 'Send B2B / B2C Quote' : 'Contact Vendor / Order'}</span>
-                </button>
-              </div>
-            </article>
-          ))}
+                {/* Action Buttons */}
+                <div className="p-4 pt-0 space-y-1.5">
+                  <button
+                    onClick={() => setShowQuoteModal(product)}
+                    className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{catalogue === 'produce' ? 'Send B2B / B2C Quote' : 'Contact Vendor / Order'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSelectedProductDetail(product)}
+                    className="w-full py-1.5 text-[11px] text-slate-500 hover:text-slate-900 font-bold flex items-center justify-center gap-1"
+                  >
+                    <span>View Quality Specs &amp; Certificate</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </motion.article>
+            ))}
+          </AnimatePresence>
         </div>
       </section>
 
-      {/* Quote Centre & Pro Sourcing */}
+      {/* Quote RFQ Centre & Pro Sourcing Desk */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
-        {/* Quote Centre */}
+        {/* RFQ Centre */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <h2 className="font-black text-slate-900 text-base">Request for Quotation (RFQ) Centre</h2>
-              <p className="text-xs text-slate-500">Direct buyer offers and farmer/vendor responses</p>
+              <p className="text-xs text-slate-500">Direct buyer offers and farmer/vendor response desk</p>
             </div>
             <Send className="w-5 h-5 text-emerald-600" />
           </div>
 
           <div className="space-y-2.5">
             {quotes.map(q => (
-              <div key={q.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3">
+              <div key={q.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 hover:border-slate-300 transition-all">
                 <div className="space-y-0.5">
                   <p className="text-xs font-black text-slate-900">{q.product}</p>
                   <p className="text-[11px] text-slate-500 font-semibold">Quantity: {q.quantity} • Buyer: {q.buyer}</p>
@@ -681,8 +896,8 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
         </div>
 
         {/* Vendor Pro & Sourcing Verification */}
-        <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-900 via-slate-900 to-purple-950 text-white p-6 shadow-md flex flex-col justify-between">
-          <div className="space-y-3">
+        <div className="rounded-3xl border border-purple-200 bg-gradient-to-br from-purple-950 via-slate-900 to-purple-900 text-white p-6 shadow-md flex flex-col justify-between relative overflow-hidden">
+          <div className="space-y-3 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-amber-400">
                 <Crown className="w-5 h-5" />
@@ -713,7 +928,7 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
 
           <button
             onClick={() => setNotice(isPro ? 'Your Vendor Pro tools are fully active.' : 'Vendor Pro verification saved. Our trade desk will contact you within 24 hours.')}
-            className="mt-5 w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition-all shadow-md"
+            className="mt-5 w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition-all shadow-md cursor-pointer relative z-10"
           >
             {isPro ? 'Manage Vendor Pro Dashboard' : isVendor ? 'Request Pro Verification' : 'Register as Verified B2B Buyer / Vendor'}
           </button>
@@ -721,13 +936,74 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
 
       </section>
 
-      {/* Floating Notification */}
-      {notice && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in">
-          <span>{notice}</span>
-          <button onClick={() => setNotice('')} className="p-1 hover:bg-slate-800 rounded-lg">
-            <X className="w-4 h-4" />
-          </button>
+      {/* Floating Toast Notification */}
+      <AnimatePresence>
+        {notice && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3.5 rounded-2xl text-xs font-bold shadow-2xl flex items-center gap-3 border border-slate-700"
+          >
+            <span>{notice}</span>
+            <button onClick={() => setNotice('')} className="p-1 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quality Specs Detail Modal */}
+      {selectedProductDetail && (
+        <div className="fixed inset-0 z-50 p-4 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-slate-900">
+                <Award className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-black text-base">Crop Quality &amp; Lab Specs</h3>
+              </div>
+              <button onClick={() => setSelectedProductDetail(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <p className="text-sm font-black text-slate-900">{selectedProductDetail.name}</p>
+                <p className="text-xs text-slate-500 font-medium">Seller: {selectedProductDetail.seller}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-bold block">Moisture Content</span>
+                  <span className="font-extrabold text-slate-800">11.8% (Optimal)</span>
+                </div>
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-bold block">Purity Grade</span>
+                  <span className="font-extrabold text-slate-800">99.4% Clean Lot</span>
+                </div>
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-bold block">Certification</span>
+                  <span className="font-extrabold text-emerald-700">FSSAI / NPOP Organic</span>
+                </div>
+                <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-[10px] text-slate-400 font-bold block">Storage Hub</span>
+                  <span className="font-extrabold text-slate-800">Vellore Agri Warehouse</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowQuoteModal(selectedProductDetail);
+                setSelectedProductDetail(null);
+              }}
+              className="w-full py-3 rounded-xl bg-slate-900 hover:bg-emerald-600 text-white font-bold text-xs transition-all flex items-center justify-center gap-2"
+            >
+              <Send className="w-4 h-4" />
+              <span>Proceed to Request Quote</span>
+            </button>
+          </div>
         </div>
       )}
 

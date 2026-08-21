@@ -3,7 +3,7 @@ import {
   Sun, CloudSun, CloudRain, Droplets, ShieldAlert, TrendingUp, TrendingDown,
   Camera, Mic, ChevronRight, Activity, CalendarCheck, Sparkles, CheckCircle2,
   Clock, AlertCircle, Sprout, ShieldCheck, Zap, RefreshCw, MapPin, Thermometer, Wind,
-  BarChart2, LineChart as LineChartIcon, Layers
+  BarChart2, LineChart as LineChartIcon, Layers, Store, Handshake, ShoppingBag, Users, Building2, Tractor
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -58,33 +58,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       priority: 'HIGH',
       dueDate: 'Today (31 Jul)',
       bestTime: '4:30 PM - 6:00 PM (Cooler Hours)',
-      fieldPlot: `${profile.primaryCrop || 'Tomato'} • Field Plot 1`,
-      cropPhase: 'Day 28 • Flowering & Fruit Set Stage',
-      aiReason: 'High heat forecast tomorrow (33°C). Pre-wet soil root zone to protect early blossom set.',
+      fieldPlot: `Paddy / Rice (Seeraga Samba) • Field Plot 1`,
+      cropPhase: 'Day 45 • Panicle Initiation Stage',
+      aiReason: 'High heat forecast tomorrow (33°C). Pre-wet standing water bed to protect developing panicles.',
       completed: false
     },
     {
       id: 'action-2',
-      title: 'NPK 19:19:19 + Zinc Boron Foliar Spray',
+      title: 'Bio-Fertilizer Azospirillum + Phosphobacteria Application',
       category: 'Fertilization',
       priority: 'HIGH',
       dueDate: 'Tomorrow (01 Aug)',
       bestTime: 'Early Morning (7:00 AM - 9:00 AM)',
-      fieldPlot: `${profile.primaryCrop || 'Tomato'} • Nursery & Main Bed`,
-      cropPhase: 'Day 29 • Vegetative Growth Peak',
-      aiReason: 'Scheduled local crop calendar recommendation for rapid canopy & root establishment.',
+      fieldPlot: `Ragi / Finger Millet • Plot 2 (Millet Vault)`,
+      cropPhase: 'Day 25 • Tillering Stage Peak',
+      aiReason: 'Organic bio-inoculants boost root nodulation and drought resilience in dryland ragi.',
       completed: false
     },
     {
       id: 'action-3',
-      title: 'Preventative Neem Seed Kernel Spray (5%)',
+      title: 'Rhizobium Seed Treatment & Pod Borer Check',
       category: 'Pest Control',
       priority: 'MEDIUM',
       dueDate: 'In 2 Days (02 Aug)',
       bestTime: 'Evening after dew dries',
-      fieldPlot: `${profile.primaryCrop || 'Tomato'} • North Ridge`,
-      cropPhase: 'Day 30 • Active Foliage Phase',
-      aiReason: 'Preventative barrier against thrips & whiteflies before weekend rainfall.',
+      fieldPlot: `Moong Dal / Green Gram • Plot 3 (Legume Bed)`,
+      cropPhase: 'Day 30 • Flowering Initiation',
+      aiReason: 'Preventative biological barrier against pod borer larvae before peak humidity.',
       completed: false
     },
     {
@@ -94,7 +94,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       priority: 'NORMAL',
       dueDate: 'In 4 Days (04 Aug)',
       bestTime: 'Morning 6:00 AM',
-      fieldPlot: `${profile.primaryCrop || 'Tomato'} • Maturity Zone B`,
+      fieldPlot: `Country Tomato (Nattu) • Plot 4`,
       cropPhase: 'Pre-Harvest Pick',
       aiReason: 'Vellore Mandi prices trending UP (+16.6%). Harvest pink blush tomatoes for highest market return.',
       completed: false
@@ -412,6 +412,85 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <Mic className="w-4 h-4 text-blue-400" />
           <span>{t.voiceAI}</span>
         </button>
+      </div>
+
+      {/* MULTI-ROLE B2B & B2C MARKETPLACE HUB WIDGET ON DASHBOARD */}
+      <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white rounded-3xl p-5 shadow-lg border border-slate-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <Store className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-white">Live B2B &amp; B2C Agri Marketplace</h3>
+                <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase bg-emerald-500 text-slate-950 rounded-full">
+                  Multi-Role Trade Active
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-medium">Direct Sourcing • Mandi Price Slabs • Bulk Sourcing RFQs</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setActiveTab('market')}
+            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all self-start sm:self-auto"
+          >
+            <span>Browse Full Marketplace</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Live Marketplace Highlights Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1">
+          <div 
+            onClick={() => setActiveTab('market')}
+            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-emerald-500/40 cursor-pointer transition-all"
+          >
+            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+              <span>🌾 Paddy Rice (Seeraga Samba)</span>
+              <span className="text-emerald-400">🏢 B2B Bulk</span>
+            </div>
+            <p className="text-base font-black text-white">₹65 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+            <p className="text-[10px] text-emerald-300 font-semibold">2,400 kg Available • Vellore FPC</p>
+          </div>
+
+          <div 
+            onClick={() => setActiveTab('market')}
+            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-purple-500/40 cursor-pointer transition-all"
+          >
+            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+              <span>🌱 Organic Ragi Millet</span>
+              <span className="text-purple-400">🌐 B2B + B2C</span>
+            </div>
+            <p className="text-base font-black text-white">₹42 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+            <p className="text-[10px] text-purple-300 font-semibold">1,800 kg Available • Salem Collective</p>
+          </div>
+
+          <div 
+            onClick={() => setActiveTab('market')}
+            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-blue-500/40 cursor-pointer transition-all"
+          >
+            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+              <span>🫘 Organic Green Gram (Moong)</span>
+              <span className="text-blue-400">🏢 B2B Tonnage</span>
+            </div>
+            <p className="text-base font-black text-white">₹95 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+            <p className="text-[10px] text-blue-300 font-semibold">1,200 kg Available • Dharmapuri</p>
+          </div>
+
+          <div 
+            onClick={() => setActiveTab('market')}
+            className="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/90 space-y-1 hover:border-amber-500/40 cursor-pointer transition-all"
+          >
+            <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+              <span>🍅 Country Tomato (Nattu)</span>
+              <span className="text-amber-400">🛒 B2C Farm Direct</span>
+            </div>
+            <p className="text-base font-black text-white">₹28 <span className="text-xs font-normal text-slate-400">/kg</span></p>
+            <p className="text-[10px] text-amber-300 font-semibold">850 kg Available • Picked Today</p>
+          </div>
+        </div>
       </div>
 
       {/* Weekly Agri-Tip Card (Gemini AI Seasonal Advisory) */}

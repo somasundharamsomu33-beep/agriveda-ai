@@ -127,8 +127,13 @@ export const CropCalendarView: React.FC<CropCalendarViewProps> = ({ profile }) =
                 onChange={e => setSelectedCrop(e.target.value)}
                 className="w-full mt-1 px-3 py-1.5 bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs rounded-lg focus:outline-none"
               >
-                <option value="Tomato">Tomato (120 Days)</option>
                 <option value="Paddy / Rice">Paddy / Rice (135 Days)</option>
+                <option value="Ragi / Finger Millet">Ragi / Finger Millet (105 Days)</option>
+                <option value="Sorghum / Cholam">Sorghum / Cholam Millet (110 Days)</option>
+                <option value="Moong Dal / Green Gram">Moong Dal / Green Gram (70 Days)</option>
+                <option value="Black Gram / Urad Dal">Black Gram / Urad Dal (75 Days)</option>
+                <option value="Groundnut / Peanut">Groundnut / Peanut (110 Days)</option>
+                <option value="Tomato">Tomato (120 Days)</option>
                 <option value="Chilli">Chilli (150 Days)</option>
                 <option value="Cotton">Cotton (160 Days)</option>
                 <option value="Sugarcane">Sugarcane (365 Days)</option>

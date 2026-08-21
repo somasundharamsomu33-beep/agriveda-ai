@@ -1,11 +1,7 @@
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
-import { sampleCropImages, sampleWeather, sampleMarketPrices, defaultCropCalendar, sampleCommunityPosts } from './src/data/mockData.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { sampleCropImages, sampleWeather, sampleMarketPrices, defaultCropCalendar, sampleCommunityPosts } from './src/data/mockData';
 
 const app = express();
 const PORT = 3000;
@@ -27,6 +23,59 @@ const getGeminiAi = () => {
     },
   });
 };
+
+// Initialize Groq AI Client (Ultra-fast Llama-3.3-70B Inference)
+const callGroqAi = async ({
+  messages,
+  temperature = 0.5,
+  jsonMode = false,
+  model = 'llama-3.3-70b-versatile'
+}: {
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  temperature?: number;
+  jsonMode?: boolean;
+  model?: string;
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey || apiKey === 'MY_GROQ_API_KEY' || apiKey.includes('YOUR_GROQ')) {
+    return null;
+  }
+  try {
+    const payload: any = {
+      model,
+      messages,
+      temperature,
+    };
+    if (jsonMode) {
+      payload.response_format = { type: 'json_object' };
+    }
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Groq API Error:', res.status, errText);
+      // If jsonMode failed, retry once without jsonMode
+      if (jsonMode) {
+        return callGroqAi({ messages, temperature, jsonMode: false, model });
+      }
+      return null;
+    }
+
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || null;
+  } catch (err) {
+    console.error('Groq API Fetch Error:', err);
+    return null;
+  }
+};
+
 
 // 1. API Route: Crop Analysis
 app.post('/api/analyze-crop', async (req, res) => {
@@ -59,6 +108,46 @@ app.post('/api/analyze-crop', async (req, res) => {
 
     const ai = getGeminiAi();
     if (!ai) {
+      const groqRes = await callGroqAi({
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert plant pathologist and agronomist. Analyze the crop details provided and respond strictly in valid JSON format with keys: cropType (string), soilType (string), location (string), detectedIssue (string), confidence (number 0-100), riskLevel ('Low'|'Medium'|'High'|'Critical'), farmHealthScore (number 0-100), cause (string), treatment (array of strings), prevention (array of strings), fertilizerSuggestion (string), aiNotes (string).`
+          },
+          {
+            role: 'user',
+            content: `Crop: ${cropType || 'Tomato'}, Soil: ${soilType || 'Red Loam'}, Location: ${location || 'Vellore, Tamil Nadu'}, Area: ${farmArea || 2.5} acres.`
+          }
+        ],
+        jsonMode: true
+      });
+
+      if (groqRes) {
+        try {
+          const parsed = JSON.parse(groqRes);
+          const defaultSample = sampleCropImages[0];
+          return res.json({
+            id: `report-${Date.now()}`,
+            timestamp: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+            cropType: parsed.cropType || cropType || 'Tomato',
+            soilType: parsed.soilType || soilType || 'Red Soil',
+            location: parsed.location || location || 'Vellore, Tamil Nadu',
+            imageUrl: defaultSample.url,
+            detectedIssue: parsed.detectedIssue || 'Early Blight Disease (Alternaria solani)',
+            confidence: parsed.confidence || 94,
+            riskLevel: parsed.riskLevel || 'High',
+            farmHealthScore: parsed.farmHealthScore || 78,
+            cause: parsed.cause || 'High humidity and leaf wetness.',
+            treatment: parsed.treatment || ['Prune affected leaves', 'Spray Organic Neem Oil 5ml/L'],
+            prevention: parsed.prevention || ['Maintain proper spacing', 'Drip irrigate at root level'],
+            fertilizerSuggestion: parsed.fertilizerSuggestion || 'NPK 19:19:19 @ 5g/L',
+            aiNotes: parsed.aiNotes || 'Real-time AI pathology analysis powered by Groq Llama-3.3-70B.'
+          });
+        } catch (e) {
+          console.error('Error parsing Groq crop analysis:', e);
+        }
+      }
+
       // Fallback response if no API key is set
       const defaultSample = sampleCropImages[0];
       return res.json({
@@ -223,6 +312,129 @@ app.post('/api/voice-assistant', async (req, res) => {
       intentCategory = 'Crop Management';
     }
 
+    const langInstruction = language === 'ta' ? 'Respond strictly in clear, natural Tamil script (தமிழ்).' :
+                            language === 'hi' ? 'Respond strictly in clear, natural Hindi script (हिंदी).' :
+                            language === 'te' ? 'Respond strictly in clear, natural Telugu script (తెలుగు).' :
+                            'Respond in clear, professional English.';
+
+    const systemPrompt = `You are AgriVeda AI, an elite multilingual agricultural copilot for smallholder and commercial farmers.
+FARMER CONTEXT:
+- Farmer Name: ${userName}
+- Crop: ${userCrop}
+- Crop Variety: ${userVariety}
+- Sowing Date: ${userSowingDate || 'Not specified'}
+- Crop Age: ${userCropAge ? userCropAge + ' days' : 'Not specified'}
+- Soil Type: ${userSoil}
+- Irrigation Method: ${userIrrigation}
+- Farm Area: ${userArea} acres
+- Location: ${userLocation}
+- Seed Variety: ${userSeedVariety}
+- Seed Bank: ${userSeedBank}
+
+RULES FOR RESPONSE STRUCTURE:
+1. FIRST understand intent and classify query into one of these 15 categories:
+   ['Crop Management', 'Disease / Pest', 'Soil', 'Fertilizer', 'Irrigation', 'Weather', 'Crop Calendar', 'Seed Information', 'Seed Bank', 'Market / Mandi', 'Agricultural Expert', 'Vendor / Product', 'B2B', 'B2C', 'General Agricultural Question']
+
+2. If important context is missing (e.g. crop stage or image of yellow leaves):
+   Ask a short targeted clarification question, but also provide an initial plausible explanation.
+
+3. FOR FARMING/AGRONOMY QUESTIONS, use this format:
+   🌾 Crop: ...
+   📅 Crop Stage: ... (Ask for sowing/transplanting date if unavailable)
+   💧 Recommendation: ...
+   📋 Action: ...
+   ⚠️ Important: Mention that fertilizer recommendations depend on soil test, variety, crop stage and local agricultural recommendations.
+
+4. FOR DISEASE DIAGNOSIS (when image/symptoms presented):
+   🌱 Crop: ...
+   🔍 Possible Disease: ...
+   📊 Confidence: ... (If confidence low: "I need a clearer image of the leaf/stem/fruit to make a better assessment.")
+   🧪 Possible Cause: ...
+   🌿 Recommended Management: (Organic / low-risk options, advice to follow product label & local expert guidance)
+   🛡️ Prevention: ...
+
+5. FOR WEATHER QUESTIONS:
+   🌦️ Weather Risk: Low / Medium / High
+   🚜 Recommendation: Suitable / Not recommended
+   ⏰ Better Window: ...
+   ⚠️ Reason: ... (Never invent weather data)
+
+6. FOR SMART CROP CALENDAR:
+   🌱 Stage 1
+   🌿 Stage 2
+   🌾 Stage 3
+   🌻 Stage 4
+   🚜 Harvest
+
+7. FOR SEED BANK QUESTIONS:
+   🌱 Seed Variety
+   📦 Available Quantity
+   📍 Seed Bank Location
+   🌾 Crop Type
+   📅 Storage Information
+   🟢 Availability
+   🌡️ Storage Condition
+   📞 Contact / Exchange Request
+
+LANGUAGE INSTRUCTION: ${langInstruction}`;
+
+    // 1. PRIMARY AI ENGINE: Try Groq AI (Llama-3.3-70B) for ultra-fast Copilot response
+    const userPromptText = prompt || 'Analyze farmer query for crop context and provide actionable guidance.';
+    const groqRes = await callGroqAi({
+      messages: [
+        {
+          role: 'system',
+          content: `${systemPrompt}\n\nProvide response in JSON format with keys: intentCategory (string), text (string), hasActionCard (boolean), actionType (string optional), actionTitle (string optional), actionDetails (string optional), suggestedFollowups (array of strings).`
+        },
+        {
+          role: 'user',
+          content: `Farmer Question: "${userPromptText}"`
+        }
+      ],
+      jsonMode: true
+    });
+
+    if (groqRes) {
+      let responseText = groqRes;
+      let intentCat = intentCategory;
+      let actionCardObj: any = null;
+      let followupsArr: string[] = [
+        'Calculate fertilizer dosage',
+        'Check weather spray risk',
+        'Explore Community Seed Bank'
+      ];
+
+      try {
+        const parsed = JSON.parse(groqRes);
+        if (parsed.text) responseText = parsed.text;
+        if (parsed.intentCategory) intentCat = parsed.intentCategory;
+        if (parsed.hasActionCard && parsed.actionType) {
+          actionCardObj = {
+            type: parsed.actionType,
+            title: parsed.actionTitle || `${userCrop} AgriVeda Advisory`,
+            data: {
+              details: parsed.actionDetails || responseText,
+              crop: userCrop,
+              location: userLocation
+            }
+          };
+        }
+        if (Array.isArray(parsed.suggestedFollowups) && parsed.suggestedFollowups.length > 0) {
+          followupsArr = parsed.suggestedFollowups;
+        }
+      } catch (e) {
+        // Groq returned text directly - use it!
+        responseText = groqRes;
+      }
+
+      return res.json({
+        intentCategory: intentCat,
+        text: responseText,
+        actionCard: actionCardObj,
+        suggestedFollowups: followupsArr
+      });
+    }
+
     if (!ai) {
       // Intelligent Multilingual Fallback Handler strictly adhering to AgriVeda AI prompt templates
       let replyText = '';
@@ -381,72 +593,6 @@ app.post('/api/voice-assistant', async (req, res) => {
       });
     }
 
-    const langInstruction = language === 'ta' ? 'Respond strictly in clear, natural Tamil script (தமிழ்).' :
-                            language === 'hi' ? 'Respond strictly in clear, natural Hindi script (हिंदी).' :
-                            language === 'te' ? 'Respond strictly in clear, natural Telugu script (తెలుగు).' :
-                            'Respond in clear, professional English.';
-
-    const systemPrompt = `You are AgriVeda AI, an elite multilingual agricultural copilot for smallholder and commercial farmers.
-FARMER CONTEXT:
-- Farmer Name: ${userName}
-- Crop: ${userCrop}
-- Crop Variety: ${userVariety}
-- Sowing Date: ${userSowingDate || 'Not specified'}
-- Crop Age: ${userCropAge ? userCropAge + ' days' : 'Not specified'}
-- Soil Type: ${userSoil}
-- Irrigation Method: ${userIrrigation}
-- Farm Area: ${userArea} acres
-- Location: ${userLocation}
-- Seed Variety: ${userSeedVariety}
-- Seed Bank: ${userSeedBank}
-
-RULES FOR RESPONSE STRUCTURE:
-1. FIRST understand intent and classify query into one of these 15 categories:
-   ['Crop Management', 'Disease / Pest', 'Soil', 'Fertilizer', 'Irrigation', 'Weather', 'Crop Calendar', 'Seed Information', 'Seed Bank', 'Market / Mandi', 'Agricultural Expert', 'Vendor / Product', 'B2B', 'B2C', 'General Agricultural Question']
-
-2. If important context is missing (e.g. crop stage or image of yellow leaves):
-   Ask a short targeted clarification question, but also provide an initial plausible explanation.
-
-3. FOR FARMING/AGRONOMY QUESTIONS, use this format:
-   🌾 Crop: ...
-   📅 Crop Stage: ... (Ask for sowing/transplanting date if unavailable)
-   💧 Recommendation: ...
-   📋 Action: ...
-   ⚠️ Important: Mention that fertilizer recommendations depend on soil test, variety, crop stage and local agricultural recommendations.
-
-4. FOR DISEASE DIAGNOSIS (when image/symptoms presented):
-   🌱 Crop: ...
-   🔍 Possible Disease: ...
-   📊 Confidence: ... (If confidence low: "I need a clearer image of the leaf/stem/fruit to make a better assessment.")
-   🧪 Possible Cause: ...
-   🌿 Recommended Management: (Organic / low-risk options, advice to follow product label & local expert guidance)
-   🛡️ Prevention: ...
-
-5. FOR WEATHER QUESTIONS:
-   🌦️ Weather Risk: Low / Medium / High
-   🚜 Recommendation: Suitable / Not recommended
-   ⏰ Better Window: ...
-   ⚠️ Reason: ... (Never invent weather data)
-
-6. FOR SMART CROP CALENDAR:
-   🌱 Stage 1
-   🌿 Stage 2
-   🌾 Stage 3
-   🌻 Stage 4
-   🚜 Harvest
-
-7. FOR SEED BANK QUESTIONS:
-   🌱 Seed Variety
-   📦 Available Quantity
-   📍 Seed Bank Location
-   🌾 Crop Type
-   📅 Storage Information
-   🟢 Availability
-   🌡️ Storage Condition
-   📞 Contact / Exchange Request
-
-LANGUAGE INSTRUCTION: ${langInstruction}`;
-
     const promptContent = prompt || 'Analyze this crop photo and provide structured pathology diagnosis and advice.';
     parts.push({ text: promptContent });
 
@@ -597,16 +743,75 @@ app.post('/api/community/ask', async (req, res) => {
 
     newPost.replies.push({
       id: `rep-${Date.now()}`,
-      authorName: 'Dr. S. Swaminathan (AgriVeda Expert)',
+      authorName: 'Dr. S. Swaminathan (Agri Expert)',
       isExpert: true,
       text: expertText,
       timeAgo: 'Just now',
-      likes: 5
+      likes: 1
     });
 
-    return res.json(newPost);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    res.json(newPost);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to post question' });
+  }
+});
+
+// 7. API Route: B2B/B2C Marketplace Listings & Quotes
+app.get('/api/marketplace/listings', (req, res) => {
+  res.json({
+    produce: [
+      { id: 'p-paddy', name: 'Seeraga Samba Heritage Rice', category: 'Grains & Millets', seller: 'Vellore Farmer Producer Co.', location: 'Vellore · 5 km', price: 65, retailPrice: 85, unit: 'kg', availableQty: 2400, rating: 4.9, image: '🌾', certified: true, tradeType: 'b2b', minOrderQty: 100, harvestDate: 'Harvested 10 days ago', sellerRole: 'collective' },
+      { id: 'p-ragi', name: 'Pure Organic Ragi (Finger Millet)', category: 'Grains & Millets', seller: 'Salem Dryland Millet Collective', location: 'Salem · 45 km', price: 42, retailPrice: 58, unit: 'kg', availableQty: 1800, rating: 4.9, image: '🌱', certified: true, tradeType: 'both', minOrderQty: 25, harvestDate: 'Fresh Current Crop', sellerRole: 'farmer' },
+      { id: 'p-moong', name: 'Organic Green Gram (Moong Dal)', category: 'Pulses', seller: 'Dharmapuri Pulses Hub', location: 'Dharmapuri · 30 km', price: 95, retailPrice: 125, unit: 'kg', availableQty: 1200, rating: 4.8, image: '🫘', certified: true, tradeType: 'b2b', minOrderQty: 50, harvestDate: 'Sun-dried pure lot', sellerRole: 'farmer' },
+      { id: 'p1', name: 'Farm Fresh Country Tomato (Nattu)', category: 'Vegetables', seller: 'Ravi Farmers Group', location: 'Vellore · 8 km', price: 28, retailPrice: 38, unit: 'kg', availableQty: 850, rating: 4.8, image: '🍅', certified: true, tradeType: 'b2c', minOrderQty: 5, harvestDate: 'Picked Today Morning', sellerRole: 'farmer' },
+      { id: 'p-chilli', name: 'Guntur Teja Sun-Dried Red Chilli', category: 'Spices', seller: 'Andhra Indigenous Seed Savers', location: 'Vellore · 12 km', price: 185, retailPrice: 230, unit: 'kg', availableQty: 600, rating: 4.9, image: '🌶️', certified: true, tradeType: 'both', minOrderQty: 10, harvestDate: 'Premium Export Lot', sellerRole: 'vendor' }
+    ],
+    inputs: [
+      { id: 'i1', name: 'Neem-Coated Bio-Urea (45 kg Bag)', category: 'Fertilizer', seller: 'Sri Balaji Agri Input Store', location: 'Vellore · 4 km', price: 266, unit: 'bag', availableQty: 90, rating: 4.8, image: '🧺', subsidy: 'Government Subsidy Applied (DBT Approved)', tradeType: 'both', sellerRole: 'vendor' },
+      { id: 'i2', name: 'Water Soluble DAP 18:46:0 (50 kg Bag)', category: 'Fertilizer', seller: 'Kisan Inputs Direct Outlet', location: 'Katpadi · 7 km', price: 1350, unit: 'bag', availableQty: 55, rating: 4.6, image: '🌱', subsidy: 'DBT Fertilizer Price Control Compliant', tradeType: 'both', sellerRole: 'vendor' },
+      { id: 'i3', name: 'Certified KNS-2B Paddy Pureline Seeds', category: 'Seeds', seller: 'Tamil Nadu Farmers Seed Center', location: 'Vellore · 5 km', price: 68, unit: 'kg', availableQty: 450, rating: 4.9, image: '🌾', certified: true, tradeType: 'both', sellerRole: 'vendor' }
+    ]
+  });
+});
+
+app.post('/api/marketplace/quotes', async (req, res) => {
+  try {
+    const { productId, productName, quotedPrice, quantity, unit, buyerName } = req.body;
+    const groqRes = await callGroqAi({
+      messages: [
+        {
+          role: 'system',
+          content: `You are an AI trade desk agent for AgriVeda Marketplace. Evaluate the buyer's offer price relative to prevailing market rates and respond strictly in JSON with keys: status ('Accepted'|'Responded'|'Countered'), counterPrice (number), text (string).`
+        },
+        {
+          role: 'user',
+          content: `Product: ${productName}, Quoted Price: ₹${quotedPrice}/${unit || 'kg'}, Quantity: ${quantity}.`
+        }
+      ],
+      jsonMode: true
+    });
+
+    let status = 'Open';
+    let text = `Quote request for ${productName} (₹${quotedPrice}/${unit || 'kg'}) successfully submitted to seller.`;
+    if (groqRes) {
+      try {
+        const parsed = JSON.parse(groqRes);
+        if (parsed.status) status = parsed.status;
+        if (parsed.text) text = parsed.text;
+      } catch (e) {}
+    }
+
+    res.json({
+      id: `q-${Date.now()}`,
+      product: productName,
+      quantity: `${quantity} ${unit || 'kg'}`,
+      buyer: buyerName || 'Buyer',
+      quotedPrice: Number(quotedPrice),
+      status,
+      message: text
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Quote processing error' });
   }
 });
 
@@ -740,4 +945,9 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
+

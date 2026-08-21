@@ -93,7 +93,7 @@ export default function App() {
         )}
 
         {activeTab === 'market' && (
-          <MarketInsightsView profile={profile} />
+          <MarketInsightsView profile={profile} setActiveTab={setActiveTab} />
         )}
 
         {activeTab === 'marketplace' && (

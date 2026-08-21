@@ -133,7 +133,7 @@ export const CommunityView: React.FC<CommunityViewProps> = ({ profile }) => {
 
       {/* Crop Filter Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {['All', 'Tomato', 'Chilli', 'Paddy / Rice', 'Cotton', 'Sugarcane', 'Brinjal'].map(crop => (
+        {['All', 'Paddy / Rice', 'Millets', 'Pulses & Legumes', 'Tomato', 'Chilli', 'Cotton', 'Sugarcane', 'Brinjal'].map(crop => (
           <button
             key={crop}
             onClick={() => setSelectedCropFilter(crop)}

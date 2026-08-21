@@ -359,6 +359,174 @@ export const sampleCommunityPosts: CommunityPost[] = [
 
 export const sampleSeedBankItems: SeedBankItem[] = [
   {
+    id: 'sb-kns-1',
+    seedVariety: 'KNS-2B-S1 Pureline Paddy',
+    cropType: 'Paddy / Rice',
+    availableQuantityKg: 250,
+    seedBankLocation: 'Vellore Community Seed Vault, Tamil Nadu',
+    seedBankName: 'AgriVeda Certified Native Seed Vault',
+    storageInformation: 'Hermetically sealed stainless bins lined with organic neem leaf powder & turmeric extract.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 96,
+    preservationMethod: 'Neem & Turmeric Hermetic Vault Storage',
+    contactPerson: 'Dr. S. Arumugam (Seed Agronomist)',
+    contactPhone: '+91 94431 88900',
+    image: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-kns-2',
+    seedVariety: 'KNS-2-1 Drought-Tolerant Paddy',
+    cropType: 'Paddy / Rice',
+    availableQuantityKg: 210,
+    seedBankLocation: 'Vellore Organic Farmers Seed Trust',
+    seedBankName: 'AgriVeda Certified Native Seed Vault',
+    storageInformation: 'Sun-dried pure seed lot stored in earthen clay pots with paddy husk ash layer.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 94,
+    preservationMethod: 'Earthenware Clay & Husk Ash Layering',
+    contactPerson: 'K. Ramanathan (Seed Custodian)',
+    contactPhone: '+91 94432 10987',
+    image: 'https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-sorghum',
+    seedVariety: 'SORGHUM MILLET (Cholam / Jowar Native)',
+    cropType: 'Millets',
+    availableQuantityKg: 350,
+    seedBankLocation: 'Salem Millet & Heritage Vault, TN',
+    seedBankName: 'Salem Dryland Farming Collective',
+    storageInformation: 'Underground traditional pit granary preservation with dry vitex negundo (Nochi) leaves.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 97,
+    preservationMethod: 'Subterranean Granary Pit & Nochi Leaves',
+    contactPerson: 'P. Shanmugam',
+    contactPhone: '+91 97890 12345',
+    image: 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-ragi',
+    seedVariety: 'RAGI MILLET (Finger Millet / Kezhvaragu)',
+    cropType: 'Millets',
+    availableQuantityKg: 400,
+    seedBankLocation: 'Salem Millet & Heritage Vault, TN',
+    seedBankName: 'Salem Dryland Farming Collective',
+    storageInformation: 'Woven bamboo silos sealed with red clay, turmeric & cow-dung plaster.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 98,
+    preservationMethod: 'Bamboo Silo & Red Clay Plaster Seal',
+    contactPerson: 'P. Shanmugam',
+    contactPhone: '+91 97890 12345',
+    image: 'https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-moong',
+    seedVariety: 'MOONG DAL (Green Gram / Paasi Paruppu)',
+    cropType: 'Pulses & Legumes',
+    availableQuantityKg: 150,
+    seedBankLocation: 'Dharmapuri Seed Exchange Center',
+    seedBankName: 'Dharmapuri Pulses Vault',
+    storageInformation: 'Coated with cold-pressed castor oil and fine wood ash in sealed stainless containers.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 93,
+    preservationMethod: 'Cold-Pressed Castor Oil & Ash Coating',
+    contactPerson: 'M. Lakshmi Ammal',
+    contactPhone: '+91 98421 55432',
+    image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e3?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-urad',
+    seedVariety: 'BLACK GRAM (Native Ulundhu / Urad Dal)',
+    cropType: 'Pulses & Legumes',
+    availableQuantityKg: 120,
+    seedBankLocation: 'Vellore Community Seed Vault, Tamil Nadu',
+    seedBankName: 'AgriVeda Certified Native Seed Vault',
+    storageInformation: 'Sun-dried seeds stored with dried red chilli pods & activated biochar powder.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 92,
+    preservationMethod: 'Red Chilli Pods & Biochar Powder',
+    contactPerson: 'K. Ramanathan (Seed Custodian)',
+    contactPhone: '+91 94432 10987',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-barnyard',
+    seedVariety: 'BARNYARD MILLET (Kudiraivali Drought-Hardy)',
+    cropType: 'Millets',
+    availableQuantityKg: 280,
+    seedBankLocation: 'Salem Millet & Heritage Vault, TN',
+    seedBankName: 'Salem Dryland Farming Collective',
+    storageInformation: 'Stored in terracotta urns with dried sweet flag (Vasambu) root powder.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 97,
+    preservationMethod: 'Terracotta Urn & Vasambu Root Treatment',
+    contactPerson: 'P. Shanmugam',
+    contactPhone: '+91 97890 12345',
+    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
+    id: 'sb-redgram',
+    seedVariety: 'PIGEON PEA (Red Gram / Thovarai Country Line)',
+    cropType: 'Pulses & Legumes',
+    availableQuantityKg: 175,
+    seedBankLocation: 'Dharmapuri Seed Exchange Center',
+    seedBankName: 'Dharmapuri Pulses Vault',
+    storageInformation: 'Treated with activated charcoal powder & dry acacia leaves in jute bags.',
+    isAvailable: true,
+    storageCondition: {
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
+    },
+    germinationRatePercent: 91,
+    preservationMethod: 'Activated Charcoal & Dry Acacia Powder',
+    contactPerson: 'M. Lakshmi Ammal',
+    contactPhone: '+91 98421 55432',
+    image: 'https://images.unsplash.com/photo-1515543904379-3d757afe72e3?auto=format&fit=crop&w=600&q=80',
+    isHeritageVariety: true
+  },
+  {
     id: 'sb-1',
     seedVariety: 'Seeraga Samba Heritage Paddy',
     cropType: 'Paddy / Rice',
@@ -369,8 +537,8 @@ export const sampleSeedBankItems: SeedBankItem[] = [
     isAvailable: true,
     storageCondition: {
       tempCelsius: 22,
-      humidityPercent: 45,
-      moisturePercent: 11.2
+      humidityPercent: 40,
+      moisturePercent: 10.0
     },
     germinationRatePercent: 94,
     preservationMethod: 'Traditional Neem & Clay Ash Layering',
@@ -389,36 +557,15 @@ export const sampleSeedBankItems: SeedBankItem[] = [
     storageInformation: 'Sun-dried seed pulp coated with fermented wood ash stored in sealed copper vessels.',
     isAvailable: true,
     storageCondition: {
-      tempCelsius: 24,
+      tempCelsius: 22,
       humidityPercent: 40,
-      moisturePercent: 9.0
+      moisturePercent: 10.0
     },
     germinationRatePercent: 91,
     preservationMethod: 'Traditional Cow-Dung & Ash Coating',
     contactPerson: 'M. Lakshmi Ammal',
     contactPhone: '+91 98421 55432',
     image: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb231fc?auto=format&fit=crop&w=600&q=80',
-    isHeritageVariety: true
-  },
-  {
-    id: 'sb-3',
-    seedVariety: 'Drought Resistant Finger Millet (Kezhvaragu / Ragi)',
-    cropType: 'Millets',
-    availableQuantityKg: 320,
-    seedBankLocation: 'Salem Dryland Farming Collective',
-    seedBankName: 'Salem Millet & Heritage Vault',
-    storageInformation: 'Subterranean earthen grain granary lined with paddy husk and camphor.',
-    isAvailable: true,
-    storageCondition: {
-      tempCelsius: 20,
-      humidityPercent: 38,
-      moisturePercent: 8.5
-    },
-    germinationRatePercent: 96,
-    preservationMethod: 'Underground Pit Granary Preservation',
-    contactPerson: 'P. Shanmugam',
-    contactPhone: '+91 97890 12345',
-    image: 'https://images.unsplash.com/photo-1605000797499-95a51c5269ae?auto=format&fit=crop&w=600&q=80',
     isHeritageVariety: true
   },
   {
@@ -431,9 +578,9 @@ export const sampleSeedBankItems: SeedBankItem[] = [
     storageInformation: 'Smoked dry pod preservation in jute sacks elevated above earthen soil.',
     isAvailable: true,
     storageCondition: {
-      tempCelsius: 23,
-      humidityPercent: 42,
-      moisturePercent: 10.1
+      tempCelsius: 22,
+      humidityPercent: 40,
+      moisturePercent: 10.0
     },
     germinationRatePercent: 89,
     preservationMethod: 'Smoked Pod Storage Method',

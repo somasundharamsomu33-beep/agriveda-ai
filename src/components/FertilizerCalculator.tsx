@@ -13,6 +13,47 @@ interface FertilizerCalculatorProps {
 
 // Recommended base NPK per acre (in kg) for major crops (Standard Yield)
 const CROP_NPK_REQUIREMENTS: Record<string, { n: number; p: number; k: number; fymTonnes: number; splits: { stage: string; day: number; nPct: number; pPct: number; kPct: number; notes: string }[] }> = {
+  'Paddy / Rice': {
+    n: 50, p: 25, k: 25, fymTonnes: 4,
+    splits: [
+      { stage: 'Basal Dose (During Final Puddling)', day: 0, nPct: 25, pPct: 100, kPct: 50, notes: 'Apply full Phosphorus (DAP) + 50% Potash + 25% Nitrogen + Zinc Sulphate (10 kg/acre)' },
+      { stage: 'Active Tillering (20-25 DAT)', day: 21, nPct: 50, pPct: 0, kPct: 0, notes: 'Broadcast 50% Urea in 2-3 cm standing water' },
+      { stage: 'Panicle Initiation (45-50 DAT)', day: 45, nPct: 25, pPct: 0, kPct: 50, notes: 'Apply remaining 25% Urea + 50% MOP for dense grain filling' }
+    ]
+  },
+  'Ragi / Finger Millet': {
+    n: 30, p: 15, k: 15, fymTonnes: 3,
+    splits: [
+      { stage: 'Basal Dose (Land Prep)', day: 0, nPct: 50, pPct: 100, kPct: 100, notes: 'Apply 50% Urea + full DAP & MOP with FYM before transplanting/broadcasting' },
+      { stage: 'Tillering Stage (25 DAS)', day: 25, nPct: 50, pPct: 0, kPct: 0, notes: 'Top dress remaining 50% Urea with weeding' }
+    ]
+  },
+  'Sorghum / Cholam Millet': {
+    n: 35, p: 20, k: 20, fymTonnes: 3.5,
+    splits: [
+      { stage: 'Basal Dose (At Sowing)', day: 0, nPct: 50, pPct: 100, kPct: 100, notes: 'Full P & K + 50% N incorporated into seedbed' },
+      { stage: 'Knee-High Stage (30 DAS)', day: 30, nPct: 50, pPct: 0, kPct: 0, notes: 'Top dress 50% Urea before hoeing' }
+    ]
+  },
+  'Moong Dal / Green Gram': {
+    n: 10, p: 20, k: 10, fymTonnes: 2,
+    splits: [
+      { stage: 'Basal Dose (At Sowing)', day: 0, nPct: 100, pPct: 100, kPct: 100, notes: 'Apply full DAP + MOP + Rhizobium seed inoculation (200g/acre)' }
+    ]
+  },
+  'Black Gram / Urad Dal': {
+    n: 10, p: 20, k: 10, fymTonnes: 2,
+    splits: [
+      { stage: 'Basal Dose (At Sowing)', day: 0, nPct: 100, pPct: 100, kPct: 100, notes: 'Full dose of NPK + Phosphobacteria culture' }
+    ]
+  },
+  'Groundnut / Peanut': {
+    n: 15, p: 30, k: 45, fymTonnes: 4,
+    splits: [
+      { stage: 'Basal Application', day: 0, nPct: 50, pPct: 100, kPct: 50, notes: 'Apply 50% N + 100% P + 50% K + Gypsum 100kg/acre' },
+      { stage: 'Pegging Stage (40-45 DAS)', day: 42, nPct: 50, pPct: 0, kPct: 50, notes: 'Apply remaining N & K + Gypsum 100kg/acre top dressing' }
+    ]
+  },
   'Tomato': {
     n: 60, p: 40, k: 50, fymTonnes: 5,
     splits: [
@@ -20,14 +61,6 @@ const CROP_NPK_REQUIREMENTS: Record<string, { n: number; p: number; k: number; f
       { stage: 'Vegetative Growth (20-25 DAP)', day: 22, nPct: 35, pPct: 0, kPct: 0, notes: 'Apply 35% Urea near root zone followed by light irrigation' },
       { stage: 'Flowering & Fruit Set (45-50 DAP)', day: 48, nPct: 25, pPct: 0, kPct: 25, notes: 'Apply 25% Urea + 25% MOP. Spray 0.5% Boron if blossom drop seen' },
       { stage: 'Fruit Picking Stage (70-75 DAP)', day: 72, nPct: 15, pPct: 0, kPct: 25, notes: 'Apply remaining 15% Urea & 25% MOP for uniform fruit sizing & color' }
-    ]
-  },
-  'Paddy / Rice': {
-    n: 50, p: 25, k: 25, fymTonnes: 4,
-    splits: [
-      { stage: 'Basal Dose (During Final Puddling)', day: 0, nPct: 25, pPct: 100, kPct: 50, notes: 'Apply full Phosphorus (DAP) + 50% Potash + 25% Nitrogen + Zinc Sulphate (10 kg/acre)' },
-      { stage: 'Active Tillering (20-25 DAT)', day: 21, nPct: 50, pPct: 0, kPct: 0, notes: 'Broadcast 50% Urea in 2-3 cm standing water' },
-      { stage: 'Panicle Initiation (45-50 DAT)', day: 45, nPct: 25, pPct: 0, kPct: 50, notes: 'Apply remaining 25% Urea + 50% MOP for dense grain filling' }
     ]
   },
   'Chilli': {

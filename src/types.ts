@@ -73,7 +73,7 @@ export interface SeedBankItem {
 export interface MarketplaceProduct {
   id: string;
   name: string;
-  category: 'Vegetables' | 'Fruits' | 'Spices' | 'Dry goods' | 'Fertilizer' | 'Seeds' | 'Equipment';
+  category: 'Grains & Millets' | 'Pulses' | 'Vegetables' | 'Fruits' | 'Spices' | 'Dry goods' | 'Fertilizer' | 'Seeds' | 'Equipment';
   seller: string;
   location: string;
   price: number;
@@ -84,6 +84,10 @@ export interface MarketplaceProduct {
   image: string;
   certified?: boolean;
   subsidy?: string;
+  tradeType?: 'b2b' | 'b2c' | 'both';
+  minOrderQty?: number;
+  harvestDate?: string;
+  sellerRole?: 'farmer' | 'vendor' | 'collective';
 }
 
 export interface PriceQuote {

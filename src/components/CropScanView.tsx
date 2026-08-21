@@ -269,8 +269,13 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
                   onChange={e => setCropType(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
                 >
-                  <option value="Tomato">Tomato</option>
                   <option value="Paddy / Rice">Paddy / Rice</option>
+                  <option value="Ragi / Finger Millet">Ragi / Finger Millet</option>
+                  <option value="Sorghum / Cholam Millet">Sorghum / Cholam Millet</option>
+                  <option value="Moong Dal / Green Gram">Moong Dal / Green Gram</option>
+                  <option value="Black Gram / Urad Dal">Black Gram / Urad Dal</option>
+                  <option value="Groundnut / Peanut">Groundnut / Peanut</option>
+                  <option value="Tomato">Tomato</option>
                   <option value="Chilli">Chilli</option>
                   <option value="Cotton">Cotton</option>
                   <option value="Wheat">Wheat</option>

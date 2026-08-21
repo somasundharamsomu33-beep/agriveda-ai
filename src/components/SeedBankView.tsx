@@ -42,7 +42,7 @@ export const SeedBankView: React.FC<SeedBankViewProps> = ({
     germinationRatePercent: 92
   });
 
-  const cropCategories = ['All', 'Paddy / Rice', 'Tomato', 'Millets', 'Chilli'];
+  const cropCategories = ['All', 'Paddy / Rice', 'Tomato', 'Millets', 'Pulses & Legumes', 'Chilli'];
 
   const filteredSeeds = seeds.filter(item => {
     const matchesSearch = item.seedVariety.toLowerCase().includes(searchQuery.toLowerCase()) ||

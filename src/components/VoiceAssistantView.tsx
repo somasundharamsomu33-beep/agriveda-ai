@@ -41,12 +41,12 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
       sender: 'assistant',
       intentCategory: 'General Agricultural Question',
       text: selectedLang === 'ta'
-        ? `வணக்கம் ${farmerContext.farmerName}! நான் உங்கள் அக்ரிவேதா AI வேளாண்மை உதவியாளர். உங்கள் ${farmerContext.cropType} (${farmerContext.cropVariety}) பயிர், உரம், இலை நோய், வானிலை அல்லது விதை வங்கி பற்றிய எந்தக் கேள்வியையும் கேட்கலாம்.`
+        ? `வணக்கம் ${farmerContext.farmerName}! நான் உங்கள் அக்ரிவேதா Groq AI வேளாண்மை உதவியாளர் (Llama-3.3 70B). உங்கள் ${farmerContext.cropType} (${farmerContext.cropVariety}) பயிர், உரம், இலை நோய், வானிலை அல்லது விதை வங்கி பற்றிய எந்தக் கேள்வியையும் கேட்கலாம்.`
         : selectedLang === 'hi'
-        ? `नमस्ते ${farmerContext.farmerName}! मैं आपका एग्रीवेदा AI कृषि सहायक हूँ। अपनी ${farmerContext.cropType} (${farmerContext.cropVariety}) फसल, खाद, बीमारी, मौसम या बीज बैंक के बारे में पूछें।`
+        ? `नमस्ते ${farmerContext.farmerName}! मैं आपका एग्रीवेदा Groq AI कृषि सहायक (Llama-3.3 70B) हूँ। अपनी ${farmerContext.cropType} (${farmerContext.cropVariety}) फसल, खाद, बीमारी, मौसम या बीज बैंक के बारे में पूछें।`
         : selectedLang === 'te'
-        ? `నమస్తే ${farmerContext.farmerName}! నేను మీ అగ్రివేద AI వ్యవసాయ సహాయకుడిని. మీ ${farmerContext.cropType} పంట, ఎరువులు, వాతావరణం లేదా విత్తన బ్యాంకు గురించి అడగండి.`
-        : `Welcome ${farmerContext.farmerName}! I am your AgriVeda AI Copilot. Ask anything about your ${farmerContext.cropType} (${farmerContext.farmArea} Acres), fertilizer schedules, weather spray risks, smart crop calendar, or Community Seed Bank.`,
+        ? `నమస్తే ${farmerContext.farmerName}! నేను మీ అగ్రివేద Groq AI వ్యవసాయ సహాయకుడిని (Llama-3.3 70B). మీ ${farmerContext.cropType} పంట, ఎరువులు, వాతావరణం లేదా విత్తన బ్యాంకు గురించి అడగండి.`
+        : `Welcome ${farmerContext.farmerName}! I am your AgriVeda Groq AI Copilot powered by Llama-3.3 70B. Ask any question about your ${farmerContext.cropType} (${farmerContext.farmArea} Acres), fertilizer schedules, weather spray risks, smart crop calendar, or Community Seed Bank.`,
       language: selectedLang,
       timestamp: 'Just now',
       suggestedFollowups: [
@@ -293,12 +293,12 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-white">AgriVeda AI Assistant</h2>
-                <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Context-Aware Copilot
+                <h2 className="text-lg font-black text-white">AgriVeda Voice AI Assistant</h2>
+                <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 border border-emerald-400/40 shadow-xs">
+                  ⚡ Powered by Groq AI (Llama-3.3 70B)
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Multilingual Agronomist • Multimodal Diagnosis & Advisory</p>
+              <p className="text-xs text-slate-400 font-medium">Ultra-Fast Llama-3.3 Multilingual Agronomist & Voice Copilot</p>
             </div>
           </div>
 

@@ -4,7 +4,7 @@ import {
   Sun, CloudSun, CloudRain, Droplets, ShieldAlert, TrendingUp, TrendingDown,
   Camera, Mic, ChevronRight, Activity, CalendarCheck, Sparkles, CheckCircle2,
   Clock, AlertCircle, Sprout, ShieldCheck, Zap, RefreshCw, MapPin, Thermometer, Wind,
-  BarChart2, LineChart as LineChartIcon, Layers, Store, Handshake, ShoppingBag, Users, Building2, Tractor, Send, Tag, Plus
+  BarChart2, LineChart as LineChartIcon, Layers, Store, Handshake, ShoppingBag, Users, Building2, Tractor, Send, Tag, Plus, ArrowRight
 } from 'lucide-react';
 import {
   ResponsiveContainer,

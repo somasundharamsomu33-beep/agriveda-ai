@@ -613,11 +613,22 @@ export const MapsView: React.FC<MapsViewProps> = ({
         
         {/* Left Sidebar Panel (Role-Specific Dedicated View) */}
         <div
-          className={`z-20 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 transition-all duration-300 flex flex-col shrink-0 overflow-y-auto ${
+          className={`relative z-20 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 transition-all duration-300 flex flex-col shrink-0 ${
             sidebarOpen ? "w-full sm:w-96 md:w-[420px]" : "w-0 p-0 border-none overflow-hidden"
           }`}
         >
-          <div className="p-4 space-y-4 text-slate-100 flex-1">
+          {/* Quick Collapse Tab Handle on Panel Edge */}
+          {sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="absolute -right-3.5 top-20 z-30 flex items-center justify-center w-7 h-12 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white rounded-r-xl shadow-2xl transition-all cursor-pointer group hover:w-8"
+              title="Minimize / Hide Panel"
+            >
+              <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          )}
+
+          <div className="p-4 space-y-4 text-slate-100 flex-1 overflow-y-auto">
             
             {/* Category Indicator Banner with Hide Button */}
             <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
@@ -638,15 +649,13 @@ export const MapsView: React.FC<MapsViewProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
-                  Active
-                </span>
                 <button
                   onClick={() => setSidebarOpen(false)}
-                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title="Hide / Collapse Panel (Click to Hide)"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[10px] font-bold border border-slate-700 transition-colors cursor-pointer"
+                  title="Minimize / Hide Panel (Click to Minimize)"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <span>Minimize</span>
                 </button>
               </div>
             </div>

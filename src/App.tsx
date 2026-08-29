@@ -16,6 +16,7 @@ import { MarketplaceView } from './components/MarketplaceView';
 import { MapsView } from './components/MapsView';
 import { RoleOnboardingModal } from './components/onboarding/RoleOnboardingModal';
 import { VerificationAdminModal } from './components/verification/VerificationAdminModal';
+import { MAPCNView } from './components/MAPCNView';
 
 import { ActiveTab, CropDiagnosisReport, VerificationStatusLevel } from './types';
 import { useFirebase } from './context/FirebaseContext';
@@ -91,10 +92,21 @@ export default function App() {
           <VoiceAssistantView profile={profile} initialQuery={assistantSeedQuery} />
         )}
 
-        {(activeTab === 'maps' || activeTab === 'seedbank') && (
+        {activeTab === 'maps' && (
           <MapsView
             profile={profile}
             targetFocusCoords={targetFocusCoords}
+          />
+        )}
+
+        {(activeTab === 'mapcn' || activeTab === 'seedbank') && (
+          <MAPCNView
+            profile={profile}
+            setActiveTab={setActiveTab}
+            onAskAssistantWithCommodity={(cropName) => {
+              setAssistantSeedQuery(cropName);
+              setActiveTab('assistant');
+            }}
           />
         )}
 

@@ -56,5 +56,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE marketplace_orders;
 ALTER PUBLICATION supabase_realtime ADD TABLE community_posts;
 ALTER PUBLICATION supabase_realtime ADD TABLE community_replies;
 ALTER PUBLICATION supabase_realtime ADD TABLE crop_calendars;
-ALTER PUBLICATION supabase_realtime ADD TABLE seed_exchange_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE mapcn_commodity_arrivals;
+ALTER PUBLICATION supabase_realtime ADD TABLE mapcn_price_alerts;
 ALTER PUBLICATION supabase_realtime ADD TABLE mandi_prices;

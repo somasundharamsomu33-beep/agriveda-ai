@@ -1,7 +1,6 @@
 export type Language = 'en' | 'ta' | 'hi' | 'te';
 export type AIModelType = 'groq/compound' | 'openai/gpt-oss-120b' | 'gemma2-9b-it' | 'gemini-1.5-flash' | 'gemini-1.5-pro';
 
-
 export interface LandPhotoSnap {
   id: string;
   imageUrl: string;
@@ -158,10 +157,8 @@ export interface VerificationApplication {
   reviewedAt?: string;
   reviewerNotes?: string;
   data: RoleVerificationData;
-  auditLogs: VerificationAuditLog[];
-}
-
 export interface UserProfile {
+  id?: string;
   name: string;
   firstName?: string;
   secondName?: string;
@@ -176,7 +173,7 @@ export interface UserProfile {
   avatarUrl: string;
   role?: UserRole;
   plan?: 'free' | 'pro';
-  verificationStatus?: VerificationStatusLevel;
+  verificationStatus?: VerificationStatusLevel | VerificationStatus;
   verificationScore?: number;
   verificationData?: RoleVerificationData;
   auditLogs?: VerificationAuditLog[];
@@ -188,6 +185,8 @@ export interface UserProfile {
   seedBankName?: string;
   recentCropProblems?: string;
   landPhotos?: LandPhotoSnap[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type UserRole =
@@ -201,7 +200,97 @@ export type UserRole =
   | 'input_vendor'
   | 'agronomist'
   | 'business'
-  | 'student';
+  | 'student'
+  | 'research_scholar'
+  | 'institution'
+  | 'bank'
+  | 'financial_institution'
+  | 'government'
+  | 'buyer'
+  | 'fpo'
+  | 'admin'
+  | 'verifier';
+
+export type OrgType =
+  | 'business'
+  | 'institution'
+  | 'bank'
+  | 'government'
+  | 'fpo_cooperative';
+
+export type OrgRole =
+  | 'owner'
+  | 'admin'
+  | 'employee'
+  | 'researcher'
+  | 'faculty'
+  | 'student'
+  | 'officer'
+  | 'viewer';
+
+export type VerificationStatus =
+  | 'pending'
+  | 'submitted'
+  | 'under_review'
+  | 'verified'
+  | 'rejected'
+  | 'expired'
+  | 'revoked';
+
+export type VerificationType =
+  | 'identity_kyc'
+  | 'land_ownership'
+  | 'business_gst_pan'
+  | 'academic_enrollment'
+  | 'institutional_accreditation'
+  | 'financial_regulatory'
+  | 'government_officer'
+  | 'organic_certification'
+  | 'fpo_registration';
+
+export type DocumentType =
+  | 'aadhaar'
+  | 'pan_individual'
+  | 'pan_business'
+  | 'voter_id'
+  | 'passport'
+  | 'driving_license'
+  | 'land_patta_chitta'
+  | 'khasra_khatauni'
+  | '7_12_extract'
+  | 'sale_deed'
+  | 'student_id_card'
+  | 'bonafide_certificate'
+  | 'enrollment_letter'
+  | 'gst_certificate'
+  | 'incorporation_certificate'
+  | 'fssai_license'
+  | 'trade_license'
+  | 'bank_statement_cancelled_cheque'
+  | 'rbi_license'
+  | 'banking_license'
+  | 'institutional_affiliation_letter'
+  | 'govt_employee_id'
+  | 'other';
+
+export type DocumentCategory =
+  | 'Identity'
+  | 'Land'
+  | 'Academic'
+  | 'Business_Tax'
+  | 'Regulatory'
+  | 'Accreditation'
+  | 'Financial'
+  | 'Other';
+
+export type ConsentType =
+  | 'terms_and_conditions'
+  | 'privacy_policy'
+  | 'aadhaar_kyc_consent'
+  | 'credit_bureau_pull_consent'
+  | 'data_sharing_with_buyers'
+  | 'data_sharing_with_institutions'
+  | 'crop_data_research_sharing';
 
 export type AgriIntentCategory =
   | 'Crop Management'
@@ -220,6 +309,415 @@ export type AgriIntentCategory =
   | 'B2B'
   | 'B2C'
   | 'General Agricultural Question';
+
+// ----------------------------------------------------------------------------
+// Role-Specific Profiles
+// ----------------------------------------------------------------------------
+
+export interface FarmlandPlot {
+  id: string;
+  farmerId: string;
+  plotName: string;
+  surveyNumber?: string;
+  khataNumber?: string;
+  pattaNumber?: string;
+  acreage: number;
+  village: string;
+  talukTehsil?: string;
+  district: string;
+  state: string;
+  pincode?: string;
+  latitude?: number;
+  longitude?: number;
+  boundaryGeojson?: any;
+  soilType?: string;
+  soilPh?: number;
+  organicMatterPercent?: number;
+  irrigationSource?: string;
+  ownershipType?: 'owned' | 'leased' | 'shared';
+  isActive: boolean;
+  createdAt?: string;
+}
+
+export interface FarmlandPhoto {
+  id: string;
+  plotId: string;
+  farmerId: string;
+  photoUrl: string;
+  photoType: 'crop_overview' | 'soil_sample' | 'irrigation_setup' | 'boundary_post' | 'infestation';
+  geotagLat?: number;
+  geotagLng?: number;
+  caption?: string;
+  capturedAt: string;
+}
+
+export interface FarmerCropHistory {
+  id: string;
+  farmerId: string;
+  plotId?: string;
+  cropName: string;
+  variety?: string;
+  season: 'Kharif' | 'Rabi' | 'Zaid' | 'Perennial';
+  cropYear: number;
+  sowingDate?: string;
+  harvestDate?: string;
+  acreage: number;
+  actualYieldMetricTons?: number;
+  expectedProductionTons?: number;
+  marketPriceRealizedPerQuintal?: number;
+  notes?: string;
+}
+
+export interface FarmerProfile {
+  userId: string;
+  fatherOrSpouseName?: string;
+  gender?: string;
+  dob?: string;
+  educationLevel?: string;
+  primaryLanguage?: string;
+  aadhaarMasked?: string;
+  pmKisanId?: string;
+  soilHealthCardNumber?: string;
+  totalLandholdingAcres: number;
+  isOrganicCertified: boolean;
+  organicCertNumber?: string;
+  farmingExperienceYears: number;
+  annualIncomeRange?: string;
+  preferredMandiId?: string;
+  verificationStatus: VerificationStatus;
+  plots?: FarmlandPlot[];
+  cropHistory?: FarmerCropHistory[];
+}
+
+export interface BusinessProfile {
+  userId: string;
+  organizationId?: string;
+  businessName: string;
+  tradeName?: string;
+  ownerRepresentativeName: string;
+  designation?: string;
+  contactEmail?: string;
+  contactPhone: string;
+  gstin?: string;
+  pan?: string;
+  cin?: string;
+  fssaiLicenseNumber?: string;
+  businessCategory: string;
+  procurementRequirements?: Array<{
+    crop: string;
+    monthlyDemandTons: number;
+    minGrade?: string;
+  }>;
+  procurementCapacityMonthlyMetricTons?: number;
+  annualTurnoverInr?: number;
+  operationalRegions?: string[];
+  registeredAddress?: string;
+  warehouseLocations?: any[];
+  creditRating?: string;
+  verificationStatus: VerificationStatus;
+}
+
+export interface StudentProfile {
+  userId: string;
+  institutionId?: string;
+  studentIdNumber: string;
+  universityName: string;
+  campusName?: string;
+  department: string;
+  courseProgram: string;
+  currentAcademicYear: number;
+  currentSemester?: number;
+  admissionYear: number;
+  expectedGraduationYear: number;
+  guideSupervisorName?: string;
+  guideEmail?: string;
+  specializationField?: string;
+  verificationStatus: VerificationStatus;
+}
+
+export interface ResearcherProfile {
+  userId: string;
+  institutionId?: string;
+  researcherIdNumber: string;
+  universityInstituteName: string;
+  department: string;
+  researchArea: string;
+  designation?: string;
+  guideSupervisorName?: string;
+  supervisorEmail?: string;
+  activeProjectTitle?: string;
+  fundingAgency?: string;
+  grantId?: string;
+  orchidId?: string;
+  publicationsCount: number;
+  verificationStatus: VerificationStatus;
+}
+
+export interface InstitutionProfile {
+  organizationId: string;
+  authorizedRepresentativeId?: string;
+  institutionType: string;
+  officialDomain?: string;
+  accreditationBody?: string;
+  accreditationGrade?: string;
+  accreditationValidUntil?: string;
+  departmentsJson?: string[];
+  servicesOfferedJson?: string[];
+  testingLaboratoriesCount: number;
+}
+
+export interface FinancialInstitutionProfile {
+  organizationId: string;
+  authorizedOfficerId?: string;
+  institutionSubtype: string;
+  rbiLicenseNumber: string;
+  bankingCodeIfscPrefix?: string;
+  nodalOfficerName?: string;
+  nodalOfficerDesignation?: string;
+  nodalOfficerEmployeeId?: string;
+  officialContactPhone?: string;
+  officialContactEmail?: string;
+  supportedCreditSchemes?: string[];
+  branchesCount: number;
+  headOfficeAddress?: string;
+}
+
+export interface GovernmentProfile {
+  userId: string;
+  organizationId?: string;
+  departmentName: string;
+  officerDesignation: string;
+  employeeIdNumber: string;
+  jurisdictionLevel: 'National' | 'State' | 'District' | 'Taluk_Block' | 'Gram_Panchayat';
+  jurisdictionState: string;
+  jurisdictionDistrict?: string;
+  jurisdictionBlock?: string;
+  govEmail: string;
+  verificationStatus: VerificationStatus;
+}
+
+export interface BankAccount {
+  id: string;
+  userId?: string;
+  organizationId?: string;
+  accountHolderName: string;
+  bankName: string;
+  branchName?: string;
+  accountNumberMasked: string;
+  ifscCode: string;
+  accountType: 'savings' | 'current' | 'kcc' | 'fpo_current';
+  upiId?: string;
+  isPrimary: boolean;
+  verificationStatus: VerificationStatus;
+  createdAt?: string;
+}
+
+// ----------------------------------------------------------------------------
+// Organization & RBAC Models
+// ----------------------------------------------------------------------------
+
+export interface Organization {
+  id: string;
+  name: string;
+  legalName?: string;
+  orgType: OrgType;
+  registrationNumber?: string;
+  taxIdentifier?: string;
+  officialEmail?: string;
+  officialPhone?: string;
+  website?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  district?: string;
+  state?: string;
+  postalCode?: string;
+  country: string;
+  verificationStatus: VerificationStatus;
+  logoUrl?: string;
+  metadataJson?: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface OrganizationMembership {
+  id: string;
+  organizationId: string;
+  userId: string;
+  orgRole: OrgRole;
+  department?: string;
+  designation?: string;
+  isActive: boolean;
+  joinedAt: string;
+  invitedBy?: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  code: string;
+  description?: string;
+  hierarchyLevel: number;
+  isSystem: boolean;
+}
+
+export interface Permission {
+  id: string;
+  code: string;
+  module: string;
+  name: string;
+  description?: string;
+}
+
+// ----------------------------------------------------------------------------
+// Verification & Audit Models
+// ----------------------------------------------------------------------------
+
+export interface VerificationRequest {
+  id: string;
+  userId: string;
+  organizationId?: string;
+  verificationType: VerificationType;
+  targetRole?: string;
+  status: VerificationStatus;
+  currentStage?: string;
+  submissionNotes?: string;
+  submittedAt: string;
+  reviewerId?: string;
+  reviewedAt?: string;
+  reviewerNotes?: string;
+  rejectionReasonCode?: string;
+  rejectionReasonDetails?: string;
+  expiresAt?: string;
+  documents?: VerificationDocument[];
+}
+
+export interface VerificationDocument {
+  id: string;
+  requestId?: string;
+  userId: string;
+  organizationId?: string;
+  documentType: DocumentType;
+  documentCategory: DocumentCategory;
+  documentNumberMasked?: string;
+  fileStoragePath: string;
+  fileNameOriginal?: string;
+  fileMimeType?: string;
+  fileSizeBytes?: number;
+  fileSha256Checksum?: string;
+  isEncrypted: boolean;
+  issueDate?: string;
+  expiryDate?: string;
+  issuingAuthority?: string;
+  verificationStatus: VerificationStatus;
+  verifiedBy?: string;
+  verificationNotes?: string;
+  verifiedAt?: string;
+  createdAt?: string;
+}
+
+export interface UserConsent {
+  id: string;
+  userId: string;
+  consentType: ConsentType;
+  version: string;
+  isGranted: boolean;
+  ipAddress?: string;
+  userAgent?: string;
+  grantedAt: string;
+  revokedAt?: string;
+}
+
+export interface AuditLog {
+  id: string;
+  userId?: string;
+  organizationId?: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  changesJson?: any;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
+// ----------------------------------------------------------------------------
+// Existing Marketplace, Diagnosis & Community Interfaces
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// MAPCN (Mandi & APMC Price Commodity Network) Models
+// ----------------------------------------------------------------------------
+
+export interface MAPCNMandiCenter {
+  id: string;
+  name: string;
+  marketCode: string;
+  state: string;
+  district: string;
+  locationAddress: string;
+  latitude: number;
+  longitude: number;
+  secretaryName: string;
+  contactPhone: string;
+  officialEmail?: string;
+  isEnamConnected: boolean;
+  coldStorageAvailable: boolean;
+  weighbridgeAvailable: boolean;
+  operatingHours: string;
+  distanceKm?: number;
+}
+
+export interface MAPCNCommodityItem {
+  id: string;
+  mandiId: string;
+  mandiName: string;
+  mandiLocation: string;
+  state: string;
+  district: string;
+  cropName: string;
+  variety: string;
+  grade: string;
+  category: 'Grains & Cereals' | 'Pulses' | 'Vegetables' | 'Fruits' | 'Spices' | 'Oilseeds' | 'Commercial';
+  minPricePerQuintal: number;
+  maxPricePerQuintal: number;
+  modalPricePerQuintal: number;
+  mspPricePerQuintal?: number;
+  arrivalVolumeMetricTons: number;
+  priceDate: string;
+  trendDirection: 'UP' | 'DOWN' | 'STABLE';
+  trendPercentage: number;
+  aiMarketOutlook: string;
+  priceHistory7d: Array<{ date: string; price: number }>;
+  distanceKm?: number;
+  image?: string;
+  verifiedTradersCount?: number;
+}
+
+export interface MAPCNPriceAlert {
+  id: string;
+  userId: string;
+  cropName: string;
+  targetPricePerQuintal: number;
+  alertCondition: 'ABOVE' | 'BELOW';
+  preferredMandiName?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface MAPCNTrader {
+  id: string;
+  mandiId: string;
+  mandiName: string;
+  traderName: string;
+  businessName: string;
+  shopNumber: string;
+  apmcLicenseNumber: string;
+  contactPhone: string;
+  verifiedBuyer: boolean;
+  rating: number;
+  commoditiesTraded: string[];
+}
 
 export interface SeedBankItem {
   id: string;
@@ -289,9 +787,9 @@ export interface CropDiagnosisReport {
   location: string;
   imageUrl: string;
   detectedIssue: string;
-  confidence: number; // percentage, e.g. 92
+  confidence: number;
   riskLevel: 'High' | 'Medium' | 'Low';
-  farmHealthScore: number; // e.g. 85
+  farmHealthScore: number;
   cause: string;
   treatment: string[];
   prevention: string[];
@@ -300,19 +798,19 @@ export interface CropDiagnosisReport {
 }
 
 export interface WeatherInfo {
-  temperature: number; // °C
+  temperature: number;
   condition: string;
-  humidity: number; // %
-  windSpeed: number; // km/h
-  rainChance: number; // %
+  humidity: number;
+  windSpeed: number;
+  rainChance: number;
   location: string;
   soilMoisture?: number; // %
   uvIndex?: number;
   weeklyTrend?: Array<{
     day: string;
-    temp: number; // °C
-    rainfall: number; // mm
-    humidity: number; // %
+    temp: number;
+    rainfall: number;
+    humidity: number;
   }>;
   forecast: Array<{
     day: string;
@@ -332,10 +830,10 @@ export interface WeatherInfo {
 export interface MarketPriceItem {
   id: string;
   cropName: string;
-  currentPrice: number; // ₹/kg
-  priceChange: number; // e.g. +5 or -2
-  percentageChange: number; // e.g. +16.6
-  unit: string; // kg or quintal
+  currentPrice: number;
+  priceChange: number;
+  percentageChange: number;
+  unit: string;
   bestMarket: string;
   regionalMarkets: Array<{
     marketName: string;
@@ -378,7 +876,7 @@ export interface VoiceMessage {
   attachedImage?: string;
   timestamp: string;
   actionCard?: {
-    type: 'fertilizer' | 'weather' | 'market' | 'diagnosis' | 'seedbank' | 'crop_calendar';
+    type: 'fertilizer' | 'weather' | 'market' | 'diagnosis' | 'mapcn' | 'seedbank' | 'crop_calendar';
     title: string;
     data: any;
   };
@@ -420,9 +918,10 @@ export type ActiveTab =
   | 'scan'
   | 'market'
   | 'marketplace'
+  | 'mapcn'
+  | 'maps'
+  | 'seedbank'
   | 'assistant'
   | 'weather'
   | 'community'
-  | 'maps'
-  | 'seedbank'
   | 'profile';

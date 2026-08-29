@@ -630,11 +630,24 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                     {msg.actionCard.type === 'fertilizer' && <Calculator className="w-5 h-5 text-emerald-700" />}
                     {msg.actionCard.type === 'weather' && <CloudSun className="w-5 h-5 text-amber-600" />}
                     {msg.actionCard.type === 'market' && <TrendingUp className="w-5 h-5 text-blue-600" />}
+                    {msg.actionCard.type === 'mapcn' && <TrendingUp className="w-5 h-5 text-emerald-600" />}
                     {msg.actionCard.type === 'diagnosis' && <Shield className="w-5 h-5 text-rose-600" />}
                     {msg.actionCard.type === 'seedbank' && <Sprout className="w-5 h-5 text-emerald-700" />}
                     {msg.actionCard.type === 'crop_calendar' && <Calendar className="w-5 h-5 text-indigo-600" />}
                     <h4 className="text-xs font-black text-slate-900">{msg.actionCard.title}</h4>
                   </div>
+
+                  {msg.actionCard.type === 'mapcn' && (
+                    <div className="bg-white p-3 rounded-xl border border-emerald-200 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between font-bold text-emerald-900">
+                        <span>{msg.actionCard.data.crop || 'Commodity'}: ₹{msg.actionCard.data.modalPrice || 3500}/q</span>
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md">
+                          {msg.actionCard.data.mandi || 'APMC Yard'}
+                        </span>
+                      </div>
+                      <p className="text-slate-600 text-[11px]">{msg.actionCard.data.outlook || 'Live arrivals active.'}</p>
+                    </div>
+                  )}
 
                   {msg.actionCard.type === 'fertilizer' && (
                     <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 text-center text-xs">

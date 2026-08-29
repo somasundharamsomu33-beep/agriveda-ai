@@ -42,6 +42,10 @@ import {
   Route,
   MapPin,
   Loader2,
+  Droplets,
+  Store,
+  Stethoscope,
+  SunMedium,
 } from "lucide-react";
 import {
   LOAN_OFFICES,
@@ -62,11 +66,16 @@ import { InstituteView } from "./agri/institute-view";
 import { LoanCalculatorModal } from "./agri/loan-calculator-modal";
 import { ApplyLoanModal } from "./agri/apply-loan-modal";
 import { NominatimSearch } from "./agri/nominatim-search";
+import { OverpassExplorer } from "./agri/overpass-explorer";
 import {
   reverseGeocodeNominatim,
   formatNominatimPlaceName,
   type NominatimSearchResult,
 } from "../lib/nominatim";
+import type {
+  OverpassGeoJSONCollection,
+  OverpassGeoJSONFeature,
+} from "../lib/overpass";
 import {
   getDijkstraOnRoadRoute,
   getMultiStopInspectionCircuit,
@@ -124,6 +133,10 @@ export const MapsView: React.FC<MapsViewProps> = ({
   const [reverseGeocodeCoords, setReverseGeocodeCoords] = useState<[number, number] | null>(null);
   const [reverseGeocodedPlace, setReverseGeocodedPlace] = useState<NominatimSearchResult | null>(null);
 
+  // Overpass Real-Time OSM Agricultural Infrastructure states
+  const [overpassData, setOverpassData] = useState<OverpassGeoJSONCollection | null>(null);
+  const [selectedOverpassFeature, setSelectedOverpassFeature] = useState<OverpassGeoJSONFeature | null>(null);
+
   // Radius & Filtering (Default 30 km)
   const [radiusKm, setRadiusKm] = useState<number>(30);
   const [showAgroZones, setShowAgroZones] = useState(true);
@@ -175,6 +188,32 @@ export const MapsView: React.FC<MapsViewProps> = ({
     }
     return undefined;
   }, [activeStyleName]);
+
+  // Derived Overpass GeoJSON Sub-layers
+  const canalsGeoJSON = useMemo(() => {
+    if (!overpassData) return { type: "FeatureCollection" as const, features: [] };
+    return {
+      type: "FeatureCollection" as const,
+      features: overpassData.features.filter(
+        (f) => f.properties.category === "canals" && (f.geometry.type === "LineString" || f.geometry.type === "MultiLineString")
+      ),
+    };
+  }, [overpassData]);
+
+  const farmlandsGeoJSON = useMemo(() => {
+    if (!overpassData) return { type: "FeatureCollection" as const, features: [] };
+    return {
+      type: "FeatureCollection" as const,
+      features: overpassData.features.filter(
+        (f) => f.properties.category === "farmlands" && (f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon")
+      ),
+    };
+  }, [overpassData]);
+
+  const overpassPointFeatures = useMemo(() => {
+    if (!overpassData) return [];
+    return overpassData.features.filter((f) => f.geometry.type === "Point");
+  }, [overpassData]);
 
   // Handle Nominatim Forward Search selection
   const handleSelectNominatimPlace = (place: NominatimSearchResult) => {
@@ -617,7 +656,17 @@ export const MapsView: React.FC<MapsViewProps> = ({
             </div>
           )}
 
-          {/* Map Controls */}
+          {/* Overpass API Explorer Floating Component */}
+          <OverpassExplorer
+            viewport={viewport}
+            onDataLoaded={setOverpassData}
+            activeData={overpassData}
+            onClearData={() => setOverpassData(null)}
+            selectedFeature={selectedOverpassFeature}
+            onCloseFeatureDetails={() => setSelectedOverpassFeature(null)}
+          />
+
+          {/* Map Canvas */}
           <Map
             viewport={viewport}
             onViewportChange={setViewport}
@@ -665,6 +714,39 @@ export const MapsView: React.FC<MapsViewProps> = ({
               />
             )}
 
+            {/* Overpass Live Farmland Parcels Layer */}
+            {farmlandsGeoJSON.features.length > 0 && (
+              <MapGeoJSON
+                id="overpass-farmlands-layer"
+                data={farmlandsGeoJSON}
+                fillPaint={{
+                  "fill-color": "#22c55e",
+                  "fill-opacity": 0.2,
+                }}
+                linePaint={{
+                  "line-color": "#16a34a",
+                  "line-width": 1.8,
+                }}
+                fillHoverPaint={{
+                  "fill-opacity": 0.35,
+                }}
+                interactive={true}
+              />
+            )}
+
+            {/* Overpass Live Irrigation Canals Layer */}
+            {canalsGeoJSON.features.length > 0 && (
+              <MapGeoJSON
+                id="overpass-canals-layer"
+                data={canalsGeoJSON}
+                linePaint={{
+                  "line-color": "#06b6d4",
+                  "line-width": 3,
+                }}
+                interactive={true}
+              />
+            )}
+
             {/* Dynamic Nominatim Search Result Polygon (If available) */}
             {searchedPlace?.geojson && (
               <MapGeoJSON
@@ -695,6 +777,43 @@ export const MapsView: React.FC<MapsViewProps> = ({
                 dashArray={[2, 1]}
               />
             )}
+
+            {/* Overpass Real-Time Point Infrastructure Markers */}
+            {overpassPointFeatures.map((feat) => {
+              const coords = feat.geometry.coordinates;
+              const cat = feat.properties.category;
+              return (
+                <MapMarker
+                  key={`overpass-${feat.id}`}
+                  longitude={coords[0]}
+                  latitude={coords[1]}
+                  onClick={() => setSelectedOverpassFeature(feat)}
+                >
+                  <MarkerContent>
+                    <div className="cursor-pointer group hover:scale-125 transition-transform z-20">
+                      <div
+                        className={`w-7 h-7 rounded-xl flex items-center justify-center text-white shadow-lg border border-white ${
+                          cat === "mandis"
+                            ? "bg-amber-600"
+                            : cat === "veterinary"
+                            ? "bg-purple-600"
+                            : cat === "solar_pumps"
+                            ? "bg-yellow-600"
+                            : "bg-cyan-600"
+                        }`}
+                      >
+                        {cat === "mandis" && <Store className="w-3.5 h-3.5" />}
+                        {cat === "veterinary" && <Stethoscope className="w-3.5 h-3.5" />}
+                        {cat === "solar_pumps" && <SunMedium className="w-3.5 h-3.5" />}
+                        {cat === "canals" && <Droplets className="w-3.5 h-3.5" />}
+                        {cat === "farmlands" && <Sprout className="w-3.5 h-3.5" />}
+                      </div>
+                      <MarkerTooltip>{feat.properties.name}</MarkerTooltip>
+                    </div>
+                  </MarkerContent>
+                </MapMarker>
+              );
+            })}
 
             {/* Nominatim Forward Searched Place Marker */}
             {searchedPlace && !isNaN(parseFloat(searchedPlace.lon)) && (

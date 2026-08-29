@@ -1136,6 +1136,61 @@ app.get('/api/nominatim/lookup', async (req, res) => {
   }
 });
 
+// ============================================================================
+// OVERPASS API OPENSTREETMAP SPATIAL QUERY PROXY
+// ============================================================================
+const overpassProxyCache = new Map<string, { data: any; timestamp: number }>();
+const OVERPASS_CACHE_TTL_MS = 1000 * 60 * 60 * 2; // 2 hours
+
+app.post('/api/overpass/query', async (req, res) => {
+  try {
+    const { query } = req.body || {};
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Missing Overpass QL query' });
+    }
+
+    const trimmedQuery = query.trim();
+    const cacheKey = `overpass:${trimmedQuery}`;
+    const cached = overpassProxyCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < OVERPASS_CACHE_TTL_MS) {
+      return res.json(cached.data);
+    }
+
+    const mirrors = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
+      'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+    ];
+
+    let lastError = null;
+    for (const mirror of mirrors) {
+      try {
+        const response = await fetch(mirror, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'AgriVeda-AI-MapCN-SIH/1.0 (contact: support@agriveda.io)',
+          },
+          body: `data=${encodeURIComponent(trimmedQuery)}`,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          overpassProxyCache.set(cacheKey, { data, timestamp: Date.now() });
+          return res.json(data);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    res.status(502).json({ error: 'All Overpass mirrors failed or timed out', details: lastError });
+  } catch (err: any) {
+    console.error('Overpass server error:', err);
+    res.status(500).json({ error: 'Overpass query execution failed', message: err.message });
+  }
+});
+
 // 7. API Route: Weekly Agri-Tip (Gemini Powered)
 app.post('/api/weekly-agri-tip', async (req, res) => {
   try {

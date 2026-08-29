@@ -1,6 +1,7 @@
+// @ts-ignore
 import server from '../dist/server.cjs';
 
-const app = server.default || server;
+const app = server?.default || server;
 
 export default function handler(req: any, res: any) {
   if (req.url && !req.url.startsWith('/api')) {

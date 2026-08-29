@@ -4,7 +4,7 @@ import {
   Sun, CloudSun, CloudRain, Droplets, ShieldAlert, TrendingUp, TrendingDown,
   Camera, Mic, ChevronRight, Activity, CalendarCheck, Sparkles, CheckCircle2,
   Clock, AlertCircle, Sprout, ShieldCheck, Zap, RefreshCw, MapPin, Thermometer, Wind,
-  BarChart2, LineChart as LineChartIcon, Layers, Store, Handshake, ShoppingBag, Users, Building2, Tractor, Send, Tag, Plus, ArrowRight
+  BarChart2, LineChart as LineChartIcon, Layers, Store, Handshake, ShoppingBag, Users, Building2, Tractor, Send, Tag, Plus, ArrowRight, Navigation
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -413,6 +413,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <Mic className="w-4 h-4 text-blue-400" />
           <span>{t.voiceAI}</span>
         </button>
+      </div>
+
+      {/* MapCN Geospatial & Bank Loans Live Spotlight Card */}
+      <div 
+        onClick={() => setActiveTab('maps')}
+        className="bg-gradient-to-r from-slate-900 via-blue-950 to-emerald-950 text-white rounded-3xl p-4 sm:p-5 shadow-xl border border-blue-500/20 hover:border-emerald-500/50 transition-all cursor-pointer group relative overflow-hidden"
+      >
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform shrink-0">
+              <Navigation className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-black text-white">MapCN Agri-GIS & Bank Loans</h4>
+                <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
+                  Interactive Portal
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 font-medium mt-0.5">
+                Explore nearest loan branches within 30km, agro-climatic zones, field inspection routing & subsidized credit.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-emerald-400 font-bold text-xs shrink-0 group-hover:translate-x-1 transition-transform ml-2">
+            <span className="hidden sm:inline">Open Maps</span>
+            <ChevronRight className="w-4 h-4" />
+          </div>
+        </div>
       </div>
 
       {/* MULTI-ROLE B2B & B2C FRAMER MARKETPLACE DASHBOARD WIDGET */}

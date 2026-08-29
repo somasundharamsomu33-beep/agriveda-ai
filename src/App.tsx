@@ -13,7 +13,7 @@ import { MarketInsightsView } from './components/MarketInsightsView';
 import { CommunityView } from './components/CommunityView';
 import { ProfileView } from './components/ProfileView';
 import { MarketplaceView } from './components/MarketplaceView';
-import { SeedBankView } from './components/SeedBankView';
+import { MapsView } from './components/MapsView';
 
 import { ActiveTab, CropDiagnosisReport } from './types';
 import { useFirebase } from './context/FirebaseContext';
@@ -77,14 +77,9 @@ export default function App() {
           <VoiceAssistantView profile={profile} initialQuery={assistantSeedQuery} />
         )}
 
-        {activeTab === 'seedbank' && (
-          <SeedBankView
+        {(activeTab === 'maps' || activeTab === 'seedbank') && (
+          <MapsView
             profile={profile}
-            setActiveTab={setActiveTab}
-            onAskAssistantWithSeed={(seedName) => {
-              setAssistantSeedQuery(seedName);
-              setActiveTab('assistant');
-            }}
           />
         )}
 

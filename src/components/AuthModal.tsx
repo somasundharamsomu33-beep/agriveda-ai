@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   X, Smartphone, Lock, Eye, EyeOff, CheckCircle2, ShieldAlert, Sparkles,
-  ArrowRight, UserCheck, Sprout, Store, Stethoscope, Building2, GraduationCap,
+  ArrowRight, UserCheck, Sprout, Store, Stethoscope, Building2, GraduationCap, Landmark,
   RefreshCw, Check, AlertTriangle, KeyRound, Globe, MapPin, Mail, ShieldCheck, HelpCircle
 } from 'lucide-react';
 import { UserProfile, UserRole, Language, ActiveTab } from '../types';
@@ -128,10 +128,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onClose();
         if (setActiveTab) {
           if (selectedRole === 'farmer') setActiveTab('home');
+          else if (selectedRole === 'loan-officer' || selectedRole === 'researcher' || selectedRole === 'institute') setActiveTab('maps');
           else if (selectedRole === 'vendor' || selectedRole === 'retail_vendor' || selectedRole === 'wholesale_vendor') setActiveTab('marketplace');
           else if (selectedRole === 'agronomist') setActiveTab('community');
           else if (selectedRole === 'business') setActiveTab('market');
-          else setActiveTab('assistant');
+          else setActiveTab('home');
         }
       }, 1000);
     }, 900);
@@ -190,10 +191,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         onClose();
         if (setActiveTab) {
           if (selectedRole === 'farmer') setActiveTab('home');
-          else if (selectedRole === 'vendor') setActiveTab('marketplace');
+          else if (selectedRole === 'loan-officer' || selectedRole === 'researcher' || selectedRole === 'institute') setActiveTab('maps');
+          else if (selectedRole === 'vendor' || selectedRole === 'retail_vendor' || selectedRole === 'wholesale_vendor') setActiveTab('marketplace');
           else if (selectedRole === 'agronomist') setActiveTab('community');
           else if (selectedRole === 'business') setActiveTab('market');
-          else setActiveTab('assistant');
+          else setActiveTab('home');
         }
       }, 1200);
     }, 800);
@@ -216,9 +218,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     {
       id: 'farmer',
       title: 'Farmer / Producer',
-      subtitle: 'AI farming assistance, crop pathology, disease diagnosis & market quotes',
+      subtitle: 'AI farming assistance, crop pathology, bank loan applications & Dijkstra navigation',
       icon: Sprout,
       color: 'from-emerald-500 to-teal-600'
+    },
+    {
+      id: 'loan-officer',
+      title: 'Bank Loan Officer / Agri-Inspector',
+      subtitle: 'Field inspection circuits, applicant verification, credit risk & loan approvals',
+      icon: Building2,
+      color: 'from-blue-600 to-indigo-700'
+    },
+    {
+      id: 'researcher',
+      title: 'Agricultural Researcher / ICAR',
+      subtitle: 'Agro-climatic zones, GIS mapping, soil metrics & spatial research datasets',
+      icon: GraduationCap,
+      color: 'from-teal-500 to-cyan-600'
+    },
+    {
+      id: 'institute',
+      title: 'Agricultural Finance Institute / NABARD',
+      subtitle: 'Institutional credit deployment, district saturation & recovery metrics',
+      icon: Landmark,
+      color: 'from-amber-500 to-orange-600'
     },
     {
       id: 'vendor',
@@ -243,7 +266,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     },
     {
       id: 'student',
-      title: 'Student / Researcher',
+      title: 'Student / Scholar',
       subtitle: 'Agri tech knowledge base, AI trial tools & research publications',
       icon: GraduationCap,
       color: 'from-cyan-500 to-blue-600'
@@ -383,6 +406,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Select Your Login Persona
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {[
+                      { id: 'farmer', label: 'Farmer', icon: Sprout },
+                      { id: 'loan-officer', label: 'Loan Officer', icon: Building2 },
+                      { id: 'researcher', label: 'Researcher', icon: GraduationCap },
+                      { id: 'institute', label: 'Institute / Bank', icon: Landmark },
+                    ].map((r) => {
+                      const Icon = r.icon;
+                      const isSel = selectedRole === r.id;
+                      return (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedRole(r.id as UserRole);
+                            if (r.id === 'farmer') {
+                              setEmailOrPhone('9876543210');
+                              setFullName('Ravi Kumar (Punjab Farm)');
+                            } else if (r.id === 'loan-officer') {
+                              setEmailOrPhone('officer.sharma@sbi.co.in');
+                              setFullName('Harpreet Sharma (SBI Agri Officer)');
+                            } else if (r.id === 'researcher') {
+                              setEmailOrPhone('dr.verma@icar.gov.in');
+                              setFullName('Dr. S. K. Verma (ICAR Lead)');
+                            } else if (r.id === 'institute') {
+                              setEmailOrPhone('credit.director@nabard.org');
+                              setFullName('NABARD Regional Directorate');
+                            }
+                          }}
+                          className={`px-2 py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all border ${
+                            isSel
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20'
+                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span>{r.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Email Address or Mobile Number

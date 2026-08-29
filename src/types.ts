@@ -25,6 +25,9 @@ export interface UserProfile {
 
 export type UserRole =
   | 'farmer'
+  | 'loan-officer'
+  | 'researcher'
+  | 'institute'
   | 'vendor'
   | 'retail_vendor'
   | 'wholesale_vendor'
@@ -43,6 +46,7 @@ export type AgriIntentCategory =
   | 'Crop Calendar'
   | 'Seed Information'
   | 'Seed Bank'
+  | 'Maps / Geospatial'
   | 'Market / Mandi'
   | 'Agricultural Expert'
   | 'Vendor / Product'
@@ -248,6 +252,8 @@ export type ActiveTab =
   | 'market'
   | 'marketplace'
   | 'assistant'
+  | 'weather'
   | 'community'
+  | 'maps'
   | 'seedbank'
   | 'profile';

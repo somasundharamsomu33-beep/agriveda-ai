@@ -139,6 +139,8 @@ export interface WeatherInfo {
   windSpeed: number; // km/h
   rainChance: number; // %
   location: string;
+  soilMoisture?: number; // %
+  uvIndex?: number;
   weeklyTrend?: Array<{
     day: string;
     temp: number; // °C

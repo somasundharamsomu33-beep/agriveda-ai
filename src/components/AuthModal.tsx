@@ -10,6 +10,7 @@ import { useFirebase } from '../context/FirebaseContext';
 import { signInWithOAuth } from '../lib/supabase';
 import { auth, googleProvider } from '../lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
+import { AgriLogo } from './ui/AgriLogo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -356,11 +357,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           {/* Top Brand Logo */}
           <div className="space-y-4 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg ring-4 ring-emerald-500/20">
-                <Sprout className="w-6 h-6 text-white" />
-              </div>
+              <AgriLogo size={46} />
               <div>
-                <h1 className="text-xl font-black tracking-tight text-white">AgriVeda <span className="text-emerald-400">AI</span></h1>
+                <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-1" style={{ fontFamily: "'Caveat', cursive, serif" }}>
+                  <span className="text-emerald-400 text-3xl">AgriVeda</span>
+                  <span className="text-amber-400 text-3xl">-AI</span>
+                </h1>
                 <p className="text-[11px] text-emerald-300/90 font-medium">Your AI Copilot for Smarter Farming</p>
               </div>
             </div>

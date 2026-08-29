@@ -20,6 +20,8 @@ import {
 import { UserProfile, CropDiagnosisReport, ActiveTab } from '../types';
 import { translations, sampleCropImages, sampleWeather } from '../data/mockData';
 import { WeeklyAgriTipCard } from './WeeklyAgriTipCard';
+import { useLiveLocationWeather } from '../lib/liveLocationWeather';
+import { AgriLogo } from './ui/AgriLogo';
 
 interface DashboardViewProps {
   profile: UserProfile;
@@ -49,6 +51,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   latestReport
 }) => {
   const t = translations[profile.language] || translations.en;
+
+  // Live Location Weather Feed from Device
+  const {
+    weather: liveWeather,
+    sevenDayForecast,
+    locationName,
+    isLiveLocation,
+    isLoading: isWeatherLoading,
+    refresh: refreshLiveWeather,
+  } = useLiveLocationWeather();
+
+  const weather = liveWeather || sampleWeather;
 
   // Initial Smart Action Items based on local crop calendar and current conditions
   const [actions, setActions] = useState<SmartActionItem[]>([
@@ -142,176 +156,269 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-5 pb-20 animate-in fade-in">
       
-      {/* Top Banner & Greeting - Professional Dark Navy Banner */}
-      <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-sm border border-slate-800 relative overflow-hidden">
-        {/* Background decorative subtle accent */}
-        <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-600/10 rounded-full blur-2xl pointer-events-none"></div>
+      {/* Grand High-Contrast Welcome Hero Banner */}
+      <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-slate-950 via-emerald-950/80 to-amber-950/60 border-2 border-emerald-500/40 text-white shadow-2xl overflow-hidden">
+        {/* Ambient Glows reflecting Plant Green and Fertile Soil Brown */}
+        <div className="absolute -top-12 -right-12 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-96 h-96 bg-amber-600/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-center justify-between relative z-10">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider bg-blue-500/10 px-2.5 py-0.5 rounded-md border border-blue-500/20">
-                {profile.farmId}
-              </span>
-              <span className="text-xs text-slate-400 font-medium">
-                {profile.location}
-              </span>
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="space-y-3.5 max-w-2xl">
+            {/* Badge Header with AgriLogo */}
+            <div className="flex items-center gap-4">
+              <AgriLogo size={62} />
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1
+                    className="text-4xl sm:text-6xl font-black tracking-tight text-white drop-shadow-xl"
+                    style={{ fontFamily: "'Caveat', cursive, serif" }}
+                  >
+                    <span className="text-emerald-400">AgriVeda</span>
+                    <span className="text-amber-400">-AI</span>
+                  </h1>
+                  <span className="px-3 py-1 rounded-full bg-gradient-to-r from-emerald-500/30 to-amber-500/30 text-emerald-300 border border-emerald-400/50 text-[11px] font-black uppercase tracking-wider shadow-sm">
+                    🌱 Smart Soil &amp; Crop Intelligence
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm font-semibold text-amber-200/90 drop-shadow-sm mt-0.5">
+                  Ancient Vedic Agriculture • Real-time GPS Spatial Intelligence • AI Pathology
+                </p>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold mt-1 text-white tracking-tight">
-              {t.goodMorning}, {profile.name}! 👋
-            </h2>
-            <p className="text-xs text-slate-300 mt-0.5 font-medium">
-              Primary Crop: <span className="font-bold text-blue-400">{profile.primaryCrop}</span> ({profile.farmSizeAcres} Acres)
-            </p>
+
+            {/* Farmer Status Strip */}
+            <div className="pt-1">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+                <span>{t.goodMorning}, {profile.name}!</span>
+                <span className="inline-block animate-pulse">🌾</span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 font-medium mt-1">
+                Primary Crop: <strong className="text-emerald-300 font-bold">{profile.primaryCrop}</strong> ({profile.farmSizeAcres} Acres) • 
+                Farm ID: <span className="text-amber-300 font-mono font-bold">{profile.farmId}</span> • 
+                Location: <span className="text-sky-300 font-semibold">{locationName}</span>
+              </p>
+            </div>
+
+            {/* High-Contrast Fast Action Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-2">
+              <button
+                onClick={() => setActiveTab('scan')}
+                className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-emerald-950/60 active:scale-95 transition-all border border-emerald-300/40 cursor-pointer"
+              >
+                <Camera className="w-4 h-4 text-emerald-100" />
+                <span>AI Crop Scan &amp; Diagnosis</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('maps')}
+                className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-blue-950/60 active:scale-95 transition-all border border-blue-300/40 cursor-pointer"
+              >
+                <Navigation className="w-4 h-4 text-blue-100" />
+                <span>Interactive GIS Map</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('assistant')}
+                className="px-4 py-2.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 text-amber-300 font-bold text-xs flex items-center gap-2 border border-amber-500/40 shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <Mic className="w-4 h-4 text-amber-400" />
+                <span>Voice Copilot</span>
+              </button>
+            </div>
           </div>
 
-          <button
-            onClick={() => setActiveTab('profile')}
-            className="w-11 h-11 rounded-xl border border-slate-700 overflow-hidden shadow-sm shrink-0 hover:border-blue-400 transition-colors"
-          >
-            <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
-          </button>
+          {/* Right Profile & Health Gauge */}
+          <div className="w-full lg:w-auto bg-slate-900/90 backdrop-blur-md rounded-3xl p-5 border border-emerald-500/40 flex items-center justify-between lg:flex-col lg:items-center gap-4 shrink-0 shadow-xl">
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path
+                  className="text-slate-800"
+                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  className="text-emerald-400 transition-all duration-1000 ease-out"
+                  strokeDasharray={`${healthScore}, 100`}
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+              <div className="absolute text-center">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-400">{healthScore}</span>
+                <span className="text-[9px] text-slate-400 font-bold block leading-none">/ 100</span>
+              </div>
+            </div>
+
+            <div className="text-right lg:text-center">
+              <span className="text-xs font-black uppercase tracking-wider text-emerald-400 block">
+                {t.farmHealthScore}
+              </span>
+              <span className="text-[10px] text-slate-300 font-medium">
+                {healthScore >= 80 ? '🌱 Peak Condition' : '⚠️ Requires Attention'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Farm Health Gauge Card */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          {/* Circular Score Gauge */}
-          <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-              <path
-                className="text-slate-100"
-                strokeWidth="3.5"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-              <path
-                className="text-blue-600 transition-all duration-1000 ease-out"
-                strokeDasharray={`${healthScore}, 100`}
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                stroke="currentColor"
-                fill="none"
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-            </svg>
-            <div className="absolute text-center">
-              <span className="text-lg font-bold text-slate-900">{healthScore}</span>
-              <span className="text-[9px] text-slate-400 font-bold block leading-none">/100</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900">{t.farmHealthScore}</h3>
-              <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-100 text-emerald-800">
-                {healthScore >= 80 ? t.veryGood : 'Requires Attention'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Based on recent crop scans, irrigation balance, and pest resistance levels.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setActiveTab('scan')}
-          className="w-full sm:w-auto px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 transition-colors shrink-0 border border-blue-200/60"
-        >
-          <Activity className="w-3.5 h-3.5 text-blue-600" />
-          <span>Re-evaluate Health</span>
-        </button>
-      </div>
-
-      {/* Mini Weather Summary Card - 3-Day Regional Forecast & Temperature Trend */}
-      <div className="bg-white rounded-2xl p-4.5 shadow-2xs border border-slate-200 space-y-3.5">
-        {/* Card Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-lg bg-sky-50 text-sky-700 border border-sky-200/60">
-              <Sun className="w-4 h-4 text-amber-500" />
+      {/* Live Location Weather Card with 7-Day Forecast */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/50 rounded-3xl p-5 sm:p-6 border border-emerald-500/30 shadow-xl text-white space-y-4">
+        
+        {/* Location Header & Realtime GPS Status */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-blue-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shadow-md">
+              <Sun className="w-5 h-5 text-amber-400 animate-spin-slow" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                  3-Day Regional Forecast
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
+                  Real-Time Live Location Weather
                 </h3>
-                <span className="text-[10px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60 flex items-center gap-1">
-                  <MapPin className="w-2.5 h-2.5" />
-                  {profile.location.split(',')[0]}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                  <MapPin className="w-3 h-3" />
+                  {locationName}
                 </span>
+                {isLiveLocation && (
+                  <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    GPS Live
+                  </span>
+                )}
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">
-                Live microclimate trend &amp; temperature forecast for {profile.location}
+              <p className="text-[11px] text-emerald-200/80 font-medium">
+                Live GPS device feed &amp; 7-day microclimate agricultural forecast
               </p>
             </div>
           </div>
 
-          {/* Temp Trend Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 rounded-lg border border-amber-200/70 text-[11px] font-bold text-amber-800">
-            <TrendingDown className="w-3.5 h-3.5 text-amber-600" />
-            <span>32°C → 29°C (-3°C Drop)</span>
+          {/* Quick GPS Refresh Button */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={refreshLiveWeather}
+              disabled={isWeatherLoading}
+              className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 border border-slate-700 active:scale-95 transition-all shadow-xs cursor-pointer"
+              title="Re-fetch live device coordinates"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isWeatherLoading ? 'animate-spin' : ''}`} />
+              <span>Refresh GPS</span>
+            </button>
           </div>
         </div>
 
-        {/* 3-Day Forecast Cards Row */}
-        <div className="grid grid-cols-3 gap-2.5">
-          {/* Day 1: Today */}
-          <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/70 flex flex-col items-center text-center hover:bg-slate-50 transition-colors">
-            <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Today</span>
-            <div className="my-1.5 p-2 bg-amber-100/60 rounded-full text-amber-600">
-              <Sun className="w-5 h-5 text-amber-500" />
+        {/* Current Weather Snapshot Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950/70 rounded-2xl p-4 border border-slate-800/80">
+          <div className="flex items-center gap-3">
+            <div className="text-3xl sm:text-4xl">{sevenDayForecast[0]?.icon || '⛅'}</div>
+            <div>
+              <span className="text-2xl sm:text-3xl font-black text-white">{weather.temperature}°C</span>
+              <span className="text-[11px] text-emerald-400 font-bold block">{weather.condition}</span>
             </div>
-            <span className="text-base font-extrabold text-slate-900">32°C</span>
-            <span className="text-[10px] font-semibold text-amber-700 mt-0.5">Sunny &amp; Warm</span>
-            <span className="text-[9px] font-medium text-slate-500 mt-1 flex items-center gap-0.5">
-              <Droplets className="w-2.5 h-2.5 text-blue-500" /> 60% Hum
-            </span>
           </div>
 
-          {/* Day 2: Tomorrow */}
-          <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/70 flex flex-col items-center text-center hover:bg-slate-50 transition-colors">
-            <span className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Fri (Tomorrow)</span>
-            <div className="my-1.5 p-2 bg-sky-100/60 rounded-full text-sky-600">
-              <CloudSun className="w-5 h-5 text-sky-600" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <Droplets className="w-4 h-4" />
             </div>
-            <span className="text-base font-extrabold text-slate-900">31°C</span>
-            <span className="text-[10px] font-semibold text-sky-700 mt-0.5">Partly Cloudy</span>
-            <span className="text-[9px] font-medium text-slate-500 mt-1 flex items-center gap-0.5">
-              <CloudRain className="w-2.5 h-2.5 text-blue-500" /> 5mm Rain
-            </span>
+            <div>
+              <span className="text-xs text-slate-400 font-medium block">Humidity &amp; Soil</span>
+              <span className="text-sm font-black text-white">{weather.humidity}% • Soil {weather.soilMoisture}%</span>
+            </div>
           </div>
 
-          {/* Day 3: Saturday */}
-          <div className="bg-blue-50/60 rounded-xl p-3 border border-blue-200/80 flex flex-col items-center text-center relative overflow-hidden">
-            <span className="text-[10px] font-bold uppercase text-blue-800 tracking-wider">Sat (Day 3)</span>
-            <div className="my-1.5 p-2 bg-blue-100 rounded-full text-blue-600">
-              <CloudRain className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <CloudRain className="w-4 h-4" />
             </div>
-            <span className="text-base font-extrabold text-slate-900">29°C</span>
-            <span className="text-[10px] font-bold text-blue-700 mt-0.5">Moderate Rain</span>
-            <span className="text-[9px] font-bold text-blue-800 bg-blue-100/80 px-1.5 py-0.5 rounded-md mt-1">
-              28mm Rainfall
-            </span>
+            <div>
+              <span className="text-xs text-slate-400 font-medium block">Rain Probability</span>
+              <span className="text-sm font-black text-white">{weather.rainChance}% Chance</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20">
+              <Wind className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs text-slate-400 font-medium block">Wind Velocity</span>
+              <span className="text-sm font-black text-white">{weather.windSpeed} km/h</span>
+            </div>
           </div>
         </div>
 
-        {/* Temperature Trend Bar & Farming Advisory */}
-        <div className="pt-1 border-t border-slate-100">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-medium text-slate-600 bg-slate-50 rounded-xl px-3 py-2 border border-slate-200/60">
-            <div className="flex items-center gap-2">
-              <Thermometer className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span className="text-slate-700">
-                <strong className="text-slate-900 font-bold">Temperature Trend:</strong> 32°C → 31°C → 29°C (-3°C drop before weekend shower)
-              </span>
-            </div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-md self-start sm:self-auto shrink-0">
-              <span>🌧️ Hold spray on Saturday</span>
+        {/* 7-Day Live Weekly Forecast Strip */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <span>📅 7-Day Weekly Weather Forecast</span>
             </span>
+            <span className="text-[10px] text-slate-400 font-medium">Full Week Telemetry</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 overflow-x-auto pb-1">
+            {sevenDayForecast.map((dayItem, idx) => (
+              <div
+                key={`forecast-day-${idx}`}
+                className={`rounded-2xl p-3 border flex flex-col items-center text-center transition-all ${
+                  idx === 0
+                    ? 'bg-gradient-to-b from-emerald-950/90 to-slate-900 border-emerald-500/60 shadow-lg ring-1 ring-emerald-400/30'
+                    : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
+                  {dayItem.day}
+                </span>
+                <span className="text-[9px] text-slate-400 font-mono">{dayItem.date}</span>
+
+                <div className="my-2 text-2xl drop-shadow-md">
+                  {dayItem.icon}
+                </div>
+
+                <div className="flex items-baseline gap-1">
+                  <span className="text-base font-black text-white">{dayItem.tempMax}°</span>
+                  <span className="text-xs font-bold text-slate-400">/{dayItem.tempMin}°</span>
+                </div>
+
+                <span className="text-[10px] font-bold text-emerald-300 mt-0.5 truncate max-w-full">
+                  {dayItem.condition}
+                </span>
+
+                {/* Rain Probability */}
+                <div className="mt-1.5 flex items-center gap-1 text-[9px] font-black text-blue-300 bg-blue-950/80 px-2 py-0.5 rounded-md border border-blue-800/60">
+                  <Droplets className="w-2.5 h-2.5 text-blue-400" />
+                  <span>{dayItem.rainChance}%</span>
+                </div>
+
+                {/* Spray Risk Tag */}
+                <span
+                  className={`mt-1.5 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                    dayItem.sprayRisk === 'LOW'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : dayItem.sprayRisk === 'MODERATE'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                  }`}
+                >
+                  Spray: {dayItem.sprayRisk}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Agricultural Advisory Strip */}
+        <div className="p-3 bg-emerald-950/50 rounded-2xl border border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-200">
+          <Sprout className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="font-bold text-emerald-300">Live AI Agronomy Advisory for {locationName}: </strong>
+            <span>{sevenDayForecast[0]?.advisory || 'Optimal microclimate detected for vegetative tillering and root nutrient uptake.'}</span>
+          </div>
+        </div>
+
       </div>
 
       {/* Today's Overview Grid */}

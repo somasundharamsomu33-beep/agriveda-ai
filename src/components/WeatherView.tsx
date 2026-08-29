@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Sun, CloudRain, Wind, Droplets, AlertTriangle, ShieldAlert, TrendingUp } from 'lucide-react';
+import React from 'react';
+import { Sun, CloudRain, Wind, Droplets, AlertTriangle, ShieldAlert, TrendingUp, RefreshCw, MapPin } from 'lucide-react';
 import {
   ComposedChart,
   Line,
@@ -11,8 +11,9 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { WeatherInfo, UserProfile } from '../types';
+import { UserProfile } from '../types';
 import { translations, sampleWeather } from '../data/mockData';
+import { useLiveLocationWeather } from '../lib/liveLocationWeather';
 
 interface WeatherViewProps {
   profile: UserProfile;
@@ -21,64 +22,16 @@ interface WeatherViewProps {
 export const WeatherView: React.FC<WeatherViewProps> = ({ profile }) => {
   const t = translations[profile.language] || translations.en;
 
-  // State for Open Meteo Data mapped to AgriVeda format
-  const [weather, setWeather] = useState<WeatherInfo>(sampleWeather);
-  const [loading, setLoading] = useState(true);
+  const {
+    weather: liveWeather,
+    sevenDayForecast,
+    locationName,
+    isLiveLocation,
+    isLoading: loading,
+    refresh: refreshWeather
+  } = useLiveLocationWeather();
 
-  useEffect(() => {
-    const fetchWeather = async () => {
-      try {
-        setLoading(true);
-        // Hardcoded generic Indian coords or extract from profile? We'll provide default New Delhi coords
-        const lat = 28.6139;
-        const lon = 77.2090;
-
-        const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-        const data = await response.json();
-
-        if (data.success) {
-          // Map Python output to React UI required format
-          const openMeteoWeather: WeatherInfo = {
-            temperature: Math.round(data.current.temperature_2m),
-            condition: data.current.rain > 0 ? "Rainy" : "Sunny & Clear",
-            humidity: Math.round(data.current.relative_humidity_2m),
-            windSpeed: 12, // Default or pull from open meteo if added later
-            rainChance: data.current.rain > 0 ? 90 : 10,
-            location: profile.location || "New Delhi",
-            // 7 Day visual
-            weeklyTrend: data.daily.map((d: any) => {
-              const dt = new Date(d.date);
-              const dayStr = dt.toLocaleDateString('en-US', { weekday: 'short' });
-              return {
-                day: dayStr,
-                temp: Math.round(d.temperature_max),
-                rainfall: d.rain_sum,
-                humidity: 60 // placeholder 
-              };
-            }),
-            // 5 Day forecast cards
-            forecast: data.daily.slice(0, 5).map((d: any) => {
-              const dt = new Date(d.date);
-              return {
-                day: dt.toLocaleDateString('en-US', { weekday: 'short' }),
-                temp: Math.round(d.temperature_max),
-                icon: d.rain_sum > 0 ? 'rain' : 'sun',
-                condition: d.rain_sum > 0.5 ? 'Showers' : 'Clear Sky'
-              };
-            }),
-            alerts: sampleWeather.alerts
-          };
-          setWeather(openMeteoWeather);
-        }
-      } catch (err) {
-        console.error("Error fetching open meteo data", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchWeather();
-  }, [profile.location]);
+  const weather = liveWeather || sampleWeather;
 
   const trendData = weather.weeklyTrend || [];
 
@@ -89,23 +42,39 @@ export const WeatherView: React.FC<WeatherViewProps> = ({ profile }) => {
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Sun className="w-5 h-5 text-blue-600" />
+            <Sun className="w-5 h-5 text-emerald-600" />
             <span>{t.weatherAlerts}</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium">
-            Real-time agricultural weather forecasts & pest vector warnings for {profile.location}
+            Live satellite &amp; device GPS agricultural weather forecast for <strong className="text-slate-800">{locationName}</strong>
           </p>
         </div>
+        <button
+          onClick={refreshWeather}
+          disabled={loading}
+          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 border border-slate-200 active:scale-95 transition-all"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${loading ? 'animate-spin' : ''}`} />
+          <span>Refresh GPS</span>
+        </button>
       </div>
 
       {/* Main Temperature Card */}
-      <div className="bg-slate-900 text-white rounded-xl p-6 shadow-sm border border-slate-800 relative overflow-hidden">
+      <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-sm border border-slate-800 relative overflow-hidden">
 
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2.5 py-0.5 rounded-md">
-              Today's Weather • {weather.location}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-600 text-white px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {locationName}
+              </span>
+              {isLiveLocation && (
+                <span className="text-[10px] font-bold text-blue-300 bg-blue-900/60 px-2 py-0.5 rounded-md border border-blue-700/50">
+                  📍 Real-time Device GPS
+                </span>
+              )}
+            </div>
             <div className="flex items-baseline gap-3 mt-3">
               <h1 className="text-5xl font-extrabold tracking-tight text-white">{weather.temperature}°C</h1>
               <span className="text-sm font-semibold text-slate-300">{weather.condition}</span>
@@ -288,31 +257,51 @@ export const WeatherView: React.FC<WeatherViewProps> = ({ profile }) => {
         </div>
       </div>
 
-      {/* 5-Day Forecast Grid */}
-      <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-3">
-        <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
-          5-Day Weather Forecast
-        </h3>
+      {/* 7-Day Full Weekly Forecast Grid */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+            <span>📅 7-Day Agricultural Weather Forecast</span>
+          </h3>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+            Microclimate Synced
+          </span>
+        </div>
 
-        <div className="grid grid-cols-5 gap-2 text-center">
-          {weather.forecast.map((fc, idx) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 text-center">
+          {sevenDayForecast.map((fc, idx) => (
             <div
-              key={idx}
-              className={`p-3 rounded-xl border ${idx === 0
-                  ? 'bg-blue-50/80 border-blue-600 text-blue-950 font-bold'
-                  : 'bg-slate-50 border-slate-200 text-slate-700'
-                }`}
+              key={`weather-fc-${idx}`}
+              className={`p-3 rounded-2xl border flex flex-col items-center justify-between transition-all ${
+                idx === 0
+                  ? 'bg-emerald-50/80 border-emerald-500 text-emerald-950 font-bold shadow-xs'
+                  : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+              }`}
             >
-              <p className="text-[11px] font-bold">{fc.day}</p>
-              <div className="my-1 text-center">
-                {fc.icon === 'sun' ? (
-                  <Sun className="w-5 h-5 text-amber-500 mx-auto" />
-                ) : (
-                  <CloudRain className="w-5 h-5 text-blue-500 mx-auto" />
-                )}
+              <div>
+                <p className="text-[11px] font-black uppercase">{fc.day}</p>
+                <p className="text-[9px] text-slate-400 font-mono">{fc.date}</p>
               </div>
-              <p className="text-xs font-bold text-slate-900">{fc.temp}°C</p>
-              <p className="text-[9px] text-slate-500 line-clamp-1 mt-0.5">{fc.condition}</p>
+
+              <div className="my-2 text-2xl">
+                {fc.icon}
+              </div>
+
+              <div>
+                <p className="text-xs font-black text-slate-900">{fc.tempMax}° <span className="text-[10px] text-slate-400 font-normal">/{fc.tempMin}°</span></p>
+                <p className="text-[9px] text-emerald-700 font-semibold truncate max-w-[80px] mt-0.5">{fc.condition}</p>
+              </div>
+
+              <div className="mt-2 w-full pt-1.5 border-t border-slate-200/60 flex flex-col gap-1 items-center">
+                <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md">
+                  🌧️ {fc.rainChance}%
+                </span>
+                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase ${
+                  fc.sprayRisk === 'LOW' ? 'bg-emerald-100 text-emerald-800' : fc.sprayRisk === 'MODERATE' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                }`}>
+                  {fc.sprayRisk}
+                </span>
+              </div>
             </div>
           ))}
         </div>

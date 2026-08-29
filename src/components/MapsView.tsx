@@ -49,6 +49,8 @@ import {
   SunMedium,
   Satellite,
   Mountain,
+  Locate,
+  Crosshair,
 } from "lucide-react";
 import {
   LOAN_OFFICES,
@@ -180,6 +182,62 @@ export const MapsView: React.FC<MapsViewProps> = ({
     bearing: -10,
     pitch: 35,
   });
+
+  // Real-time Live User Device Location Tracking
+  const [userLiveCoords, setUserLiveCoords] = useState<[number, number] | null>(null);
+  const [isLocatingUser, setIsLocatingUser] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      // 1. Initial live location fetch
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLiveCoords([pos.coords.longitude, pos.coords.latitude]);
+        },
+        (err) => console.warn("Live GPS position notice:", err.message),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+      );
+
+      // 2. Real-time watchPosition for continuous tracking
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          setUserLiveCoords([pos.coords.longitude, pos.coords.latitude]);
+        },
+        (err) => console.warn("Live GPS watch notice:", err.message),
+        { enableHighAccuracy: true, maximumAge: 20000 }
+      );
+
+      return () => navigator.geolocation.clearWatch(watchId);
+    }
+  }, []);
+
+  const handleFlyToLiveLocation = () => {
+    if (userLiveCoords) {
+      setViewport({
+        center: userLiveCoords,
+        zoom: 14.5,
+        bearing: 0,
+        pitch: 25,
+      });
+    } else if (typeof navigator !== "undefined" && navigator.geolocation) {
+      setIsLocatingUser(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+          setUserLiveCoords(coords);
+          setIsLocatingUser(false);
+          setViewport({
+            center: coords,
+            zoom: 14.5,
+            bearing: 0,
+            pitch: 25,
+          });
+        },
+        () => setIsLocatingUser(false),
+        { enableHighAccuracy: true }
+      );
+    }
+  };
 
   // Multi-source Tile Basemaps (Leaflet / ESRI Satellite / Topo / OSM / CartoDB)
   const customStyles = useMemo(() => {
@@ -900,6 +958,39 @@ export const MapsView: React.FC<MapsViewProps> = ({
               </MapMarker>
             ))}
 
+            {/* Real-time User Live Location Pulsing Blue Marker */}
+            {userLiveCoords && (
+              <MapMarker longitude={userLiveCoords[0]} latitude={userLiveCoords[1]}>
+                <MarkerContent>
+                  <div
+                    onClick={handleFlyToLiveLocation}
+                    className="relative flex items-center justify-center cursor-pointer group"
+                    title="Live Device Location (You are here)"
+                  >
+                    {/* Outer Radiating Ping Wave */}
+                    <span className="absolute w-9 h-9 rounded-full bg-blue-500/40 animate-ping pointer-events-none" />
+                    {/* Secondary Semi-transparent Halo */}
+                    <span className="absolute w-7 h-7 rounded-full bg-blue-500/25 border border-blue-400/50" />
+                    {/* Inner Vibrant Blue Orb */}
+                    <div className="relative w-4 h-4 rounded-full bg-blue-600 border-2 border-white shadow-2xl flex items-center justify-center ring-2 ring-blue-500/40">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                    </div>
+
+                    {/* Live Location Floating Badge on Hover */}
+                    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center px-2.5 py-1 bg-slate-900/95 backdrop-blur-md text-white text-[10px] font-black rounded-xl shadow-2xl border border-blue-500/50 whitespace-nowrap z-50 animate-in fade-in slide-in-from-bottom-1">
+                      <div className="flex items-center gap-1 text-blue-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                        <span>You are here (Live GPS)</span>
+                      </div>
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        {userLiveCoords[1].toFixed(4)}°N, {userLiveCoords[0].toFixed(4)}°E
+                      </span>
+                    </div>
+                  </div>
+                </MarkerContent>
+              </MapMarker>
+            )}
+
             {/* Active Navigation Route Layer */}
             {activeRouteCoords && (
               <MapRoute
@@ -1216,6 +1307,21 @@ export const MapsView: React.FC<MapsViewProps> = ({
               }`}
             >
               <Layers className="w-3.5 h-3.5" /> Agro Zones
+            </button>
+
+            {/* Real-time User Live Location Finder */}
+            <button
+              onClick={handleFlyToLiveLocation}
+              disabled={isLocatingUser}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                userLiveCoords
+                  ? "bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/50"
+                  : "bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700"
+              }`}
+              title="Center On Real-time Device GPS Location"
+            >
+              <Locate className={`w-3.5 h-3.5 ${isLocatingUser ? "animate-spin text-blue-300" : "text-blue-400"}`} />
+              <span>Live Location</span>
             </button>
           </div>
 

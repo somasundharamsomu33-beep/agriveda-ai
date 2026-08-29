@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Sprout, Bell, Globe, User, ChevronDown, Check } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { translations } from '../data/mockData';
+import { AgriLogo } from './ui/AgriLogo';
 
 interface HeaderProps {
   profile: UserProfile;
@@ -54,19 +55,18 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Logo & Brand Name */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-md">
-              <Sprout className="w-5 h-5 text-white" />
-            </div>
+            <AgriLogo size={42} />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white">
-                  AgriVeda <span className="text-blue-400 font-bold">AI</span>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white drop-shadow-sm flex items-center gap-1" style={{ fontFamily: "'Caveat', cursive, serif" }}>
+                  <span className="text-emerald-400 font-extrabold text-2xl sm:text-3xl">AgriVeda</span>
+                  <span className="text-amber-400 font-black text-2xl sm:text-3xl">-AI</span>
                 </h1>
-                <span className="hidden md:inline-block text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 bg-blue-600/10 text-blue-400 rounded-md border border-blue-500/20">
-                  Smart Farming
+                <span className="hidden md:inline-block text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 bg-gradient-to-r from-emerald-500/20 to-amber-500/20 text-emerald-300 rounded-lg border border-emerald-500/30 shadow-xs">
+                  🌱 Smart Farming
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block font-medium">
+              <p className="text-[11px] text-amber-200/70 hidden sm:block font-medium">
                 {t.tagline}
               </p>
             </div>

@@ -168,7 +168,6 @@ export const MapsView: React.FC<MapsViewProps> = ({
   const [applyOfficeId, setApplyOfficeId] = useState<string | undefined>(undefined);
 
   // UI state
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeStyleName, setActiveStyleName] = useState<"standard" | "satellite" | "topo" | "darkMatter" | "osm">("standard");
 
   // Dynamic farmer state updates
@@ -592,19 +591,6 @@ export const MapsView: React.FC<MapsViewProps> = ({
             ))}
           </select>
 
-          {/* Sidebar Toggle Button */}
-          <button
-            onClick={() => setSidebarOpen((prev) => !prev)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
-              sidebarOpen
-                ? "bg-emerald-600 border-emerald-500 text-white shadow-xs"
-                : "bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700"
-            }`}
-            title={sidebarOpen ? "Hide Role Panel (Click to Hide)" : "Unhide Role Panel (Click to Show)"}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{sidebarOpen ? "Hide Panel" : "Show Panel"}</span>
-          </button>
         </div>
       </header>
 
@@ -612,25 +598,10 @@ export const MapsView: React.FC<MapsViewProps> = ({
       <div className="relative flex-1 w-full h-full overflow-hidden flex">
         
         {/* Left Sidebar Panel (Role-Specific Dedicated View) */}
-        <div
-          className={`relative z-20 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 transition-all duration-300 flex flex-col shrink-0 ${
-            sidebarOpen ? "w-full sm:w-96 md:w-[420px]" : "w-0 p-0 border-none overflow-hidden"
-          }`}
-        >
-          {/* Quick Collapse Tab Handle on Panel Edge */}
-          {sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="absolute -right-3.5 top-20 z-30 flex items-center justify-center w-7 h-12 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white rounded-r-xl shadow-2xl transition-all cursor-pointer group hover:w-8"
-              title="Minimize / Hide Panel"
-            >
-              <ChevronLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            </button>
-          )}
-
-          <div className="p-4 space-y-4 text-slate-100 flex-1 overflow-y-auto">
+        <div className="z-20 bg-slate-900/95 backdrop-blur-md border-r border-slate-800 flex flex-col shrink-0 w-full sm:w-96 md:w-[420px] overflow-y-auto">
+          <div className="p-4 space-y-4 text-slate-100 flex-1">
             
-            {/* Category Indicator Banner with Hide Button */}
+            {/* Category Indicator Banner */}
             <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
@@ -648,16 +619,9 @@ export const MapsView: React.FC<MapsViewProps> = ({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-[10px] font-bold border border-slate-700 transition-colors cursor-pointer"
-                  title="Minimize / Hide Panel (Click to Minimize)"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Minimize</span>
-                </button>
-              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                Active Category
+              </span>
             </div>
 
             {/* Render Category Exclusive Component */}
@@ -745,25 +709,9 @@ export const MapsView: React.FC<MapsViewProps> = ({
         {/* Main Geospatial Map Stage */}
         <div className="relative flex-1 w-full h-full bg-slate-950">
           
-          {/* Floating Unhide Role Portal Pill Button (Visible when sidebar is closed) */}
-          {!sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="absolute top-4 left-4 z-30 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-900/95 hover:bg-slate-900 backdrop-blur-xl border border-emerald-500/40 text-white text-xs font-black shadow-2xl transition-all hover:scale-105 ring-2 ring-emerald-500/20 animate-in fade-in slide-in-from-left-2 cursor-pointer group"
-              title="Click to Unhide / Expand Role Portal"
-            >
-              {activeRole === "farmer" && <Sprout className="w-4 h-4 text-emerald-400 group-hover:animate-bounce" />}
-              {activeRole === "loan-officer" && <Building2 className="w-4 h-4 text-blue-400 group-hover:animate-bounce" />}
-              {activeRole === "researcher" && <GraduationCap className="w-4 h-4 text-teal-400 group-hover:animate-bounce" />}
-              {activeRole === "institute" && <Landmark className="w-4 h-4 text-amber-400 group-hover:animate-bounce" />}
-              <span>Open {roleCategories.find((c) => c.id === activeRole)?.label}</span>
-              <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          )}
-
           {/* Active Navigation Route Info Ribbon */}
           {activeRouteCoords && activeRouteCoords.length > 0 && (
-            <div className={`absolute top-4 ${sidebarOpen ? "left-4" : "left-56"} right-4 sm:right-auto z-10 max-w-lg bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 text-white`}>
+            <div className="absolute top-4 left-4 right-4 sm:right-auto z-10 max-w-lg bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 text-white">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs font-black text-emerald-400">
                   <Route className="w-4 h-4 text-emerald-400 shrink-0" />

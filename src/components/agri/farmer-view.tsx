@@ -50,7 +50,6 @@ export function FarmerView({
   radiusKm,
   onRadiusChange,
 }: FarmerViewProps) {
-  const [detailsExpanded, setDetailsExpanded] = useState(true);
   const nearbyOffices = findOfficesWithinRadius(selectedFarmer.coords, radiusKm);
 
   return (
@@ -74,13 +73,9 @@ export function FarmerView({
               <h3 className="text-xs font-bold text-foreground truncate">
                 {selectedFarmer.name}
               </h3>
-              <button
-                onClick={() => setDetailsExpanded((prev) => !prev)}
-                className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/25 transition-colors cursor-pointer shrink-0"
-                title={detailsExpanded ? "Minimize Card Details" : "Expand Card Details"}
-              >
-                {detailsExpanded ? "— Minimize" : "+ Expand"}
-              </button>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 shrink-0">
+                Verified Farmer
+              </span>
             </div>
             <p className="text-[10px] text-muted-foreground truncate">
               {selectedFarmer.relationType || (selectedFarmer.gender === "female" ? "d/o" : "s/o")} {selectedFarmer.fatherName}
@@ -113,78 +108,73 @@ export function FarmerView({
           </select>
         </div>
 
-        {/* Collapsible Details Section (Land Telemetry, Crop Yields & Health) */}
-        {detailsExpanded && (
-          <div className="space-y-3 animate-in fade-in slide-in-from-top-1">
-            {/* Land Breakdown Telemetry */}
-            <div className="p-2.5 rounded-xl bg-muted/40 border border-border space-y-1.5 text-xs">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted-foreground">Total Land Owned:</span>
-                <strong className="text-foreground font-mono">{selectedFarmer.totalAcresOwned} Acres</strong>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted-foreground">Cultivable Land:</span>
-                <strong className="text-emerald-600 dark:text-emerald-400 font-mono">
-                  {selectedFarmer.cultivableAcres} Acres ({( (selectedFarmer.cultivableAcres / selectedFarmer.totalAcresOwned) * 100).toFixed(0)}%)
-                </strong>
-              </div>
-              <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border/60">
-                <span className="text-muted-foreground">Title / 7/12 Record:</span>
-                <span className="text-foreground font-mono truncate max-w-[170px]" title={selectedFarmer.landTitleNumber}>
-                  {selectedFarmer.landTitleNumber.split("(")[0]}
-                </span>
-              </div>
-            </div>
+        {/* Land Breakdown Telemetry */}
+        <div className="p-2.5 rounded-xl bg-muted/40 border border-border space-y-1.5 text-xs">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">Total Land Owned:</span>
+            <strong className="text-foreground font-mono">{selectedFarmer.totalAcresOwned} Acres</strong>
+          </div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">Cultivable Land:</span>
+            <strong className="text-emerald-600 dark:text-emerald-400 font-mono">
+              {selectedFarmer.cultivableAcres} Acres ({( (selectedFarmer.cultivableAcres / selectedFarmer.totalAcresOwned) * 100).toFixed(0)}%)
+            </strong>
+          </div>
+          <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border/60">
+            <span className="text-muted-foreground">Title / 7/12 Record:</span>
+            <span className="text-foreground font-mono truncate max-w-[170px]" title={selectedFarmer.landTitleNumber}>
+              {selectedFarmer.landTitleNumber.split("(")[0]}
+            </span>
+          </div>
+        </div>
 
-            {/* Seasonal Yield Breakdown */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
-                Seasonal Crop Yields & Revenue:
+        {/* Seasonal Yield Breakdown */}
+        <div className="space-y-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+            Seasonal Crop Yields & Revenue:
+          </span>
+          <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <span className="font-bold text-emerald-700 dark:text-emerald-300 block truncate">
+                Kharif: {selectedFarmer.kharifCropDetails.crop.split(" ")[0]}
               </span>
-              <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <span className="font-bold text-emerald-700 dark:text-emerald-300 block truncate">
-                    Kharif: {selectedFarmer.kharifCropDetails.crop.split(" ")[0]}
-                  </span>
-                  <span className="text-muted-foreground block font-mono">
-                    {selectedFarmer.kharifCropDetails.yieldPerAcreQtl} Qtl/Acre ({selectedFarmer.kharifCropDetails.totalYieldQtl} Qtl)
-                  </span>
-                  <strong className="text-foreground block font-mono mt-0.5">
-                    ₹{selectedFarmer.kharifCropDetails.estimatedRevenue.toLocaleString()}
-                  </strong>
-                </div>
-
-                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
-                  <span className="font-bold text-primary block truncate">
-                    Rabi: {selectedFarmer.rabiCropDetails.crop.split(" ")[0]}
-                  </span>
-                  <span className="text-muted-foreground block font-mono">
-                    {selectedFarmer.rabiCropDetails.yieldPerAcreQtl} Qtl/Acre ({selectedFarmer.rabiCropDetails.totalYieldQtl} Qtl)
-                  </span>
-                  <strong className="text-foreground block font-mono mt-0.5">
-                    ₹{selectedFarmer.rabiCropDetails.estimatedRevenue.toLocaleString()}
-                  </strong>
-                </div>
-              </div>
+              <span className="text-muted-foreground block font-mono">
+                {selectedFarmer.kharifCropDetails.yieldPerAcreQtl} Qtl/Acre ({selectedFarmer.kharifCropDetails.totalYieldQtl} Qtl)
+              </span>
+              <strong className="text-foreground block font-mono mt-0.5">
+                ₹{selectedFarmer.kharifCropDetails.estimatedRevenue.toLocaleString()}
+              </strong>
             </div>
 
-            {/* Telemetry Chips */}
-            <div className="grid grid-cols-3 gap-1.5 pt-1 text-[10px] text-center font-mono">
-              <div className="p-1.5 rounded-md bg-background border border-border">
-                <span className="text-muted-foreground block text-[9px]">Satellite NDVI</span>
-                <strong className="text-emerald-500">{(selectedFarmer.satelliteNdvi * 100).toFixed(0)}% Vigor</strong>
-              </div>
-              <div className="p-1.5 rounded-md bg-background border border-border">
-                <span className="text-muted-foreground block text-[9px]">Soil Health</span>
-                <strong className="text-primary">{selectedFarmer.soilHealthScore}/100</strong>
-              </div>
-              <div className="p-1.5 rounded-md bg-background border border-border">
-                <span className="text-muted-foreground block text-[9px]">CIBIL Score</span>
-                <strong className="text-emerald-500">{selectedFarmer.creditScore}</strong>
-              </div>
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <span className="font-bold text-primary block truncate">
+                Rabi: {selectedFarmer.rabiCropDetails.crop.split(" ")[0]}
+              </span>
+              <span className="text-muted-foreground block font-mono">
+                {selectedFarmer.rabiCropDetails.yieldPerAcreQtl} Qtl/Acre ({selectedFarmer.rabiCropDetails.totalYieldQtl} Qtl)
+              </span>
+              <strong className="text-foreground block font-mono mt-0.5">
+                ₹{selectedFarmer.rabiCropDetails.estimatedRevenue.toLocaleString()}
+              </strong>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Telemetry Chips */}
+        <div className="grid grid-cols-3 gap-1.5 pt-1 text-[10px] text-center font-mono">
+          <div className="p-1.5 rounded-md bg-background border border-border">
+            <span className="text-muted-foreground block text-[9px]">Satellite NDVI</span>
+            <strong className="text-emerald-500">{(selectedFarmer.satelliteNdvi * 100).toFixed(0)}% Vigor</strong>
+          </div>
+          <div className="p-1.5 rounded-md bg-background border border-border">
+            <span className="text-muted-foreground block text-[9px]">Soil Health</span>
+            <strong className="text-primary">{selectedFarmer.soilHealthScore}/100</strong>
+          </div>
+          <div className="p-1.5 rounded-md bg-background border border-border">
+            <span className="text-muted-foreground block text-[9px]">CIBIL Score</span>
+            <strong className="text-emerald-500">{selectedFarmer.creditScore}</strong>
+          </div>
+        </div>
       </div>
 
       {/* Quick Action Hub */}

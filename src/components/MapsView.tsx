@@ -39,6 +39,7 @@ import {
   FlaskConical,
   Lock,
   ChevronRight,
+  ChevronLeft,
   Route,
   MapPin,
   Loader2,
@@ -506,7 +507,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
     <div className="relative w-full h-[calc(100vh-8.5rem)] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col bg-slate-950 font-sans">
       
       {/* Top Header Bar with Nominatim Search, Role Switcher & Basemap Presets */}
-      <header className="z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shrink-0">
+      <header className="z-40 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shrink-0">
         
         {/* Brand & Nominatim Search Component */}
         <div className="flex items-center gap-3 flex-1 min-w-[280px] max-w-xl">
@@ -594,10 +595,15 @@ export const MapsView: React.FC<MapsViewProps> = ({
           {/* Sidebar Toggle Button */}
           <button
             onClick={() => setSidebarOpen((prev) => !prev)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors border border-slate-700"
-            title={sidebarOpen ? "Collapse Panel" : "Expand Panel"}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 ${
+              sidebarOpen
+                ? "bg-emerald-600 border-emerald-500 text-white shadow-xs"
+                : "bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700"
+            }`}
+            title={sidebarOpen ? "Hide Role Panel (Click to Hide)" : "Unhide Role Panel (Click to Show)"}
           >
-            <SlidersHorizontal className="w-4 h-4" />
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{sidebarOpen ? "Hide Panel" : "Show Panel"}</span>
           </button>
         </div>
       </header>
@@ -613,7 +619,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
         >
           <div className="p-4 space-y-4 text-slate-100 flex-1">
             
-            {/* Category Indicator Banner */}
+            {/* Category Indicator Banner with Hide Button */}
             <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
@@ -631,9 +637,18 @@ export const MapsView: React.FC<MapsViewProps> = ({
                   </p>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
-                Active Category
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                  Active
+                </span>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="Hide / Collapse Panel (Click to Hide)"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Render Category Exclusive Component */}
@@ -721,9 +736,25 @@ export const MapsView: React.FC<MapsViewProps> = ({
         {/* Main Geospatial Map Stage */}
         <div className="relative flex-1 w-full h-full bg-slate-950">
           
+          {/* Floating Unhide Role Portal Pill Button (Visible when sidebar is closed) */}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="absolute top-4 left-4 z-30 flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-slate-900/95 hover:bg-slate-900 backdrop-blur-xl border border-emerald-500/40 text-white text-xs font-black shadow-2xl transition-all hover:scale-105 ring-2 ring-emerald-500/20 animate-in fade-in slide-in-from-left-2 cursor-pointer group"
+              title="Click to Unhide / Expand Role Portal"
+            >
+              {activeRole === "farmer" && <Sprout className="w-4 h-4 text-emerald-400 group-hover:animate-bounce" />}
+              {activeRole === "loan-officer" && <Building2 className="w-4 h-4 text-blue-400 group-hover:animate-bounce" />}
+              {activeRole === "researcher" && <GraduationCap className="w-4 h-4 text-teal-400 group-hover:animate-bounce" />}
+              {activeRole === "institute" && <Landmark className="w-4 h-4 text-amber-400 group-hover:animate-bounce" />}
+              <span>Open {roleCategories.find((c) => c.id === activeRole)?.label}</span>
+              <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
+
           {/* Active Navigation Route Info Ribbon */}
           {activeRouteCoords && activeRouteCoords.length > 0 && (
-            <div className="absolute top-4 left-4 right-4 sm:right-auto z-10 max-w-lg bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 text-white">
+            <div className={`absolute top-4 ${sidebarOpen ? "left-4" : "left-56"} right-4 sm:right-auto z-10 max-w-lg bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-2xl p-3 shadow-2xl animate-in fade-in slide-in-from-top-2 text-white`}>
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs font-black text-emerald-400">
                   <Route className="w-4 h-4 text-emerald-400 shrink-0" />

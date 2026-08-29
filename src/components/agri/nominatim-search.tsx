@@ -116,7 +116,7 @@ export const NominatimSearch: React.FC<NominatimSearchProps> = ({
   ];
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-md text-slate-100 font-sans">
+    <div ref={containerRef} className="relative w-full max-w-md text-slate-100 font-sans z-50">
       
       {/* Search Input Box */}
       <div className="relative flex items-center">
@@ -167,7 +167,7 @@ export const NominatimSearch: React.FC<NominatimSearchProps> = ({
 
       {/* Auto-suggestions Dropdown */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900/95 backdrop-blur-xl border border-slate-700/90 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 max-h-80 flex flex-col">
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-900/98 backdrop-blur-2xl border border-slate-700 rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-1 max-h-80 flex flex-col ring-1 ring-white/10">
           
           {/* Category Filter Pills */}
           <div className="p-2 border-b border-slate-800 flex items-center gap-1 overflow-x-auto bg-slate-950/60">

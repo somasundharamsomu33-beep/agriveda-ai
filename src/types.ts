@@ -14,6 +14,153 @@ export interface LandPhotoSnap {
   soilCondition?: string;
 }
 
+export type VerificationStatusLevel =
+  | 'REGISTERED'
+  | 'IDENTITY_VERIFIED'
+  | 'ROLE_VERIFIED'
+  | 'FULLY_VERIFIED'
+  | 'PENDING_REVIEW'
+  | 'REJECTED'
+  | 'ACTION_REQUIRED';
+
+export interface VerificationAuditLog {
+  id: string;
+  timestamp: string;
+  action: string;
+  actor: string;
+  details: string;
+  status: VerificationStatusLevel;
+}
+
+export interface BankAccountDetails {
+  accountHolderName: string;
+  accountNumber: string;
+  ifscCode: string;
+  bankName: string;
+  branchName?: string;
+  isVerified?: boolean;
+}
+
+export interface FarmerOnboardingData {
+  identityType: 'AADHAAR' | 'VOTER_ID' | 'KISAN_CREDIT_CARD';
+  identityNumber: string;
+  landSurveyNumber: string;
+  pattaChittaNumber?: string;
+  plotLocation: string;
+  gpsCoords?: [number, number];
+  acreage: number;
+  irrigationSources: ('Drip Irrigation' | 'Canal Water' | 'Borewell / Tube Well' | 'Rainfed' | 'Sprinkler')[];
+  soilType: string;
+  soilHealthCardNumber?: string;
+  soilPh?: number;
+  currentCrops: string[];
+  previousCrops: string[];
+  farmingPractice: 'Organic' | 'Natural Farming (ZBNF)' | 'Conventional' | 'Integrated Pest Mgmt (IPM)';
+  expectedProductionQuintals: number;
+  bankDetails: BankAccountDetails;
+  farmlandPhotos: LandPhotoSnap[];
+  identityDocUrl?: string;
+  landOwnershipDocUrl?: string;
+}
+
+export interface BusinessOnboardingData {
+  businessName: string;
+  businessType: 'Proprietorship' | 'Partnership' | 'Pvt Ltd' | 'Public Ltd' | 'FPO / Cooperative';
+  ownerName: string;
+  ownerDesignation: string;
+  gstin: string;
+  panNumber: string;
+  companyRegistrationNumber?: string;
+  businessAddress: string;
+  businessCategory: 'Mandi Wholesale Trader' | 'Agri Processing Unit' | 'Food Exporter' | 'FMCG Corporate Buyer' | 'Input & Fertilizer Distributor' | 'Agri Equipment Vendor';
+  procurementCrops: string[];
+  monthlyProcurementVolumeMT: number;
+  storageCapacityMT: number;
+  processingCapacityMT?: number;
+  bankDetails: BankAccountDetails;
+  gstCertificateDocUrl?: string;
+  panCardDocUrl?: string;
+  tradeLicenseDocUrl?: string;
+}
+
+export interface ScholarOnboardingData {
+  studentOrResearcherId: string;
+  universityName: string;
+  institutionAddress: string;
+  department: string;
+  programType: 'B.Sc Agriculture' | 'M.Sc Agronomy' | 'Ph.D. Soil Science' | 'PostDoc Research' | 'Agri Tech Fellowship' | 'Diploma in Agri';
+  academicYear: string;
+  guideOrSupervisorName: string;
+  guideDesignation: string;
+  guideEmail: string;
+  researchArea: string;
+  publishedPapersCount?: number;
+  studentIdCardDocUrl?: string;
+  enrollmentLetterDocUrl?: string;
+}
+
+export interface InstitutionOnboardingData {
+  institutionName: string;
+  institutionType: 'Agricultural University' | 'Research Laboratory (ICAR/CSIR)' | 'Soil & Seed Testing Lab' | 'Agri NGO / Foundation' | 'Government Extension Department' | 'Krishi Vigyan Kendra (KVK)';
+  authorizedRepresentativeName: string;
+  authorizedRepresentativeDesignation: string;
+  officialDomainEmail: string;
+  officialPhone: string;
+  registeredAddress: string;
+  gstinOrPan: string;
+  accreditationDetails: string;
+  departments: string[];
+  servicesOffered: string[];
+  bankDetails: BankAccountDetails;
+  accreditationCertificateDocUrl?: string;
+  authorizationLetterDocUrl?: string;
+}
+
+export interface BankOnboardingData {
+  bankName: string;
+  bankCategory: 'Public Sector Bank' | 'Private Sector Bank' | 'Regional Rural Bank (RRB)' | 'Cooperative Bank' | 'NBFC / Agri FinTech';
+  authorizedOfficerName: string;
+  authorizedOfficerDesignation: string;
+  employeeId: string;
+  officialEmail: string;
+  officialPhone: string;
+  rbiBankingLicenseNumber: string;
+  ifscPrefix: string;
+  crilcReportingCode?: string;
+  branchName: string;
+  zonalOfficeLocation: string;
+  agriculturalLoanProducts: string[];
+  regulatoryComplianceDocUrl?: string;
+  authorizationIdDocUrl?: string;
+}
+
+export interface RoleVerificationData {
+  role: UserRole;
+  farmerData?: FarmerOnboardingData;
+  businessData?: BusinessOnboardingData;
+  scholarData?: ScholarOnboardingData;
+  institutionData?: InstitutionOnboardingData;
+  bankData?: BankOnboardingData;
+  dpdpConsentAccepted: boolean;
+  kycDeclarationAccepted: boolean;
+  consentTimestamp: string;
+}
+
+export interface VerificationApplication {
+  id: string;
+  userId: string;
+  applicantName: string;
+  role: UserRole;
+  email: string;
+  phone: string;
+  status: VerificationStatusLevel;
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewerNotes?: string;
+  data: RoleVerificationData;
+  auditLogs: VerificationAuditLog[];
+}
+
 export interface UserProfile {
   name: string;
   firstName?: string;
@@ -29,6 +176,10 @@ export interface UserProfile {
   avatarUrl: string;
   role?: UserRole;
   plan?: 'free' | 'pro';
+  verificationStatus?: VerificationStatusLevel;
+  verificationScore?: number;
+  verificationData?: RoleVerificationData;
+  auditLogs?: VerificationAuditLog[];
   cropVariety?: string;
   sowingDate?: string;
   cropAgeDays?: number;

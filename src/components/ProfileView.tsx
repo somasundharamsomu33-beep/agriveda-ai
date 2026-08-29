@@ -25,12 +25,18 @@ import {
   Mail,
   Edit3,
   Save,
-  X
+  X,
+  ShieldCheck,
+  Award,
+  BadgeCheck,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 import { UserProfile, CropDiagnosisReport, ActiveTab, LandPhotoSnap } from '../types';
 import { translations, sampleCropImages } from '../data/mockData';
 import { useFirebase } from '../context/FirebaseContext';
 import { generateCropReportPDF } from '../utils/pdfExport';
+import { VerificationEngine } from '../lib/verificationEngine';
 
 interface ProfileViewProps {
   profile: UserProfile;
@@ -40,6 +46,7 @@ interface ProfileViewProps {
   onSelectReport: (report: CropDiagnosisReport) => void;
   setActiveTab: (tab: ActiveTab) => void;
   onNavigateToLandPhoto?: (photo: LandPhotoSnap) => void;
+  onOpenRoleOnboarding?: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
@@ -50,6 +57,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onSelectReport,
   setActiveTab,
   onNavigateToLandPhoto,
+  onOpenRoleOnboarding,
 }) => {
   const { logout } = useFirebase();
   const t = translations[profile.language] || translations.en;
@@ -325,6 +333,106 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* VERIFICATION & COMPLIANCE BADGE CENTER */}
+      {(() => {
+        const meta = VerificationEngine.getStatusMeta(profile.verificationStatus);
+        return (
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-800 shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                      Role Verification &amp; Compliance Center
+                    </h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${meta.badgeClass}`}>
+                      {meta.badgeText}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {meta.description}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={onOpenRoleOnboarding}
+                className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>{profile.verificationStatus === 'FULLY_VERIFIED' ? 'Update Verification' : 'Verify Role Credentials'}</span>
+              </button>
+            </div>
+
+            {/* Multi-Tier Verification Progress Meter */}
+            <div className="space-y-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                <span>Verification Pipeline Progress</span>
+                <span className="font-mono text-emerald-700 font-black">{meta.progress}% Complete</span>
+              </div>
+              <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 rounded-full transition-all duration-500"
+                  style={{ width: `${meta.progress}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-4 text-[10px] font-bold text-slate-400 pt-1 text-center">
+                <span className={meta.progress >= 25 ? 'text-emerald-700 font-black' : ''}>1. Registered</span>
+                <span className={meta.progress >= 50 ? 'text-emerald-700 font-black' : ''}>2. Identity OTP</span>
+                <span className={meta.progress >= 75 ? 'text-emerald-700 font-black' : ''}>3. Role Verified</span>
+                <span className={meta.progress >= 100 ? 'text-emerald-700 font-black' : ''}>4. Fully Verified 🛡️</span>
+              </div>
+            </div>
+
+            {/* Verified Compliance Badges Matrix */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">Two-Factor OTP Identity</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Mobile &amp; Email Authenticated</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">Farmland Cadastre &amp; Snaps</span>
+                  <span className="text-[10px] text-slate-500 font-medium">{profile.landPhotos?.length || 1} Geotagged Plots on Map</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">Bank Account Settlement</span>
+                  <span className="text-[10px] text-slate-500 font-medium">State Bank of India (IFSC Valid)</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-slate-800 block">DPDP Act 2023 Digital Consent</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Data Privacy &amp; KYC Stamped</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* SECTION 1: Manual Personal Data Entry & Edit Form */}
       {isEditingPersonal && (

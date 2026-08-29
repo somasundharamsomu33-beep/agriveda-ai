@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sprout, Bell, Globe, User, ChevronDown, Check } from 'lucide-react';
+import { Sprout, Bell, Globe, User, ChevronDown, Check, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { translations } from '../data/mockData';
 import { AgriLogo } from './ui/AgriLogo';
+import { VerificationEngine } from '../lib/verificationEngine';
 
 interface HeaderProps {
   profile: UserProfile;
   setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
   onOpenAuth: () => void;
   onOpenNotifications: () => void;
+  onOpenRoleOnboarding?: () => void;
+  onOpenAdminVerification?: () => void;
   unreadCount: number;
 }
 
@@ -24,6 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
   setProfile,
   onOpenAuth,
   onOpenNotifications,
+  onOpenRoleOnboarding,
+  onOpenAdminVerification,
   unreadCount,
 }) => {
   const t = translations[profile.language] || translations.en;
@@ -136,19 +141,44 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Direct Sign In / Join Button */}
+            {/* Role Verification Status Pill */}
             <button
-              onClick={onOpenAuth}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+              onClick={onOpenRoleOnboarding || onOpenAuth}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md border transition-all active:scale-95 cursor-pointer ${
+                profile.verificationStatus === 'FULLY_VERIFIED'
+                  ? 'bg-emerald-950/70 border-emerald-400 text-emerald-300 ring-2 ring-emerald-500/20'
+                  : profile.verificationStatus === 'ROLE_VERIFIED'
+                  ? 'bg-blue-950/70 border-blue-400 text-blue-300'
+                  : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 border-amber-300'
+              }`}
+              title="Role-Based Onboarding & Verification"
             >
-              <User className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Sign In / Join</span>
+              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">
+                {profile.verificationStatus === 'FULLY_VERIFIED'
+                  ? '🛡️ Fully Verified'
+                  : profile.verificationStatus === 'ROLE_VERIFIED'
+                  ? '✓ Role Verified'
+                  : 'Get Role Verified'}
+              </span>
             </button>
+
+            {/* Admin Verification Audit Portal Trigger */}
+            {onOpenAdminVerification && (
+              <button
+                onClick={onOpenAdminVerification}
+                className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-bold border border-slate-700 transition-colors cursor-pointer"
+                title="Admin Verification & Compliance Audit Console"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                <span>Admin Audit</span>
+              </button>
+            )}
 
             {/* User Profile Pill */}
             <button
               onClick={onOpenAuth}
-              className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium transition-all"
+              className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium transition-all cursor-pointer"
               title="View Profile & Switch Roles"
             >
               <img

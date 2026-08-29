@@ -14,8 +14,10 @@ import { CommunityView } from './components/CommunityView';
 import { ProfileView } from './components/ProfileView';
 import { MarketplaceView } from './components/MarketplaceView';
 import { MapsView } from './components/MapsView';
+import { RoleOnboardingModal } from './components/onboarding/RoleOnboardingModal';
+import { VerificationAdminModal } from './components/verification/VerificationAdminModal';
 
-import { ActiveTab, CropDiagnosisReport } from './types';
+import { ActiveTab, CropDiagnosisReport, VerificationStatusLevel } from './types';
 import { useFirebase } from './context/FirebaseContext';
 import { Bell, X, ShieldAlert, Bot, Sparkles } from 'lucide-react';
 
@@ -24,6 +26,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [showWelcomeModal, setShowWelcomeModal] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showRoleOnboardingModal, setShowRoleOnboardingModal] = useState(false);
+  const [showVerificationAdminModal, setShowVerificationAdminModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [assistantSeedQuery, setAssistantSeedQuery] = useState<string | undefined>(undefined);
 
@@ -34,6 +38,13 @@ export default function App() {
   const handleDiagnosisComplete = async (report: CropDiagnosisReport) => {
     setActiveReport(report);
     await saveReport(report);
+  };
+
+  const handleAdminApproveUser = (userId: string, newStatus: VerificationStatusLevel) => {
+    setProfile(prev => ({
+      ...prev,
+      verificationStatus: newStatus
+    }));
   };
 
   return (
@@ -48,6 +59,8 @@ export default function App() {
         setProfile={setProfile}
         onOpenAuth={() => setShowAuthModal(true)}
         onOpenNotifications={() => setShowNotifications(true)}
+        onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
+        onOpenAdminVerification={() => setShowVerificationAdminModal(true)}
         unreadCount={2}
       />
 
@@ -120,6 +133,7 @@ export default function App() {
               setTargetFocusCoords(photo.coords);
               setActiveTab('maps');
             }}
+            onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
           />
         )}
       </main>
@@ -142,6 +156,21 @@ export default function App() {
         profile={profile}
         setProfile={setProfile}
         setActiveTab={setActiveTab}
+      />
+
+      {/* Screen 3: Dedicated Role-Based Registration & Verification Wizard */}
+      <RoleOnboardingModal
+        isOpen={showRoleOnboardingModal}
+        onClose={() => setShowRoleOnboardingModal(false)}
+        profile={profile}
+        setProfile={setProfile}
+      />
+
+      {/* Screen 4: Admin Verification & Compliance Audit Console */}
+      <VerificationAdminModal
+        isOpen={showVerificationAdminModal}
+        onClose={() => setShowVerificationAdminModal(false)}
+        onApproveUser={handleAdminApproveUser}
       />
 
       {/* Notifications Drawer */}

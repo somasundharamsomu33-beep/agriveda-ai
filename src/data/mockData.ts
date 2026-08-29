@@ -2,6 +2,9 @@ import { CropDiagnosisReport, MarketPriceItem, WeatherInfo, CropCalendar, Commun
 
 export const initialUserProfile: UserProfile = {
   name: 'Ravi Kumar',
+  firstName: 'Ravi',
+  secondName: 'Kumar',
+  email: 'farmer.ravi@agriveda.io',
   phone: '+91 98765 43210',
   location: 'Vellore, Tamil Nadu, India',
   farmId: 'FARM-12345',
@@ -16,7 +19,31 @@ export const initialUserProfile: UserProfile = {
   irrigationMethod: 'Drip Irrigation',
   seedVariety: 'Heirloom Nattu Thakkali',
   seedBankName: 'Vellore Organic Farmers Seed Trust',
-  recentCropProblems: 'Minor leaf yellowing on lower branches'
+  recentCropProblems: 'Minor leaf yellowing on lower branches',
+  landPhotos: [
+    {
+      id: 'land-photo-1',
+      imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=600&q=80',
+      title: 'North Plot - Tomato Drip Furrow',
+      notes: 'Active drip fertigation running smoothly. 25-day tomato crop flourishing.',
+      timestamp: 'Today, 2:30 PM',
+      coords: [75.8056, 30.9010],
+      locationName: 'North Acre Plot',
+      cropType: 'Tomato (Arka Rakshak)',
+      soilCondition: 'Moist Red Loam'
+    },
+    {
+      id: 'land-photo-2',
+      imageUrl: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=600&q=80',
+      title: 'South Sector - Millet Boundary Line',
+      notes: 'Prepared organic seedbed with mulched bio-manure.',
+      timestamp: 'Yesterday, 5:15 PM',
+      coords: [75.8190, 30.8850],
+      locationName: 'South Sector Plot 2',
+      cropType: 'Finger Millet (Ragi)',
+      soilCondition: 'Fertile Humus Layer'
+    }
+  ]
 };
 
 export const sampleCropImages = [

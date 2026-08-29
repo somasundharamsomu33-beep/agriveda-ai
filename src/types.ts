@@ -2,8 +2,23 @@ export type Language = 'en' | 'ta' | 'hi' | 'te';
 export type AIModelType = 'groq/compound' | 'openai/gpt-oss-120b' | 'gemma2-9b-it' | 'gemini-1.5-flash' | 'gemini-1.5-pro';
 
 
+export interface LandPhotoSnap {
+  id: string;
+  imageUrl: string;
+  title: string;
+  notes?: string;
+  timestamp: string;
+  coords: [number, number]; // [lng, lat]
+  locationName?: string;
+  cropType?: string;
+  soilCondition?: string;
+}
+
 export interface UserProfile {
   name: string;
+  firstName?: string;
+  secondName?: string;
+  email?: string;
   phone: string;
   location: string;
   farmId: string;
@@ -21,6 +36,7 @@ export interface UserProfile {
   seedVariety?: string;
   seedBankName?: string;
   recentCropProblems?: string;
+  landPhotos?: LandPhotoSnap[];
 }
 
 export type UserRole =

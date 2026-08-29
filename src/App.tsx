@@ -28,6 +28,7 @@ export default function App() {
   const [assistantSeedQuery, setAssistantSeedQuery] = useState<string | undefined>(undefined);
 
   const [activeReport, setActiveReport] = useState<CropDiagnosisReport | null>(null);
+  const [targetFocusCoords, setTargetFocusCoords] = useState<[number, number] | null>(null);
 
   // On diagnosis completion
   const handleDiagnosisComplete = async (report: CropDiagnosisReport) => {
@@ -80,6 +81,7 @@ export default function App() {
         {(activeTab === 'maps' || activeTab === 'seedbank') && (
           <MapsView
             profile={profile}
+            targetFocusCoords={targetFocusCoords}
           />
         )}
 
@@ -114,6 +116,10 @@ export default function App() {
               setActiveTab('scan');
             }}
             setActiveTab={setActiveTab}
+            onNavigateToLandPhoto={(photo) => {
+              setTargetFocusCoords(photo.coords);
+              setActiveTab('maps');
+            }}
           />
         )}
       </main>

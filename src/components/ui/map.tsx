@@ -166,6 +166,7 @@ export type MapProps = {
   projection?: MapLibreGL.ProjectionSpecification;
   viewport?: Partial<MapViewport>;
   onViewportChange?: (viewport: MapViewport) => void;
+  onMapClick?: (e: MapLibreGL.MapMouseEvent & { lngLat: MapLibreGL.LngLat }) => void;
   loading?: boolean;
 } & Omit<MapLibreGL.MapOptions, "container" | "style">;
 
@@ -200,6 +201,7 @@ export const Map = forwardRef<MapRef, MapProps>(function Map(
     projection,
     viewport,
     onViewportChange,
+    onMapClick,
     loading = false,
     ...props
   },
@@ -218,6 +220,9 @@ export const Map = forwardRef<MapRef, MapProps>(function Map(
   const isControlled = viewport !== undefined && onViewportChange !== undefined;
   const onViewportChangeRef = useRef(onViewportChange);
   onViewportChangeRef.current = onViewportChange;
+
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
 
   const stableStyles = useStableValue(styles);
 
@@ -265,15 +270,21 @@ export const Map = forwardRef<MapRef, MapProps>(function Map(
       onViewportChangeRef.current?.(getViewport(map));
     };
 
+    const handleClick = (e: any) => {
+      onMapClickRef.current?.(e);
+    };
+
     map.on("load", loadHandler);
     map.on("style.load", styleLoadHandler);
     map.on("move", handleMove);
+    map.on("click", handleClick);
     setMapInstance(map);
 
     return () => {
       map.off("load", loadHandler);
       map.off("style.load", styleLoadHandler);
       map.off("move", handleMove);
+      map.off("click", handleClick);
       map.remove();
       setIsLoaded(false);
       setIsStyleLoaded(false);

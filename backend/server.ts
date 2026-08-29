@@ -997,6 +997,145 @@ app.post('/api/groq/crop-recommendations', async (req, res) => {
   }
 });
 
+// ============================================================================
+// NOMINATIM OPENSTREETMAP GEOCODING & SPATIAL SEARCH PROXY
+// ============================================================================
+const nominatimCache = new Map<string, { data: any; timestamp: number }>();
+const NOMINATIM_CACHE_TTL_MS = 1000 * 60 * 60; // 1 hour
+
+// 1. Nominatim Forward Search Proxy
+app.get('/api/nominatim/search', async (req, res) => {
+  try {
+    const q = req.query.q as string;
+    if (!q || q.trim().length === 0) {
+      return res.json([]);
+    }
+
+    const cacheKey = `search:${JSON.stringify(req.query)}`;
+    const cached = nominatimCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < NOMINATIM_CACHE_TTL_MS) {
+      return res.json(cached.data);
+    }
+
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      addressdetails: '1',
+      extratags: '1',
+      namedetails: '1',
+      polygon_geojson: '1',
+      countrycodes: (req.query.countrycodes as string) || 'in',
+      limit: (req.query.limit as string) || '10',
+      q: q.trim(),
+    });
+
+    if (req.query.viewbox) {
+      params.append('viewbox', req.query.viewbox as string);
+    }
+    if (req.query.bounded) {
+      params.append('bounded', '1');
+    }
+
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
+      headers: {
+        'User-Agent': 'AgriVeda-AI-MapCN-SIH/1.0 (contact: support@agriveda.io)',
+        'Accept-Language': (req.query.lang as string) || 'en,hi,ta,te',
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Nominatim upstream error' });
+    }
+
+    const data = await response.json();
+    nominatimCache.set(cacheKey, { data, timestamp: Date.now() });
+    res.json(data);
+  } catch (err: any) {
+    console.error('Nominatim search error:', err);
+    res.status(500).json({ error: 'Nominatim search failed', message: err.message });
+  }
+});
+
+// 2. Nominatim Reverse Geocoding Proxy
+app.get('/api/nominatim/reverse', async (req, res) => {
+  try {
+    const { lat, lon, zoom = '18' } = req.query;
+    if (!lat || !lon) {
+      return res.status(400).json({ error: 'Missing lat or lon parameter' });
+    }
+
+    const cacheKey = `reverse:${lat},${lon},${zoom}`;
+    const cached = nominatimCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < NOMINATIM_CACHE_TTL_MS) {
+      return res.json(cached.data);
+    }
+
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      lat: lat as string,
+      lon: lon as string,
+      zoom: zoom as string,
+      addressdetails: '1',
+      extratags: '1',
+      polygon_geojson: '1',
+    });
+
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      headers: {
+        'User-Agent': 'AgriVeda-AI-MapCN-SIH/1.0 (contact: support@agriveda.io)',
+        'Accept-Language': (req.query.lang as string) || 'en,hi,ta,te',
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Nominatim reverse error' });
+    }
+
+    const data = await response.json();
+    nominatimCache.set(cacheKey, { data, timestamp: Date.now() });
+    res.json(data);
+  } catch (err: any) {
+    console.error('Nominatim reverse error:', err);
+    res.status(500).json({ error: 'Nominatim reverse geocoding failed', message: err.message });
+  }
+});
+
+// 3. Nominatim Lookup Proxy
+app.get('/api/nominatim/lookup', async (req, res) => {
+  try {
+    const osm_ids = req.query.osm_ids as string;
+    if (!osm_ids) {
+      return res.status(400).json({ error: 'Missing osm_ids parameter' });
+    }
+
+    const params = new URLSearchParams({
+      format: 'jsonv2',
+      osm_ids,
+      addressdetails: '1',
+      extratags: '1',
+      polygon_geojson: '1',
+    });
+
+    const response = await fetch(`https://nominatim.openstreetmap.org/lookup?${params.toString()}`, {
+      headers: {
+        'User-Agent': 'AgriVeda-AI-MapCN-SIH/1.0 (contact: support@agriveda.io)',
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Nominatim lookup error' });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err: any) {
+    console.error('Nominatim lookup error:', err);
+    res.status(500).json({ error: 'Nominatim lookup failed' });
+  }
+});
+
 // 7. API Route: Weekly Agri-Tip (Gemini Powered)
 app.post('/api/weekly-agri-tip', async (req, res) => {
   try {

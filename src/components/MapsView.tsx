@@ -40,6 +40,8 @@ import {
   Lock,
   ChevronRight,
   Route,
+  MapPin,
+  Loader2,
 } from "lucide-react";
 import {
   LOAN_OFFICES,
@@ -59,6 +61,12 @@ import { ResearcherView } from "./agri/researcher-view";
 import { InstituteView } from "./agri/institute-view";
 import { LoanCalculatorModal } from "./agri/loan-calculator-modal";
 import { ApplyLoanModal } from "./agri/apply-loan-modal";
+import { NominatimSearch } from "./agri/nominatim-search";
+import {
+  reverseGeocodeNominatim,
+  formatNominatimPlaceName,
+  type NominatimSearchResult,
+} from "../lib/nominatim";
 import {
   getDijkstraOnRoadRoute,
   getMultiStopInspectionCircuit,
@@ -111,6 +119,11 @@ export const MapsView: React.FC<MapsViewProps> = ({
   const [activePopupType, setActivePopupType] = useState<"farmer" | "office" | "institute" | null>("farmer");
   const [activePopupId, setActivePopupId] = useState<string | null>(FARMERS_DATA[0].id);
 
+  // Nominatim OSM Search & Reverse Geocode states
+  const [searchedPlace, setSearchedPlace] = useState<NominatimSearchResult | null>(null);
+  const [reverseGeocodeCoords, setReverseGeocodeCoords] = useState<[number, number] | null>(null);
+  const [reverseGeocodedPlace, setReverseGeocodedPlace] = useState<NominatimSearchResult | null>(null);
+
   // Radius & Filtering (Default 30 km)
   const [radiusKm, setRadiusKm] = useState<number>(30);
   const [showAgroZones, setShowAgroZones] = useState(true);
@@ -162,6 +175,63 @@ export const MapsView: React.FC<MapsViewProps> = ({
     }
     return undefined;
   }, [activeStyleName]);
+
+  // Handle Nominatim Forward Search selection
+  const handleSelectNominatimPlace = (place: NominatimSearchResult) => {
+    setSearchedPlace(place);
+    const lat = parseFloat(place.lat);
+    const lng = parseFloat(place.lon);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setViewport({
+        center: [lng, lat],
+        zoom: 12.5,
+        bearing: 0,
+        pitch: 30,
+      });
+      setActivePopupType(null);
+      setActivePopupId(null);
+    }
+  };
+
+  // Handle Map Click to trigger OpenStreetMap Reverse Geocoding
+  const handleMapClick = async (e: any) => {
+    if (!e || !e.lngLat) return;
+    const lng = e.lngLat.lng;
+    const lat = e.lngLat.lat;
+
+    setReverseGeocodeCoords([lng, lat]);
+    setReverseGeocodedPlace(null);
+    setActivePopupType(null);
+    setActivePopupId(null);
+
+    const res = await reverseGeocodeNominatim(lng, lat);
+    setReverseGeocodedPlace(res);
+  };
+
+  // Route from Farmer to custom coordinates (e.g. from Nominatim search or map click)
+  const handleRouteToCustomCoords = async (targetCoords: [number, number], label: string) => {
+    const midLng = (selectedFarmer.coords[0] + targetCoords[0]) / 2;
+    const midLat = (selectedFarmer.coords[1] + targetCoords[1]) / 2;
+    setViewport({
+      center: [midLng, midLat],
+      zoom: 11.5,
+      bearing: 15,
+      pitch: 40,
+    });
+
+    setActiveRouteLabel(`Calculating Dijkstra On-Road Route to ${label}...`);
+
+    try {
+      const result = await getDijkstraOnRoadRoute(selectedFarmer.coords, targetCoords);
+      setActiveRouteCoords(result.coordinates);
+      setActiveRouteLabel(
+        `🛣️ On-Road Shortest Path (Dijkstra): ${selectedFarmer.name} ➔ ${label} (${result.summary})`
+      );
+    } catch {
+      setActiveRouteCoords([selectedFarmer.coords, targetCoords]);
+      setActiveRouteLabel(`Route: ${selectedFarmer.name} ➔ ${label}`);
+    }
+  };
 
   // Navigate farmer to bank branch via Dijkstra On-Road Shortest Path
   const handleFarmerNavigateToOffice = async (office: LoanOffice) => {
@@ -312,24 +382,22 @@ export const MapsView: React.FC<MapsViewProps> = ({
   return (
     <div className="relative w-full h-[calc(100vh-8.5rem)] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col bg-slate-950 font-sans">
       
-      {/* Top Header Bar & Exclusive Role Switcher */}
-      <header className="z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center shadow-lg ring-2 ring-white/10">
-            <Navigation className="w-5 h-5 text-white animate-pulse" />
+      {/* Top Header Bar with Nominatim Search, Role Switcher & Region Presets */}
+      <header className="z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shrink-0">
+        
+        {/* Brand & Nominatim Search Component */}
+        <div className="flex items-center gap-3 flex-1 min-w-[280px] max-w-xl">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center shadow-lg ring-2 ring-white/10 shrink-0">
+            <Navigation className="w-4 h-4 text-white animate-pulse" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-                MapCN <span className="text-emerald-400">Agri-GIS</span>
-              </h1>
-              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Live Geospatial
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Agricultural Credit, Agro-Climatic Intelligence & Inspection Routing
-            </p>
+          <div className="flex-1">
+            <NominatimSearch
+              onSelectPlace={handleSelectNominatimPlace}
+              onClearPlace={() => setSearchedPlace(null)}
+              selectedPlace={searchedPlace}
+              mapCenter={viewport.center}
+              onRouteToPlace={handleRouteToCustomCoords}
+            />
           </div>
         </div>
 
@@ -344,7 +412,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
               <button
                 key={cat.id}
                 onClick={() => setActiveRole(cat.id)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                   isActive
                     ? `${cat.activeBg} shadow-md`
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
@@ -360,18 +428,9 @@ export const MapsView: React.FC<MapsViewProps> = ({
           })}
         </div>
 
-        {/* Right Tools & Basemap Selector */}
+        {/* Right Tools: Basemap Selector & Region Quick Zoom Presets */}
         <div className="flex items-center gap-2">
-          {/* Active User Persona Badge */}
-          {profile?.name && (
-            <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs">
-              <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-slate-300 font-medium">{profile.name}</span>
-              <span className="text-[10px] font-black text-emerald-400 uppercase">({activeRole})</span>
-            </div>
-          )}
-
-          {/* Style Selector */}
+          {/* Basemap Style Selector */}
           <select
             value={activeStyleName}
             onChange={(e) => setActiveStyleName(e.target.value as any)}
@@ -398,7 +457,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
             }}
             defaultValue="All India"
             aria-label="Select Regional Preset"
-            className="bg-slate-800 text-xs font-semibold text-slate-200 rounded-xl px-2.5 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 hidden sm:block"
+            className="bg-slate-800 text-xs font-semibold text-slate-200 rounded-xl px-2.5 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 hidden xl:block"
           >
             {REGION_PRESETS.map((p) => (
               <option key={p.name} value={p.name}>
@@ -562,6 +621,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
           <Map
             viewport={viewport}
             onViewportChange={setViewport}
+            onMapClick={handleMapClick}
             styles={customStyles}
             className="w-full h-full"
           >
@@ -605,6 +665,26 @@ export const MapsView: React.FC<MapsViewProps> = ({
               />
             )}
 
+            {/* Dynamic Nominatim Search Result Polygon (If available) */}
+            {searchedPlace?.geojson && (
+              <MapGeoJSON
+                id="nominatim-searched-polygon"
+                data={{
+                  type: "Feature",
+                  geometry: searchedPlace.geojson as any,
+                  properties: { name: searchedPlace.name || searchedPlace.display_name },
+                }}
+                fillPaint={{
+                  "fill-color": "#10b981",
+                  "fill-opacity": 0.18,
+                }}
+                linePaint={{
+                  "line-color": "#059669",
+                  "line-width": 2.5,
+                }}
+              />
+            )}
+
             {/* Active Navigation Route Layer */}
             {activeRouteCoords && (
               <MapRoute
@@ -614,6 +694,84 @@ export const MapsView: React.FC<MapsViewProps> = ({
                 width={4.5}
                 dashArray={[2, 1]}
               />
+            )}
+
+            {/* Nominatim Forward Searched Place Marker */}
+            {searchedPlace && !isNaN(parseFloat(searchedPlace.lon)) && (
+              <MapMarker
+                longitude={parseFloat(searchedPlace.lon)}
+                latitude={parseFloat(searchedPlace.lat)}
+              >
+                <MarkerContent>
+                  <div className="relative group cursor-pointer animate-bounce z-40">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-2xl border-2 border-emerald-300 ring-4 ring-emerald-500/30">
+                      <MapPin className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                </MarkerContent>
+                <MarkerLabel position="top">
+                  {searchedPlace.name || searchedPlace.display_name.split(",")[0]}
+                </MarkerLabel>
+              </MapMarker>
+            )}
+
+            {/* OpenStreetMap Reverse-Geocoded Click Point Marker & Popup */}
+            {reverseGeocodeCoords && (
+              <MapMarker
+                longitude={reverseGeocodeCoords[0]}
+                latitude={reverseGeocodeCoords[1]}
+              >
+                <MarkerContent>
+                  <div className="w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-2xl border-2 border-white animate-pulse z-40">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                </MarkerContent>
+
+                <MarkerPopup closeButton onClose={() => setReverseGeocodeCoords(null)} offset={15}>
+                  <div className="p-3 bg-slate-900/95 backdrop-blur-md rounded-2xl border border-slate-700 shadow-2xl text-white max-w-xs space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                      <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300">
+                        Identified Location
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-400">
+                        OSM Reverse
+                      </span>
+                    </div>
+
+                    {reverseGeocodedPlace ? (
+                      <div className="space-y-1.5">
+                        <h4 className="text-xs font-bold text-white leading-snug">
+                          {formatNominatimPlaceName(reverseGeocodedPlace).primary}
+                        </h4>
+                        <p className="text-[11px] text-slate-300 line-clamp-2">
+                          📍 {reverseGeocodedPlace.display_name}
+                        </p>
+                        <div className="text-[10px] font-mono text-slate-400">
+                          {reverseGeocodeCoords[1].toFixed(5)}°N, {reverseGeocodeCoords[0].toFixed(5)}°E
+                        </div>
+                        <div className="pt-1 flex gap-1.5">
+                          <button
+                            onClick={() =>
+                              handleRouteToCustomCoords(
+                                reverseGeocodeCoords,
+                                formatNominatimPlaceName(reverseGeocodedPlace).primary
+                              )
+                            }
+                            className="flex-1 py-1 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[11px] font-bold flex items-center justify-center gap-1"
+                          >
+                            <Navigation className="w-3 h-3" /> Route Here
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-slate-400 py-1">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                        <span>Reverse geocoding point...</span>
+                      </div>
+                    )}
+                  </div>
+                </MarkerPopup>
+              </MapMarker>
             )}
 
             {/* Farmer Farm Markers */}
@@ -781,7 +939,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
 
           </Map>
 
-          {/* Quick Floating Layer Toggles */}
+          {/* Quick Floating Layer & Click Inspector Toggles */}
           <div className="absolute bottom-6 right-6 z-10 bg-slate-900/90 backdrop-blur-md p-2.5 rounded-2xl border border-slate-800 shadow-xl flex items-center gap-2 text-white">
             <button
               onClick={() => setShowFarmersLayer((p) => !p)}

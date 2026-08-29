@@ -1,4 +1,5 @@
 import express from 'express';
+import 'dotenv/config';
 import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import jwt from 'jsonwebtoken';
@@ -6,7 +7,7 @@ import jwksClient from 'jwks-rsa';
 import { sampleCropImages, sampleWeather, sampleMarketPrices, defaultCropCalendar, sampleCommunityPosts } from '../src/data/mockData';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: '15mb' }));
 
@@ -1090,7 +1091,8 @@ Provide JSON with properties:
 // Vite & Static file setup
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
+    const vitePkg = 'vite';
+    const { createServer: createViteServer } = await import(vitePkg);
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

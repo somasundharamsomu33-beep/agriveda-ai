@@ -3,7 +3,7 @@ import { Camera, Upload, CheckCircle, ArrowLeft, Download, Volume2, Share2, Aler
 import { CropDiagnosisReport, UserProfile } from '../types';
 import { translations, sampleCropImages } from '../data/mockData';
 import { generateCropReportPDF } from '../utils/pdfExport';
-
+import { supabase } from '../lib/supabase';
 interface CropScanViewProps {
   profile: UserProfile;
   onDiagnosisComplete: (report: CropDiagnosisReport) => void;
@@ -23,7 +23,7 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
   const [soilType, setSoilType] = useState('Red Soil');
   const [farmArea, setFarmArea] = useState(profile.farmSizeAcres || 2.5);
   const [location, setLocation] = useState(profile.location || 'Vellore, Tamil Nadu');
-  
+
   const [selectedImage, setSelectedImage] = useState<string | null>(sampleCropImages[0].url);
   const [selectedSampleId, setSelectedSampleId] = useState<string | null>(sampleCropImages[0].id);
   const [isScanning, setIsScanning] = useState(false);
@@ -66,9 +66,14 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
     setActiveReport(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+
       const res = await fetch('/api/analyze-crop', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
+        },
         body: JSON.stringify({
           cropType,
           soilType,
@@ -133,7 +138,7 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
 
   return (
     <div className="space-y-6 pb-24 animate-in fade-in">
-      
+
       {/* Title Header */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div>
@@ -145,7 +150,7 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
             Upload leaf photo or capture crop image for instant pathology analysis
           </p>
         </div>
-        
+
         {activeReport && (
           <button
             onClick={() => {
@@ -162,10 +167,10 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
       {/* VIEW 1: SCAN INPUT FORM (Screen 4) */}
       {!activeReport && !isScanning && (
         <div className="space-y-5">
-          
+
           {/* Upload / Capture Dropzone */}
           <div className="bg-slate-50 rounded-xl p-5 border-2 border-dashed border-slate-300 text-center relative overflow-hidden group hover:border-blue-500 transition-colors">
-            
+
             {selectedImage ? (
               <div className="relative max-w-sm mx-auto">
                 <img
@@ -228,11 +233,10 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
                     setSelectedSampleId(sample.id);
                     setCropType(sample.crop);
                   }}
-                  className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${
-                    selectedSampleId === sample.id
-                      ? 'bg-blue-50/80 border-blue-600 ring-1 ring-blue-600 shadow-sm'
-                      : 'bg-white border-slate-200 hover:bg-slate-50'
-                  }`}
+                  className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${selectedSampleId === sample.id
+                    ? 'bg-blue-50/80 border-blue-600 ring-1 ring-blue-600 shadow-sm'
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
                 >
                   <img
                     src={sample.url}
@@ -369,10 +373,10 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
       {/* VIEW 2: AI DIAGNOSIS RESULT SCREEN */}
       {activeReport && !isScanning && (
         <div className="space-y-5 animate-in fade-in">
-          
+
           {/* Result Overview Header Card */}
           <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
-            
+
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <span className="text-xs font-bold uppercase text-slate-700 tracking-wider">
                 {t.diagnosisResult}
@@ -408,10 +412,9 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
                 </div>
 
                 <div className="text-right">
-                  <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-md text-white ${
-                    activeReport.riskLevel === 'High' ? 'bg-red-600' :
+                  <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-md text-white ${activeReport.riskLevel === 'High' ? 'bg-red-600' :
                     activeReport.riskLevel === 'Medium' ? 'bg-amber-600' : 'bg-emerald-600'
-                  }`}>
+                    }`}>
                     {activeReport.riskLevel} Risk
                   </span>
                 </div>
@@ -466,7 +469,7 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
           {/* VIEW 3: FULL REPORT EXPANDED SECTION */}
           {showFullReport && (
             <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4 animate-in fade-in">
-              
+
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Sprout className="w-4 h-4 text-blue-600" />
@@ -475,9 +478,8 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
 
                 <button
                   onClick={() => handleReadAloud(`${activeReport.detectedIssue}. Cause: ${activeReport.cause}. Treatment: ${activeReport.treatment.join(', ')}`)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                    isSpeaking ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${isSpeaking ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200'
+                    }`}
                 >
                   <Volume2 className="w-4 h-4" />
                   <span>{isSpeaking ? 'Pause Audio' : 'Listen Report'}</span>

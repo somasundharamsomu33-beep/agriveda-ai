@@ -1,12 +1,41 @@
 import express from 'express';
 import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
-import { sampleCropImages, sampleWeather, sampleMarketPrices, defaultCropCalendar, sampleCommunityPosts } from './src/data/mockData';
+import jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
+import { sampleCropImages, sampleWeather, sampleMarketPrices, defaultCropCalendar, sampleCommunityPosts } from '../src/data/mockData';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '15mb' }));
+
+// Supabase JWKS Configuration for verifying tokens
+const supabaseJwksClient = jwksClient({
+  jwksUri: 'https://jkatxcqwqcgwfscmnpsm.supabase.co/auth/v1/.well-known/jwks.json',
+  cache: true,
+  rateLimit: true,
+});
+
+function getKey(header: any, callback: any) {
+  supabaseJwksClient.getSigningKey(header.kid, function (err, key: any) {
+    if (err) return callback(err, null);
+    const signingKey = key.publicKey || key.rsaPublicKey;
+    callback(null, signingKey);
+  });
+}
+
+// Middleware to verify Supabase JWT
+export const verifySupabaseToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Unauthorized: No token provided' });
+
+  jwt.verify(token, getKey, { algorithms: ['RS256', 'HS256', 'ES256'] }, (err: any, decoded: any) => {
+    if (err) return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    (req as any).user = decoded;
+    next();
+  });
+};
 
 // Initialize Gemini Client
 const getGeminiAi = () => {
@@ -72,11 +101,35 @@ const callGroqAi = async ({
   }
 };
 
+// ==========================================
+// PROTECTED DB ENDPOINTS (Requires Supabase Auth)
+// ==========================================
+app.get('/api/profile', verifySupabaseToken, async (req: express.Request, res: express.Response) => {
+  try {
+    // req.user is dynamically populated by the verifySupabaseToken middleware!
+    const user = (req as any).user;
+
+    // Instead of mock data, the frontend can query this route, pass the JWT Bearer token,
+    // and seamlessly identify who is talking to the backend.
+    res.json({
+      status: 'authenticated',
+      user_id: user.sub,
+      email: user.email,
+      message: 'Successfully hitting the protected AgriVeda backend using Supabase JWT!'
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // 1. API Route: Crop Analysis
-app.post('/api/analyze-crop', async (req, res) => {
+app.post('/api/analyze-crop', verifySupabaseToken, async (req: express.Request, res: express.Response) => {
   try {
     const { cropType, soilType, farmArea, location, imageBase64, sampleImageId } = req.body;
+
+    // The user's secure Supabase session is available here!
+    const user = (req as any).user;
+    console.log(`[Crop Analyzer] User ${user.email} initiated a scan for ${cropType}`);
 
     // Check if sample image ID was passed
     if (sampleImageId) {
@@ -310,9 +363,9 @@ app.post('/api/voice-assistant', async (req, res) => {
     }
 
     const langInstruction = language === 'ta' ? 'Respond strictly in clear, natural Tamil script (தமிழ்).' :
-                            language === 'hi' ? 'Respond strictly in clear, natural Hindi script (हिंदी).' :
-                            language === 'te' ? 'Respond strictly in clear, natural Telugu script (తెలుగు).' :
-                            'Respond in clear, professional English.';
+      language === 'hi' ? 'Respond strictly in clear, natural Hindi script (हिंदी).' :
+        language === 'te' ? 'Respond strictly in clear, natural Telugu script (తెలుగు).' :
+          'Respond in clear, professional English.';
 
     const systemPrompt = `You are AgriVeda AI, an elite multilingual agricultural copilot for smallholder and commercial farmers.
 FARMER CONTEXT:
@@ -795,7 +848,7 @@ app.post('/api/marketplace/quotes', async (req, res) => {
         const parsed = JSON.parse(groqRes);
         if (parsed.status) status = parsed.status;
         if (parsed.text) text = parsed.text;
-      } catch (e) {}
+      } catch (e) { }
     }
 
     res.json({
@@ -834,7 +887,7 @@ app.post('/api/groq/fertilizer-advice', async (req, res) => {
       try {
         const parsed = JSON.parse(groqRes);
         return res.json(parsed);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     res.json({
@@ -874,7 +927,7 @@ app.post('/api/groq/irrigation-advice', async (req, res) => {
       try {
         const parsed = JSON.parse(groqRes);
         return res.json(parsed);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     res.json({
@@ -911,7 +964,7 @@ app.post('/api/groq/crop-recommendations', async (req, res) => {
       try {
         const parsed = JSON.parse(groqRes);
         return res.json(parsed);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     res.json({
@@ -954,9 +1007,9 @@ app.post('/api/weekly-agri-tip', async (req, res) => {
     }
 
     const langPrompt = language === 'ta' ? 'Write the title, tipText, and actionableSteps in Tamil (தமிழ்).' :
-                       language === 'hi' ? 'Write the title, tipText, and actionableSteps in Hindi (हिंदी).' :
-                       language === 'te' ? 'Write the title, tipText, and actionableSteps in Telugu (తెలుగు).' :
-                       'Write in simple, practical English.';
+      language === 'hi' ? 'Write the title, tipText, and actionableSteps in Hindi (हिंदी).' :
+        language === 'te' ? 'Write the title, tipText, and actionableSteps in Telugu (తెలుగు).' :
+          'Write in simple, practical English.';
 
     const promptText = `Generate a highly practical, localized, seasonal weekly farming tip for a farmer with these details:
 - Location: ${userLocation}

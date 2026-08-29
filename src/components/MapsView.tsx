@@ -46,6 +46,8 @@ import {
   Store,
   Stethoscope,
   SunMedium,
+  Satellite,
+  Mountain,
 } from "lucide-react";
 import {
   LOAN_OFFICES,
@@ -67,6 +69,7 @@ import { LoanCalculatorModal } from "./agri/loan-calculator-modal";
 import { ApplyLoanModal } from "./agri/apply-loan-modal";
 import { NominatimSearch } from "./agri/nominatim-search";
 import { OverpassExplorer } from "./agri/overpass-explorer";
+import { MeasureTool, type MeasureMode } from "./agri/measure-tool";
 import {
   reverseGeocodeNominatim,
   formatNominatimPlaceName,
@@ -137,6 +140,10 @@ export const MapsView: React.FC<MapsViewProps> = ({
   const [overpassData, setOverpassData] = useState<OverpassGeoJSONCollection | null>(null);
   const [selectedOverpassFeature, setSelectedOverpassFeature] = useState<OverpassGeoJSONFeature | null>(null);
 
+  // Leaflet-Style Geodesic Measure Tool states
+  const [measureMode, setMeasureMode] = useState<MeasureMode>("none");
+  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
+
   // Radius & Filtering (Default 30 km)
   const [radiusKm, setRadiusKm] = useState<number>(30);
   const [showAgroZones, setShowAgroZones] = useState(true);
@@ -155,12 +162,13 @@ export const MapsView: React.FC<MapsViewProps> = ({
 
   // Modals
   const [calcModalOpen, setCalcModalOpen] = useState(false);
+  const [customCalculatedAcres, setCustomCalculatedAcres] = useState<number | undefined>(undefined);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [applyOfficeId, setApplyOfficeId] = useState<string | undefined>(undefined);
 
   // UI state
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [activeStyleName, setActiveStyleName] = useState<"standard" | "darkMatter" | "osm">("standard");
+  const [activeStyleName, setActiveStyleName] = useState<"standard" | "satellite" | "topo" | "darkMatter" | "osm">("standard");
 
   // Dynamic farmer state updates
   const [farmersList, setFarmersList] = useState<FarmerProfile[]>(FARMERS_DATA);
@@ -173,19 +181,88 @@ export const MapsView: React.FC<MapsViewProps> = ({
     pitch: 35,
   });
 
+  // Multi-source Tile Basemaps (Leaflet / ESRI Satellite / Topo / OSM / CartoDB)
   const customStyles = useMemo(() => {
+    if (activeStyleName === "satellite") {
+      return {
+        dark: {
+          version: 8 as const,
+          sources: {
+            "esri-satellite": {
+              type: "raster" as const,
+              tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+              tileSize: 256,
+              attribution: "Esri, Maxar, Earthstar Geographics, USDA, USGS",
+            },
+          },
+          layers: [
+            { id: "esri-satellite-layer", type: "raster" as const, source: "esri-satellite", minzoom: 0, maxzoom: 19 },
+          ],
+        },
+        light: {
+          version: 8 as const,
+          sources: {
+            "esri-satellite": {
+              type: "raster" as const,
+              tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+              tileSize: 256,
+              attribution: "Esri, Maxar, Earthstar Geographics, USDA, USGS",
+            },
+          },
+          layers: [
+            { id: "esri-satellite-layer", type: "raster" as const, source: "esri-satellite", minzoom: 0, maxzoom: 19 },
+          ],
+        },
+      };
+    }
+
+    if (activeStyleName === "topo") {
+      return {
+        dark: {
+          version: 8 as const,
+          sources: {
+            "opentopomap": {
+              type: "raster" as const,
+              tiles: ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+              attribution: "OpenTopoMap, CC-BY-SA",
+            },
+          },
+          layers: [
+            { id: "opentopomap-layer", type: "raster" as const, source: "opentopomap", minzoom: 0, maxzoom: 17 },
+          ],
+        },
+        light: {
+          version: 8 as const,
+          sources: {
+            "opentopomap": {
+              type: "raster" as const,
+              tiles: ["https://a.tile.opentopomap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+              attribution: "OpenTopoMap, CC-BY-SA",
+            },
+          },
+          layers: [
+            { id: "opentopomap-layer", type: "raster" as const, source: "opentopomap", minzoom: 0, maxzoom: 17 },
+          ],
+        },
+      };
+    }
+
     if (activeStyleName === "darkMatter") {
       return {
         dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
         light: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
       };
     }
+
     if (activeStyleName === "osm") {
       return {
         dark: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
         light: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
       };
     }
+
     return undefined;
   }, [activeStyleName]);
 
@@ -232,12 +309,19 @@ export const MapsView: React.FC<MapsViewProps> = ({
     }
   };
 
-  // Handle Map Click to trigger OpenStreetMap Reverse Geocoding
+  // Handle Map Click: Either add measurement point or trigger Reverse Geocoding
   const handleMapClick = async (e: any) => {
     if (!e || !e.lngLat) return;
     const lng = e.lngLat.lng;
     const lat = e.lngLat.lat;
 
+    // 1. If in Leaflet measurement mode, add vertex point
+    if (measureMode !== "none") {
+      setMeasurePoints((prev) => [...prev, [lng, lat]]);
+      return;
+    }
+
+    // 2. Otherwise, trigger OpenStreetMap Reverse Geocoding
     setReverseGeocodeCoords([lng, lat]);
     setReverseGeocodedPlace(null);
     setActivePopupType(null);
@@ -247,7 +331,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
     setReverseGeocodedPlace(res);
   };
 
-  // Route from Farmer to custom coordinates (e.g. from Nominatim search or map click)
+  // Route from Farmer to custom coordinates
   const handleRouteToCustomCoords = async (targetCoords: [number, number], label: string) => {
     const midLng = (selectedFarmer.coords[0] + targetCoords[0]) / 2;
     const midLat = (selectedFarmer.coords[1] + targetCoords[1]) / 2;
@@ -421,7 +505,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
   return (
     <div className="relative w-full h-[calc(100vh-8.5rem)] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col bg-slate-950 font-sans">
       
-      {/* Top Header Bar with Nominatim Search, Role Switcher & Region Presets */}
+      {/* Top Header Bar with Nominatim Search, Role Switcher & Basemap Presets */}
       <header className="z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shrink-0">
         
         {/* Brand & Nominatim Search Component */}
@@ -467,7 +551,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
           })}
         </div>
 
-        {/* Right Tools: Basemap Selector & Region Quick Zoom Presets */}
+        {/* Right Tools: Leaflet Satellite/Basemap Switcher & Regional Quick Presets */}
         <div className="flex items-center gap-2">
           {/* Basemap Style Selector */}
           <select
@@ -476,7 +560,9 @@ export const MapsView: React.FC<MapsViewProps> = ({
             aria-label="Select Basemap Style"
             className="bg-slate-800 text-xs font-semibold text-slate-200 rounded-xl px-2.5 py-1.5 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
-            <option value="standard">Positron (Light)</option>
+            <option value="standard">Positron (Vector)</option>
+            <option value="satellite">🛰️ ESRI Satellite (HD)</option>
+            <option value="topo">⛰️ OpenTopoMap (Contours)</option>
             <option value="darkMatter">Dark Matter</option>
             <option value="osm">Voyager (OSM)</option>
           </select>
@@ -656,6 +742,19 @@ export const MapsView: React.FC<MapsViewProps> = ({
             </div>
           )}
 
+          {/* Leaflet-Style Geodesic Measure Tool Bar & HUD */}
+          <MeasureTool
+            measureMode={measureMode}
+            onSetMeasureMode={setMeasureMode}
+            points={measurePoints}
+            onClearPoints={() => setMeasurePoints([])}
+            onUndoPoint={() => setMeasurePoints((p) => p.slice(0, -1))}
+            onApplyForAcreage={(acres) => {
+              setCustomCalculatedAcres(acres);
+              setCalcModalOpen(true);
+            }}
+          />
+
           {/* Overpass API Explorer Floating Component */}
           <OverpassExplorer
             viewport={viewport}
@@ -747,7 +846,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
               />
             )}
 
-            {/* Dynamic Nominatim Search Result Polygon (If available) */}
+            {/* Dynamic Nominatim Search Result Polygon */}
             {searchedPlace?.geojson && (
               <MapGeoJSON
                 id="nominatim-searched-polygon"
@@ -766,6 +865,52 @@ export const MapsView: React.FC<MapsViewProps> = ({
                 }}
               />
             )}
+
+            {/* Leaflet-Style Measured Farm Parcel Area Polygon */}
+            {measureMode === "area" && measurePoints.length >= 3 && (
+              <MapGeoJSON
+                id="measured-farm-polygon"
+                data={{
+                  type: "Feature",
+                  geometry: {
+                    type: "Polygon",
+                    coordinates: [[...measurePoints, measurePoints[0]]],
+                  },
+                  properties: {},
+                }}
+                fillPaint={{
+                  "fill-color": "#10b981",
+                  "fill-opacity": 0.3,
+                }}
+                linePaint={{
+                  "line-color": "#059669",
+                  "line-width": 2.5,
+                  "line-dasharray": [3, 1],
+                }}
+              />
+            )}
+
+            {/* Leaflet-Style Measured Distance / Perimeter Polyline */}
+            {measurePoints.length >= 2 && (
+              <MapRoute
+                id="measured-distance-route"
+                coordinates={measurePoints}
+                color={measureMode === "area" ? "#10b981" : "#3b82f6"}
+                width={3}
+                dashArray={[2, 1]}
+              />
+            )}
+
+            {/* Leaflet Measurement Vertex Pins */}
+            {measurePoints.map((pt, idx) => (
+              <MapMarker key={`measure-pt-${idx}`} longitude={pt[0]} latitude={pt[1]}>
+                <MarkerContent>
+                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-white border-2 border-white flex items-center justify-center text-[9px] font-black shadow-lg">
+                    {idx + 1}
+                  </div>
+                </MarkerContent>
+              </MapMarker>
+            ))}
 
             {/* Active Navigation Route Layer */}
             {activeRouteCoords && (
@@ -835,7 +980,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
             )}
 
             {/* OpenStreetMap Reverse-Geocoded Click Point Marker & Popup */}
-            {reverseGeocodeCoords && (
+            {reverseGeocodeCoords && measureMode === "none" && (
               <MapMarker
                 longitude={reverseGeocodeCoords[0]}
                 latitude={reverseGeocodeCoords[1]}
@@ -1086,6 +1231,17 @@ export const MapsView: React.FC<MapsViewProps> = ({
             </button>
           </div>
 
+          {/* Leaflet-Style Cursor Coordinates & HUD Inset */}
+          <div className="absolute bottom-6 left-6 z-10 hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-slate-800 text-[10px] font-mono text-slate-400 shadow-xl">
+            <span className="text-emerald-400 font-bold">
+              {viewport.center[1].toFixed(4)}° N, {viewport.center[0].toFixed(4)}° E
+            </span>
+            <span>•</span>
+            <span>Zoom {viewport.zoom.toFixed(1)}x</span>
+            <span>•</span>
+            <span className="capitalize text-slate-300 font-semibold">{activeStyleName}</span>
+          </div>
+
         </div>
 
       </div>
@@ -1094,7 +1250,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
       <LoanCalculatorModal
         isOpen={calcModalOpen}
         onClose={() => setCalcModalOpen(false)}
-        initialAcres={selectedFarmer.cultivableAcres}
+        initialAcres={customCalculatedAcres || selectedFarmer.cultivableAcres}
         initialCrop={selectedFarmer.primaryCrop}
         onApplyDirect={(amt) => {
           setCalcModalOpen(false);

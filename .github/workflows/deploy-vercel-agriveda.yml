@@ -1,0 +1,80 @@
+name: Deploy to Vercel and Notify Agriveda
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-and-notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Locally
+        run: npm run build
+
+      - name: Deploy to Vercel
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -e
+          # optional: pull remote env; include project to avoid prompts
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID" || true
+          # Deploy and capture output
+          DEPLOY_OUTPUT=$(npx vercel --prod --confirm --prebuilt --token="$VERCEL_TOKEN" --project "$VERCEL_PROJECT_ID" 2>&1 || true)
+          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | tail -n1 | awk '{print $NF}')
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOY_URL"
+
+      - name: Notify Agriveda Webhook
+        env:
+          AGRIVEDA_WEBHOOK_URL: ${{ secrets.AGRIVEDA_WEBHOOK_URL }}
+          AGRIVEDA_API_KEY: ${{ secrets.AGRIVEDA_API_KEY }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -e
+          payload=$(cat <<EOF
+{
+  "repository": "$REPO",
+  "ref": "$REF",
+  "sha": "$SHA",
+  "actor": "$ACTOR",
+  "event": "$EVENT",
+  "url": "$DEPLOY_URL"
+}
+EOF
+)
+          if [ -z "$AGRIVEDA_WEBHOOK_URL" ]; then
+            echo "AGRIVEDA_WEBHOOK_URL not set — skipping notification"
+            exit 0
+          fi
+
+          if [ -n "$AGRIVEDA_API_KEY" ]; then
+            curl -sfS -X POST "$AGRIVEDA_WEBHOOK_URL" \
+               -H "Authorization: Bearer $AGRIVEDA_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$payload"
+          else
+            curl -sfS -X POST "$AGRIVEDA_WEBHOOK_URL" \
+              -H "Content-Type: application/json" \
+              -d "$payload"
+          fi

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sun, CloudRain, Wind, Droplets, AlertTriangle, ShieldAlert, TrendingUp } from 'lucide-react';
 import {
   ComposedChart,
@@ -20,21 +20,71 @@ interface WeatherViewProps {
 
 export const WeatherView: React.FC<WeatherViewProps> = ({ profile }) => {
   const t = translations[profile.language] || translations.en;
-  const weather: WeatherInfo = sampleWeather;
 
-  const trendData = weather.weeklyTrend || [
-    { day: 'Thu (Today)', temp: 32, rainfall: 2, humidity: 60 },
-    { day: 'Fri', temp: 31, rainfall: 5, humidity: 65 },
-    { day: 'Sat', temp: 29, rainfall: 28, humidity: 82 },
-    { day: 'Sun', temp: 30, rainfall: 12, humidity: 75 },
-    { day: 'Mon', temp: 33, rainfall: 0, humidity: 55 },
-    { day: 'Tue', temp: 34, rainfall: 0, humidity: 50 },
-    { day: 'Wed', temp: 32, rainfall: 18, humidity: 70 },
-  ];
+  // State for Open Meteo Data mapped to AgriVeda format
+  const [weather, setWeather] = useState<WeatherInfo>(sampleWeather);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        setLoading(true);
+        // Hardcoded generic Indian coords or extract from profile? We'll provide default New Delhi coords
+        const lat = 28.6139;
+        const lon = 77.2090;
+
+        const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+        const data = await response.json();
+
+        if (data.success) {
+          // Map Python output to React UI required format
+          const openMeteoWeather: WeatherInfo = {
+            temperature: Math.round(data.current.temperature_2m),
+            condition: data.current.rain > 0 ? "Rainy" : "Sunny & Clear",
+            humidity: Math.round(data.current.relative_humidity_2m),
+            windSpeed: 12, // Default or pull from open meteo if added later
+            rainChance: data.current.rain > 0 ? 90 : 10,
+            location: profile.location || "New Delhi",
+            // 7 Day visual
+            weeklyTrend: data.daily.map((d: any) => {
+              const dt = new Date(d.date);
+              const dayStr = dt.toLocaleDateString('en-US', { weekday: 'short' });
+              return {
+                day: dayStr,
+                temp: Math.round(d.temperature_max),
+                rainfall: d.rain_sum,
+                humidity: 60 // placeholder 
+              };
+            }),
+            // 5 Day forecast cards
+            forecast: data.daily.slice(0, 5).map((d: any) => {
+              const dt = new Date(d.date);
+              return {
+                day: dt.toLocaleDateString('en-US', { weekday: 'short' }),
+                temp: Math.round(d.temperature_max),
+                icon: d.rain_sum > 0 ? 'rain' : 'sun',
+                condition: d.rain_sum > 0.5 ? 'Showers' : 'Clear Sky'
+              };
+            }),
+            alerts: sampleWeather.alerts
+          };
+          setWeather(openMeteoWeather);
+        }
+      } catch (err) {
+        console.error("Error fetching open meteo data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWeather();
+  }, [profile.location]);
+
+  const trendData = weather.weeklyTrend || [];
 
   return (
     <div className="space-y-5 pb-24 animate-in fade-in max-w-2xl mx-auto">
-      
+
       {/* Title */}
       <div className="flex items-center justify-between border-b border-slate-200 pb-3">
         <div>
@@ -50,7 +100,7 @@ export const WeatherView: React.FC<WeatherViewProps> = ({ profile }) => {
 
       {/* Main Temperature Card */}
       <div className="bg-slate-900 text-white rounded-xl p-6 shadow-sm border border-slate-800 relative overflow-hidden">
-        
+
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-600 text-white px-2.5 py-0.5 rounded-md">
@@ -211,17 +261,15 @@ export const WeatherView: React.FC<WeatherViewProps> = ({ profile }) => {
           {weather.alerts.map((alertItem) => (
             <div
               key={alertItem.id}
-              className={`p-4 rounded-xl border flex items-start justify-between gap-3 ${
-                alertItem.severity === 'warning'
+              className={`p-4 rounded-xl border flex items-start justify-between gap-3 ${alertItem.severity === 'warning'
                   ? 'bg-amber-50/80 border-amber-200 text-slate-900'
                   : 'bg-slate-50 border-slate-200 text-slate-900'
-              }`}
+                }`}
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className={`w-4 h-4 ${
-                    alertItem.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'
-                  }`} />
+                  <AlertTriangle className={`w-4 h-4 ${alertItem.severity === 'warning' ? 'text-amber-600' : 'text-blue-600'
+                    }`} />
                   <h4 className="text-xs font-bold text-slate-900">{alertItem.title}</h4>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-medium">
@@ -250,11 +298,10 @@ export const WeatherView: React.FC<WeatherViewProps> = ({ profile }) => {
           {weather.forecast.map((fc, idx) => (
             <div
               key={idx}
-              className={`p-3 rounded-xl border ${
-                idx === 0
+              className={`p-3 rounded-xl border ${idx === 0
                   ? 'bg-blue-50/80 border-blue-600 text-blue-950 font-bold'
                   : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}
+                }`}
             >
               <p className="text-[11px] font-bold">{fc.day}</p>
               <div className="my-1 text-center">

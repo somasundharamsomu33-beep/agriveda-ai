@@ -4,6 +4,10 @@ import path from 'path';
 import { GoogleGenAI, Type } from '@google/genai';
 import jwt from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
+import { exec } from 'child_process';
+import util from 'util';
+
+const execPromise = util.promisify(exec);
 import { sampleCropImages, sampleWeather, sampleMarketPrices, defaultCropCalendar, sampleCommunityPosts } from '../src/data/mockData';
 
 const app = express();
@@ -720,6 +724,28 @@ app.get('/api/weather-alerts', (req, res) => {
     ...sampleWeather,
     location
   });
+});
+
+app.get('/api/weather', async (req, res) => {
+  try {
+    const lat = req.query.lat || '28.6139';
+    const lon = req.query.lon || '77.2090';
+
+    // Resolve path properly for local or dev execution
+    const scriptPath = path.resolve(process.cwd(), 'scripts/fetch_weather.py');
+
+    // Execute python script
+    const { stdout, stderr } = await execPromise(`python ${scriptPath} ${lat} ${lon}`);
+    if (stderr) {
+      console.warn('[Python Weather Warning]:', stderr);
+    }
+
+    const parsedData = JSON.parse(stdout.trim());
+    return res.json(parsedData);
+  } catch (err: any) {
+    console.error('Weather fetching error:', err);
+    return res.status(500).json({ error: 'Failed to fetch weather data from open-meteo' });
+  }
 });
 
 // 4. API Route: Market Insights

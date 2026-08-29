@@ -1,4 +1,6 @@
 export type Language = 'en' | 'ta' | 'hi' | 'te';
+export type AIModelType = 'groq/compound' | 'openai/gpt-oss-120b' | 'gemma2-9b-it' | 'gemini-1.5-flash' | 'gemini-1.5-pro';
+
 
 export interface UserProfile {
   name: string;
@@ -21,14 +23,14 @@ export interface UserProfile {
   recentCropProblems?: string;
 }
 
-export type UserRole = 
-  | 'farmer' 
-  | 'vendor' 
-  | 'retail_vendor' 
-  | 'wholesale_vendor' 
-  | 'input_vendor' 
-  | 'agronomist' 
-  | 'business' 
+export type UserRole =
+  | 'farmer'
+  | 'vendor'
+  | 'retail_vendor'
+  | 'wholesale_vendor'
+  | 'input_vendor'
+  | 'agronomist'
+  | 'business'
   | 'student';
 
 export type AgriIntentCategory =
@@ -239,7 +241,7 @@ export interface CommunityPost {
   replies: CommunityReply[];
 }
 
-export type ActiveTab = 
+export type ActiveTab =
   | 'home'
   | 'calendar'
   | 'scan'

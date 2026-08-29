@@ -84,31 +84,21 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
         })
       });
 
-      const report: CropDiagnosisReport = await res.json();
+      const report = await res.json();
+
+      if (!res.ok) {
+        if (report.error) {
+          throw new Error(report.error);
+        }
+        throw new Error('Failed to analyze crop.');
+      }
+
       setActiveReport(report);
       onDiagnosisComplete(report);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error analyzing crop:', err);
-      // Fallback
-      const sample = sampleCropImages[0];
-      const fallbackReport: CropDiagnosisReport = {
-        id: `report-${Date.now()}`,
-        timestamp: 'Just now',
-        cropType,
-        soilType,
-        location,
-        imageUrl: selectedImage || sample.url,
-        detectedIssue: sample.issue,
-        confidence: 92,
-        riskLevel: 'High',
-        farmHealthScore: 78,
-        cause: sample.cause,
-        treatment: sample.treatment,
-        prevention: sample.prevention,
-        fertilizerSuggestion: sample.fertilizer
-      };
-      setActiveReport(fallbackReport);
-      onDiagnosisComplete(fallbackReport);
+      alert(err.message || 'Error occurred while scanning crop.');
+      setActiveReport(null);
     } finally {
       setIsScanning(false);
     }
@@ -123,9 +113,18 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
         return;
       }
       const utterance = new SpeechSynthesisUtterance(text);
-      if (profile.language === 'ta') utterance.lang = 'ta-IN';
-      else if (profile.language === 'hi') utterance.lang = 'hi-IN';
-      else utterance.lang = 'en-US';
+      let targetLang = 'en-US';
+      if (profile.language === 'ta') targetLang = 'ta-IN';
+      else if (profile.language === 'hi') targetLang = 'hi-IN';
+      else if (profile.language === 'te') targetLang = 'te-IN';
+
+      utterance.lang = targetLang;
+
+      const voices = window.speechSynthesis.getVoices();
+      const regionalVoice = voices.find(v => v.lang === targetLang || v.lang.startsWith(targetLang.split('-')[0]));
+      if (regionalVoice) {
+        utterance.voice = regionalVoice;
+      }
 
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);

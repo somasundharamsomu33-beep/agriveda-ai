@@ -59,10 +59,11 @@ const callGroqAi = async ({
   messages,
   temperature = 0.5,
   jsonMode = false,
-  model = 'llama-3.3-70b-versatile'
+  model = 'groq/compound'
 }): Promise<string | null> => {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || apiKey === 'MY_GROQ_API_KEY' || apiKey.includes('YOUR_GROQ')) {
+    console.error('Groq API Key invalid or missing:', apiKey);
     return null;
   }
   try {
@@ -101,6 +102,61 @@ const callGroqAi = async ({
     return null;
   }
 };
+
+const extractJson = (text: string | null): any => {
+  if (!text) return null;
+  let cleaned = text.replace(/```json\s*/ig, '');
+  cleaned = cleaned.replace(/```\w*\s*/g, '');
+  cleaned = cleaned.replace(/```\s*$/g, '');
+  cleaned = cleaned.trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (err) {
+    return null;
+  }
+};
+
+// ==========================================
+// GROQ WHISPER STT (Speech-To-Text API)
+// ==========================================
+app.post('/api/transcribe', async (req, res) => {
+  try {
+    const { audioBase64, language } = req.body;
+    if (!audioBase64) return res.status(400).json({ error: 'Audio is required' });
+
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey || apiKey === 'MY_GROQ_API_KEY' || apiKey.includes('YOUR_GROQ')) {
+      return res.status(400).json({ error: 'Groq API Key missing. Whisper requires active key.' });
+    }
+
+    const cleanBase64 = audioBase64.replace(/^data:audio\/([^;]+);(?:codecs=[^;]+;)?base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    const blob = new Blob([buffer], { type: 'audio/webm' });
+
+    const formData = new FormData();
+    formData.append('file', blob, 'audio.webm');
+    formData.append('model', 'whisper-large-v3-turbo');
+    // Whisper language options (hi, te, ta, en)
+    if (language) formData.append('language', language);
+
+    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      body: formData
+    });
+
+    if (!response.ok) {
+      console.error('Groq Whisper error:', await response.text());
+      return res.status(500).json({ error: 'Whisper failed' });
+    }
+
+    const data = await response.json();
+    return res.json({ transcript: data.text });
+  } catch (err) {
+    console.error('Transcription error:', err);
+    res.status(500).json({ error: 'Internal Transcription error' });
+  }
+});
 
 // ==========================================
 // PROTECTED DB ENDPOINTS (Requires Supabase Auth)
@@ -156,79 +212,16 @@ app.post('/api/analyze-crop', verifySupabaseToken, async (req: express.Request, 
       }
     }
 
-    // 1. PRIMARY AI ENGINE: Try Groq AI (Llama-3.3-70B) for ultra-fast Pathology & Agronomy diagnosis
-    const groqRes = await callGroqAi({
-      messages: [
-        {
-          role: 'system',
-          content: `You are AgriVeda AI, an elite agricultural plant pathologist and agronomist. Analyze the crop details provided and respond strictly in valid JSON format with keys: cropType (string), soilType (string), location (string), detectedIssue (string), confidence (number 0-100), riskLevel ('Low'|'Medium'|'High'|'Critical'), farmHealthScore (number 0-100), cause (string), treatment (array of strings), prevention (array of strings), fertilizerSuggestion (string), aiNotes (string).`
-        },
-        {
-          role: 'user',
-          content: `Crop: ${cropType || 'Paddy / Rice'}, Soil: ${soilType || 'Red Loam'}, Location: ${location || 'Vellore, Tamil Nadu'}, Area: ${farmArea || 2.5} acres.`
-        }
-      ],
-      jsonMode: true
-    });
-
-    if (groqRes) {
-      try {
-        const parsed = JSON.parse(groqRes);
-        const defaultSample = sampleCropImages[0];
-        return res.json({
-          id: `report-${Date.now()}`,
-          timestamp: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
-          cropType: parsed.cropType || cropType || 'Paddy / Rice',
-          soilType: parsed.soilType || soilType || 'Red Soil',
-          location: parsed.location || location || 'Vellore, Tamil Nadu',
-          imageUrl: imageBase64 || defaultSample.url,
-          detectedIssue: parsed.detectedIssue || 'Fungal Leaf Spot (Alternaria / Blast)',
-          confidence: parsed.confidence || 94,
-          riskLevel: parsed.riskLevel || 'High',
-          farmHealthScore: parsed.farmHealthScore || 78,
-          cause: parsed.cause || 'High ambient humidity (>80%) combined with leaf wetness and fungal spores.',
-          treatment: parsed.treatment || ['Prune affected foliage safely', 'Apply Organic Neem Oil 5ml/L or Copper Oxychloride'],
-          prevention: parsed.prevention || ['Maintain 60cm x 45cm spacing for sunlight canopy access', 'Drip irrigate at soil level'],
-          fertilizerSuggestion: parsed.fertilizerSuggestion || 'NPK 19:19:19 @ 5g/L + Micronutrient foliar spray',
-          aiNotes: parsed.aiNotes || 'Real-time AI pathology analysis powered by Groq Llama-3.3-70B.'
-        });
-      } catch (e) {
-        console.error('Error parsing Groq crop analysis:', e);
-      }
-    }
-
+    // 1. PRIMARY AI ENGINE: Gemini Multimodal Vision (Groq does not support Image Arrays natively yet)
     const ai = getGeminiAi();
     if (!ai) {
-      // Fallback response if no API key is set
-      const defaultSample = sampleCropImages[0];
-      return res.json({
-        id: `report-${Date.now()}`,
-        timestamp: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
-        cropType: cropType || 'Tomato',
-        soilType: soilType || 'Red Soil',
-        location: location || 'Vellore, Tamil Nadu',
-        imageUrl: defaultSample.url,
-        detectedIssue: 'Early Blight Disease (Alternaria solani)',
-        confidence: 92,
-        riskLevel: 'High',
-        farmHealthScore: 78,
-        cause: 'High leaf wetness, humidity (>85%), and fungal spores spreading via soil rain splash.',
-        treatment: [
-          'Prune severely spotted lower leaves and burn them away from the field.',
-          'Apply Copper Oxychloride 50 WP @ 2.5 g/L or Mancozeb fungicide spray.',
-          'Spray in the early morning after dew dries off.'
-        ],
-        prevention: [
-          'Maintain 60cm x 45cm spacing for adequate sunlight and airflow.',
-          'Use paddy straw mulching to eliminate soil-to-leaf rain splash.',
-          'Drip irrigate at soil level instead of overhead sprinkling.'
-        ],
-        fertilizerSuggestion: 'NPK 19:19:19 @ 5g/L + Neem oil 5ml/L spray every 10 days.',
-        aiNotes: 'Simulated AI pathology analysis (Add Gemini API Key in Secrets for real-time vision diagnosis).'
+      // Return 400 so the frontend can catch the deliberate API lock Error.
+      return res.status(400).json({
+        error: '⚠️ **Gemini Vision Engine Offline:** Your `.env` file is missing a valid `GEMINI_API_KEY`. Please add your key to scan crop pathology images.'
       });
     }
 
-    // Call Gemini for real AI analysis
+    // Call Gemini for real Multimodal AI analysis
     const parts: any[] = [];
     if (imageBase64) {
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -260,7 +253,7 @@ Include:
     parts.push({ text: promptText });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       contents: { parts },
       config: {
         systemInstruction: 'You are AgriVeda AI, an elite agricultural plant pathologist and agronomist assistant. You output clear, practical JSON for farmers.',
@@ -299,7 +292,7 @@ Include:
       treatment: parsed.treatment || ['Apply organic fungicide spray.'],
       prevention: parsed.prevention || ['Practice crop rotation.'],
       fertilizerSuggestion: parsed.fertilizerSuggestion || 'Apply NPK 19:19:19.',
-      aiNotes: 'Real-time Gemini 3.6 Flash Plant Pathology Analysis'
+      aiNotes: 'Real-time Gemini 1.5 Flash Plant Pathology Analysis'
     });
 
   } catch (err: any) {
@@ -311,7 +304,7 @@ Include:
 // 2. API Route: Voice / Chat Assistant (End-to-End Multimodal)
 app.post('/api/voice-assistant', async (req, res) => {
   try {
-    const { prompt, language = 'en', context, imageBase64 } = req.body;
+    const { prompt, language = 'en', context, imageBase64, model = 'llama-3.3-70b-versatile' } = req.body;
     if (!prompt && !imageBase64) {
       return res.status(400).json({ error: 'Prompt or image is required' });
     }
@@ -429,21 +422,30 @@ RULES FOR RESPONSE STRUCTURE:
 
 LANGUAGE INSTRUCTION: ${langInstruction}`;
 
-    // 1. PRIMARY AI ENGINE: Try Groq AI (Llama-3.3-70B) for ultra-fast Copilot response
     const userPromptText = prompt || 'Analyze farmer query for crop context and provide actionable guidance.';
-    const groqRes = await callGroqAi({
-      messages: [
-        {
-          role: 'system',
-          content: `${systemPrompt}\n\nProvide response in JSON format with keys: intentCategory (string), text (string), hasActionCard (boolean), actionType (string optional), actionTitle (string optional), actionDetails (string optional), suggestedFollowups (array of strings).`
-        },
-        {
-          role: 'user',
-          content: `Farmer Question: "${userPromptText}"`
-        }
-      ],
-      jsonMode: true
-    });
+    let groqRes = null;
+
+    // Auto-swap to Gemini Vision if an image is uploaded (Groq text models don't take image parts)
+    let activeModel = imageBase64 ? 'gemini-1.5-flash' : model;
+    if (activeModel.includes('llama')) activeModel = 'groq/compound';
+    const isGeminiModel = activeModel.startsWith('gemini');
+
+    if (!isGeminiModel) {
+      groqRes = await callGroqAi({
+        model: activeModel,
+        messages: [
+          {
+            role: 'system',
+            content: `${systemPrompt}\n\nProvide response in JSON format with keys: intentCategory (string), text (string), hasActionCard (boolean), actionType (string optional), actionTitle (string optional), actionDetails (string optional), suggestedFollowups (array of strings).`
+          },
+          {
+            role: 'user',
+            content: `Farmer Question: "${userPromptText}"`
+          }
+        ],
+        jsonMode: true
+      });
+    }
 
     if (groqRes) {
       let responseText = groqRes;
@@ -456,7 +458,9 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
       ];
 
       try {
-        const parsed = JSON.parse(groqRes);
+        const parsed = extractJson(groqRes);
+        if (!parsed) throw new Error('No JSON detected');
+
         if (parsed.text) responseText = parsed.text;
         if (parsed.intentCategory) intentCat = parsed.intentCategory;
         if (parsed.hasActionCard && parsed.actionType) {
@@ -475,7 +479,7 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
         }
       } catch (e) {
         // Groq returned text directly - use it!
-        responseText = groqRes;
+        responseText = groqRes.replace(/```json\s*/ig, '').replace(/```\s*$/g, '').trim();
       }
 
       return res.json({
@@ -483,6 +487,13 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
         text: responseText,
         actionCard: actionCardObj,
         suggestedFollowups: followupsArr
+      });
+    } else if (!isGeminiModel) {
+      // User explicitly requested Groq, but it returned null (meaning invalid/missing API key, or API outage)
+      return res.json({
+        intentCategory: 'General Agricultural Question',
+        text: '⚠️ **Groq Engine Offline:** Your `.env` file is missing a valid `GROQ_API_KEY`. Please replace "gsk_YOUR_GROQ_API_KEY" with your real key to unleash Llama-3/Mixtral/Gemma!',
+        suggestedFollowups: []
       });
     }
 
@@ -632,7 +643,7 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
       });
     }
 
-    // Call Gemini 3.6 Flash Multimodal API with strict structured system instructions
+    // Call Gemini 1.5 Flash Multimodal API with strict structured system instructions
     const parts: any[] = [];
     if (imageBase64) {
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
@@ -647,8 +658,10 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
     const promptContent = prompt || 'Analyze this crop photo and provide structured pathology diagnosis and advice.';
     parts.push({ text: promptContent });
 
+    const targetGeminiModel = isGeminiModel ? activeModel : 'gemini-1.5-flash';
+
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: targetGeminiModel,
       contents: { parts },
       config: {
         systemInstruction: systemPrompt,
@@ -725,7 +738,7 @@ app.post('/api/crop-calendar', async (req, res) => {
       const ai = getGeminiAi();
       if (ai) {
         const response = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-1.5-flash',
           contents: `Generate a 5-step key milestone calendar for growing ${cropName} starting from sowing date ${sowingDate || 'Today'}. Return JSON with totalDurationDays, and array of events [{dayNumber, dateStr, title, category, description, recommendedTime}]`,
           config: {
             responseMimeType: 'application/json'
@@ -775,21 +788,25 @@ app.post('/api/community/ask', async (req, res) => {
       replies: [] as any[]
     };
 
-    const ai = getGeminiAi();
-    let expertText = 'Thank you for your query. Ensure adequate soil aeration and apply balanced organic compost. Check leaves regularly for sucking insects.';
-    if (ai) {
-      try {
-        const resp = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: `Question from farmer (${cropContext || 'Crop'}): "${question}". Give an official 2-sentence expert solution.`,
-          config: {
-            systemInstruction: 'You are Dr. Swaminathan, Senior Agronomist at AgriVeda AI. Provide authoritative, helpful advice.'
-          }
-        });
-        if (resp.text) expertText = resp.text;
-      } catch (e) {
-        console.error('Gemini error for community post:', e);
-      }
+    let expertText = 'Maintain optimal soil aeration and apply Trichoderma bio-fungicide preventatively. Monitor irrigation schedules closely.';
+
+    const groqRes = await callGroqAi({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are Dr. Swaminathan, Senior Agronomist at AgriVeda AI. Provide an authoritative, helpful, and concise 2-sentence expert solution.'
+        },
+        {
+          role: 'user',
+          content: `Question from farmer (${cropContext || 'Crop'}): "${question}".`
+        }
+      ]
+    });
+
+    if (groqRes) {
+      expertText = groqRes;
+    } else {
+      expertText = '⚠️ The AgriVeda Groq pipeline is offline. You need to assign the GROQ_API_KEY in your .env file to enable Llama-3 Community Experts.';
     }
 
     newPost.replies.push({
@@ -1027,7 +1044,7 @@ Provide JSON with properties:
 - impact: clear, measurable benefit (e.g., "Prevents 30% yield drop from fungal rot")`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       contents: promptText,
       config: {
         systemInstruction: 'You are AgriVeda AI, an expert agronomist providing actionable, highly localized seasonal farming tips based on agricultural cycles in India.',

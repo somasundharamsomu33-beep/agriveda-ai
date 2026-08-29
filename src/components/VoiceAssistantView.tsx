@@ -1,11 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Mic, Send, Volume2, Globe, Sparkles, RefreshCw, Bot, User, 
-  Camera, Image as ImageIcon, CheckCircle, AlertTriangle, CloudSun, 
+import {
+  Mic, Send, Volume2, Globe, Sparkles, RefreshCw, Bot, User,
+  Camera, Image as ImageIcon, CheckCircle, AlertTriangle, CloudSun,
   TrendingUp, Calculator, Shield, Leaf, X, Play, Square, Calendar, Sprout, Filter, Edit3, Save, Layers
 } from 'lucide-react';
-import { Language, UserProfile, VoiceMessage, AgriIntentCategory } from '../types';
+import { Language, UserProfile, VoiceMessage, AgriIntentCategory, AIModelType } from '../types';
 import { translations } from '../data/mockData';
+
+const AI_MODELS = [
+  { id: 'groq/compound', label: 'Groq Compound (Fast)', icon: '⚡' },
+  { id: 'openai/gpt-oss-120b', label: 'GPT OSS 120B (Balanced)', icon: '⚖️' },
+  { id: 'gemma2-9b-it', label: 'Gemma-2 9B (Efficient)', icon: '🌿' },
+  { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Vision)', icon: '👁️' }
+];
 
 interface VoiceAssistantViewProps {
   profile: UserProfile;
@@ -16,6 +23,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
   const t = translations[profile.language] || translations.en;
 
   const [selectedLang, setSelectedLang] = useState<Language>(profile.language || 'en');
+  const [selectedModel, setSelectedModel] = useState<AIModelType>('groq/compound');
   const [editingContext, setEditingContext] = useState(false);
 
   // Farmer Context editable state
@@ -41,12 +49,12 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
       sender: 'assistant',
       intentCategory: 'General Agricultural Question',
       text: selectedLang === 'ta'
-        ? `வணக்கம் ${farmerContext.farmerName}! நான் உங்கள் அக்ரிவேதா Groq AI வேளாண்மை உதவியாளர் (Llama-3.3 70B). உங்கள் ${farmerContext.cropType} (${farmerContext.cropVariety}) பயிர், உரம், இலை நோய், வானிலை அல்லது விதை வங்கி பற்றிய எந்தக் கேள்வியையும் கேட்கலாம்.`
+        ? `வணக்கம் ${farmerContext.farmerName}! நான் உங்கள் அக்ரிவேதா குரோக் AI வேளாண்மை உதவியாளர். உங்கள் ${farmerContext.cropType} (${farmerContext.cropVariety}) பயிர், உரம், இலை நோய், வானிலை அல்லது விதை வங்கி பற்றிய எந்தக் கேள்வியையும் கேட்கலாம்.`
         : selectedLang === 'hi'
-        ? `नमस्ते ${farmerContext.farmerName}! मैं आपका एग्रीवेदा Groq AI कृषि सहायक (Llama-3.3 70B) हूँ। अपनी ${farmerContext.cropType} (${farmerContext.cropVariety}) फसल, खाद, बीमारी, मौसम या बीज बैंक के बारे में पूछें।`
-        : selectedLang === 'te'
-        ? `నమస్తే ${farmerContext.farmerName}! నేను మీ అగ్రివేద Groq AI వ్యవసాయ సహాయకుడిని (Llama-3.3 70B). మీ ${farmerContext.cropType} పంట, ఎరువులు, వాతావరణం లేదా విత్తన బ్యాంకు గురించి అడగండి.`
-        : `Welcome ${farmerContext.farmerName}! I am your AgriVeda Groq AI Copilot powered by Llama-3.3 70B. Ask any question about your ${farmerContext.cropType} (${farmerContext.farmArea} Acres), fertilizer schedules, weather spray risks, smart crop calendar, or Community Seed Bank.`,
+          ? `नमस्ते ${farmerContext.farmerName}! मैं आपका एग्रीवेदा AI कृषि सहायक हूँ। अपनी ${farmerContext.cropType} (${farmerContext.cropVariety}) फसल, खाद, बीमारी, मौसम या बीज बैंक के बारे में पूछें।`
+          : selectedLang === 'te'
+            ? `నమస్తే ${farmerContext.farmerName}! నేను మీ అగ్రివేద AI వ్యవసాయ సహాయకుడిని. మీ ${farmerContext.cropType} పంట, ఎరువులు, వాతావరణం లేదా విత్తన బ్యాంకు గురించి అడగండి.`
+            : `Welcome ${farmerContext.farmerName}! I am your AgriVeda AI Copilot. Ask any question about your ${farmerContext.cropType} (${farmerContext.farmArea} Acres), fertilizer schedules, weather spray risks, smart crop calendar, or Community Seed Bank.`,
       language: selectedLang,
       timestamp: 'Just now',
       suggestedFollowups: [
@@ -97,11 +105,11 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
     {
       category: 'Disease / Pest' as AgriIntentCategory,
       label: selectedLang === 'ta' ? '🌿 இலை மஞ்சள் நோய்' : selectedLang === 'hi' ? '🌿 पत्ती में पीलापन' : '🌿 Leaf Yellowing Query',
-      text: selectedLang === 'ta' 
+      text: selectedLang === 'ta'
         ? 'என் தக்காளி செடி இலை மஞ்சள் நிறமாக மாறுகிறது, என்ன செய்ய வேண்டும்?'
         : selectedLang === 'hi'
-        ? 'मेरी टमाटर की फसल में पत्तियां पीली हो रही हैं, क्या उपाय करें?'
-        : 'My tomato leaves are turning yellow with brown spots. What is the cause and remedy?'
+          ? 'मेरी टमाटर की फसल में पत्तियां पीली हो रही हैं, क्या उपाय करें?'
+          : 'My tomato leaves are turning yellow with brown spots. What is the cause and remedy?'
     },
     {
       category: 'Fertilizer' as AgriIntentCategory,
@@ -109,8 +117,8 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
       text: selectedLang === 'ta'
         ? `என் நெல் பயிருக்கு எப்போது உரமிட வேண்டும்? NPK உர அளவு என்ன?`
         : selectedLang === 'hi'
-        ? `धान की फसल में खाद कब और कितनी मात्रा में दें?`
-        : `When should I fertilize my rice crop? Give step-by-step NPK dosage.`
+          ? `धान की फसल में खाद कब और कितनी मात्रा में दें?`
+          : `When should I fertilize my rice crop? Give step-by-step NPK dosage.`
     },
     {
       category: 'Weather' as AgriIntentCategory,
@@ -118,8 +126,8 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
       text: selectedLang === 'ta'
         ? `${farmerContext.location} பகுதியில் இன்று மருந்து தெளிக்க வானிலை உகந்ததா?`
         : selectedLang === 'hi'
-        ? `क्या ${farmerContext.location} में आज कीटनाशक स्प्रे करना सुरक्षित है?`
-        : `Can I spray pesticides today in ${farmerContext.location}? Check rain and wind risk.`
+          ? `क्या ${farmerContext.location} में आज कीटनाशक स्प्रे करना सुरक्षित है?`
+          : `Can I spray pesticides today in ${farmerContext.location}? Check rain and wind risk.`
     },
     {
       category: 'Crop Calendar' as AgriIntentCategory,
@@ -127,8 +135,8 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
       text: selectedLang === 'ta'
         ? `${farmerContext.cropType} பயிருக்கு எப்போது அறுவடை மற்றும் பாசனம் செய்ய வேண்டும்?`
         : selectedLang === 'hi'
-        ? `${farmerContext.cropType} की फसल में सिंचाई और कटाई कब करें?`
-        : `When should I fertilize, irrigate, and harvest my ${farmerContext.cropType} crop?`
+          ? `${farmerContext.cropType} की फसल में सिंचाई और कटाई कब करें?`
+          : `When should I fertilize, irrigate, and harvest my ${farmerContext.cropType} crop?`
     },
     {
       category: 'Seed Bank' as AgriIntentCategory,
@@ -136,8 +144,8 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
       text: selectedLang === 'ta'
         ? `வேலூர் சமூக விதை வங்கியில் கிடைக்கும் பாரம்பரிய நாட்டு காய்கறி விதைகள் என்ன?`
         : selectedLang === 'hi'
-        ? `सामुदायिक बीज बैंक में कौन सी पारंपरिक बीज किस्में उपलब्ध हैं?`
-        : `What heritage seeds are available in the Community Seed Bank? Provide storage conditions and availability.`
+          ? `सामुदायिक बीज बैंक में कौन सी पारंपरिक बीज किस्में उपलब्ध हैं?`
+          : `What heritage seeds are available in the Community Seed Bank? Provide storage conditions and availability.`
     }
   ];
 
@@ -180,6 +188,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
         body: JSON.stringify({
           prompt: promptText,
           language: selectedLang,
+          model: selectedModel,
           imageBase64: currentAttached,
           context: {
             farmerName: farmerContext.farmerName,
@@ -219,35 +228,67 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
     }
   };
 
-  // Speech Recognition API
-  const handleTapToSpeak = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in this browser. Please type your prompt.');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
+
+  // Groq Whisper Multilingual Speech Recognition
+  const handleTapToSpeak = async () => {
+    if (isListening) {
+      // Stop ongoing recording
+      mediaRecorderRef.current?.stop();
+      setIsListening(false);
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream); // Let browser decide best format
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-    recognition.continuous = false;
-    recognition.interimResults = false;
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
 
-    if (selectedLang === 'ta') recognition.lang = 'ta-IN';
-    else if (selectedLang === 'hi') recognition.lang = 'hi-IN';
-    else if (selectedLang === 'te') recognition.lang = 'te-IN';
-    else recognition.lang = 'en-US';
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
 
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setInputPrompt(transcript);
-      setIsListening(false);
-      handleSendMessage(transcript);
-    };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result as string;
+          setIsLoading(true);
+          try {
+            const whisperLang = selectedLang === 'hi' ? 'hi' : selectedLang === 'ta' ? 'ta' : selectedLang === 'te' ? 'te' : 'en';
+            const res = await fetch('/api/transcribe', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audioBase64: base64Audio, language: whisperLang })
+            });
+            const data = await res.json();
 
-    recognition.start();
+            if (res.ok && data.transcript) {
+              setInputPrompt(data.transcript);
+              handleSendMessage(data.transcript);
+            } else {
+              alert(data.error || 'Failed to process voice via Groq Whisper API.');
+            }
+          } catch (e) {
+            console.error('Transcription error:', e);
+            alert('Network error connecting to Whisper STT.');
+          } finally {
+            setIsLoading(false);
+          }
+        };
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (err) {
+      console.error('Microphone access denied or error:', err);
+      alert('Microphone access is required to use Groq Multi-Model Voice AI.');
+    }
   };
 
   // Text-to-Speech Output
@@ -261,11 +302,19 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
 
       const cleanText = text.replace(/[*#_~`]/g, '');
       const utterance = new SpeechSynthesisUtterance(cleanText);
+      let targetLang = 'en-US';
 
-      if (selectedLang === 'ta') utterance.lang = 'ta-IN';
-      else if (selectedLang === 'hi') utterance.lang = 'hi-IN';
-      else if (selectedLang === 'te') utterance.lang = 'te-IN';
-      else utterance.lang = 'en-US';
+      if (selectedLang === 'ta') targetLang = 'ta-IN';
+      else if (selectedLang === 'hi') targetLang = 'hi-IN';
+      else if (selectedLang === 'te') targetLang = 'te-IN';
+
+      utterance.lang = targetLang;
+
+      const voices = window.speechSynthesis.getVoices();
+      const regionalVoice = voices.find(v => v.lang === targetLang || v.lang.startsWith(targetLang.split('-')[0]));
+      if (regionalVoice) {
+        utterance.voice = regionalVoice;
+      }
 
       utterance.onend = () => setActiveSpeechId(null);
       utterance.onerror = () => setActiveSpeechId(null);
@@ -283,7 +332,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
 
   return (
     <div className="space-y-5 pb-24 animate-in fade-in max-w-3xl mx-auto">
-      
+
       {/* Top Header & Farm Context Drawer */}
       <div className="bg-slate-900 text-white rounded-3xl p-5 shadow-xl border border-slate-800 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -292,13 +341,14 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
               <Bot className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-1 items-start">
                 <h2 className="text-lg font-black text-white">AgriVeda Voice AI Assistant</h2>
-                <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 border border-emerald-400/40 shadow-xs">
-                  ⚡ Powered by Groq AI (Llama-3.3 70B)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 border border-emerald-400/40 shadow-xs">
+                    Multi-Model Engine Enabled
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Ultra-Fast Llama-3.3 Multilingual Agronomist & Voice Copilot</p>
             </div>
           </div>
 
@@ -360,7 +410,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                 <input
                   type="text"
                   value={farmerContext.cropVariety}
-                  onChange={e => setFarmerContext({...farmerContext, cropVariety: e.target.value})}
+                  onChange={e => setFarmerContext({ ...farmerContext, cropVariety: e.target.value })}
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-emerald-300"
                 />
               </div>
@@ -370,7 +420,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                 <input
                   type="text"
                   value={farmerContext.sowingDate}
-                  onChange={e => setFarmerContext({...farmerContext, sowingDate: e.target.value})}
+                  onChange={e => setFarmerContext({ ...farmerContext, sowingDate: e.target.value })}
                   placeholder="e.g. 01 June 2024"
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white"
                 />
@@ -381,7 +431,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                 <input
                   type="text"
                   value={farmerContext.soilType}
-                  onChange={e => setFarmerContext({...farmerContext, soilType: e.target.value})}
+                  onChange={e => setFarmerContext({ ...farmerContext, soilType: e.target.value })}
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-medium text-white"
                 />
               </div>
@@ -391,7 +441,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                 <input
                   type="text"
                   value={farmerContext.irrigationMethod}
-                  onChange={e => setFarmerContext({...farmerContext, irrigationMethod: e.target.value})}
+                  onChange={e => setFarmerContext({ ...farmerContext, irrigationMethod: e.target.value })}
                   className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-medium text-white"
                 />
               </div>
@@ -408,11 +458,10 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
             <button
               key={lang}
               onClick={() => setSelectedLang(lang)}
-              className={`px-3 py-1 text-xs font-bold rounded-xl transition-all ${
-                selectedLang === lang 
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md' 
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-              }`}
+              className={`px-3 py-1 text-xs font-bold rounded-xl transition-all ${selectedLang === lang
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
             >
               {lang === 'en' ? 'English' : lang === 'ta' ? 'தமிழ்' : lang === 'hi' ? 'हिंदी' : 'తెలుగు'}
             </button>
@@ -434,11 +483,10 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <button
             onClick={() => setSelectedCategoryFilter('All')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
-              selectedCategoryFilter === 'All'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${selectedCategoryFilter === 'All'
+              ? 'bg-slate-900 text-white shadow-xs'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
           >
             All Questions
           </button>
@@ -446,11 +494,10 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
             <button
               key={cat.id}
               onClick={() => setSelectedCategoryFilter(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${
-                selectedCategoryFilter === cat.id
-                  ? 'bg-emerald-700 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${selectedCategoryFilter === cat.id
+                ? 'bg-emerald-700 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
             >
               <span>{cat.icon}</span>
               <span>{cat.label}</span>
@@ -472,11 +519,10 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
             )}
             <button
               onClick={handleTapToSpeak}
-              className={`w-20 h-20 rounded-3xl flex flex-col items-center justify-center shadow-2xl transition-all transform active:scale-95 ${
-                isListening
-                  ? 'bg-rose-600 text-white ring-8 ring-rose-500/30 scale-105'
-                  : 'bg-gradient-to-tr from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white ring-4 ring-emerald-500/20'
-              }`}
+              className={`w-20 h-20 rounded-3xl flex flex-col items-center justify-center shadow-2xl transition-all transform active:scale-95 ${isListening
+                ? 'bg-rose-600 text-white ring-8 ring-rose-500/30 scale-105'
+                : 'bg-gradient-to-tr from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white ring-4 ring-emerald-500/20'
+                }`}
             >
               <Mic className={`w-7 h-7 ${isListening ? 'animate-bounce' : ''}`} />
               <span className="text-[9px] font-black uppercase mt-1 tracking-wider">
@@ -506,6 +552,27 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
               </button>
             ))}
           </div>
+
+          <div className="mt-2 pt-2 border-t border-slate-700/50">
+            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 shrink-0 mb-1.5">
+              <Sparkles className="w-3 h-3 text-cyan-400" /> Active AI Model:
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {AI_MODELS.map(modelObj => (
+                <button
+                  key={modelObj.id}
+                  onClick={() => setSelectedModel(modelObj.id as AIModelType)}
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all flex items-center gap-1.5 border ${selectedModel === modelObj.id
+                    ? 'bg-gradient-to-br from-cyan-900 to-teal-900 border-cyan-500 text-cyan-100 shadow-md ring-1 ring-cyan-500/50'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:border-slate-600'
+                    }`}
+                >
+                  <span className="text-xs">{modelObj.icon}</span>
+                  {modelObj.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -516,19 +583,17 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
             key={msg.id}
             className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
           >
-            <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-md ${
-              msg.sender === 'user' 
-                ? 'bg-slate-900 ring-2 ring-slate-700' 
-                : 'bg-gradient-to-br from-emerald-600 to-teal-700 ring-2 ring-emerald-500/30'
-            }`}>
+            <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-md ${msg.sender === 'user'
+              ? 'bg-slate-900 ring-2 ring-slate-700'
+              : 'bg-gradient-to-br from-emerald-600 to-teal-700 ring-2 ring-emerald-500/30'
+              }`}>
               {msg.sender === 'user' ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
             </div>
 
-            <div className={`max-w-[88%] sm:max-w-[82%] rounded-3xl p-5 shadow-sm space-y-3 ${
-              msg.sender === 'user'
-                ? 'bg-slate-900 text-white border border-slate-800'
-                : 'bg-white border border-slate-200/90 text-slate-900'
-            }`}>
+            <div className={`max-w-[88%] sm:max-w-[82%] rounded-3xl p-5 shadow-sm space-y-3 ${msg.sender === 'user'
+              ? 'bg-slate-900 text-white border border-slate-800'
+              : 'bg-white border border-slate-200/90 text-slate-900'
+              }`}>
               {/* Message Header */}
               <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -647,11 +712,10 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                   <span className="text-[10px] text-slate-400 font-bold uppercase">AgriVeda Speech Engine</span>
                   <button
                     onClick={() => speakText(msg.text, msg.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
-                      activeSpeechId === msg.id
-                        ? 'bg-amber-500 text-white shadow-md animate-pulse'
-                        : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/70'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${activeSpeechId === msg.id
+                      ? 'bg-amber-500 text-white shadow-md animate-pulse'
+                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/70'
+                      }`}
                   >
                     {activeSpeechId === msg.id ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                     <span>{activeSpeechId === msg.id ? 'Stop Audio' : 'Listen Voice'}</span>
@@ -672,7 +736,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
 
       {/* Multimodal Input & Attachment Bar */}
       <div className="bg-white p-3 rounded-3xl border border-slate-200 shadow-lg space-y-2 sticky bottom-2 z-20">
-        
+
         {/* Preview Attached Image */}
         {attachedImage && (
           <div className="relative inline-block pl-2 pt-1">
@@ -706,11 +770,10 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
 
           <button
             onClick={handleTapToSpeak}
-            className={`p-3 rounded-2xl transition-colors shrink-0 ${
-              isListening
-                ? 'bg-rose-600 text-white animate-bounce'
-                : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800'
-            }`}
+            className={`p-3 rounded-2xl transition-colors shrink-0 ${isListening
+              ? 'bg-rose-600 text-white animate-bounce'
+              : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800'
+              }`}
             title="Voice Speech Input"
           >
             <Mic className="w-5 h-5" />

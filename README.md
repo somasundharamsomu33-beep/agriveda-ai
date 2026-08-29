@@ -1,133 +1,76 @@
 # 🌾 AgriVeda AI 
 
-AgriVeda AI is a comprehensive, AI-powered agricultural platform designed to empower farmers with localized actionable insights, weather patterns, disease detection via computer vision, market price t[...] 
+AgriVeda AI is a comprehensive, AI-powered agricultural platform designed to empower farmers with localized actionable insights, weather patterns, disease detection via computer vision, market price tracking, and community intelligence. 
 
-This codebase is a monorepo consisting of a **React + Vite Frontend** and an **Enterprise Node.js + Express Backend**.
-
----
-
-## 🏗️ Project Architecture
-
-```
-agriveda/
-├── agriveda-main/          # Frontend Web Application (React, Vite, Tailwind CSS)
-│   ├── src/                # UI Components and Contexts
-│   ├── vite.config.ts      # Vite configuration & proxying
-│   └── server.ts           # Optional Express SSR & Fallback Server
-├── backend/                # Primary Backend API (Node.js, Express, TypeScript)
-│   ├── src/                # Business logic, Controllers, Routes
-│   ├── prisma/             # Database Schemas & Migrations (PostgreSQL)
-│   ├── docker/             # Containerization instructions
-│   └── docker-compose.yml  # Local cluster setup (DB, Redis, API)
-└── README.md
-```
+The infrastructure is powered by a robust **React + Vite Frontend** coupled with an **Express Node.js Backend**, securely managed by an enterprise **Supabase (PostgreSQL)** database.
 
 ---
 
-## 🚀 Running Locally
+## 🏗️ Technical Stack
 
-### 1️⃣ Start the Backend Cluster (via Docker)
-To get the backend, PostgreSQL database, and Redis cache running instantly:
-1. Navigate to the backend directory:
-   `cd backend`
-2. Boot the infrastructure:
-   `docker-compose up -d db redis`
-3. Install dependencies natively:
-   `npm install`
-4. Push the database schema:
-   `npx prisma db push`
-5. Start the API locally:
-   `npm run dev`
-
-> **Note:** The backend API will be available at `http://localhost:5000`. Check out the **Swagger API Docs** at `http://localhost:5000/api/docs`.
-
-### 2️⃣ Start the Frontend Dashboard
-1. Open a new terminal and navigate to the frontend directory:
-   `cd agriveda-main`
-2. Install frontend dependencies:
-   `npm install`
-3. Start the Vite server:
-   `npm run dev`
-4. **Visit:** `http://localhost:3000`
+- **Frontend:** React 19, Vite, Tailwind CSS v4, Framer Motion
+- **Backend AI API:** Node.js, Express, TypeScript (Llama-3.3-70B via Groq & Gemini 3.6 Vision)
+- **Database Architecture:** Supabase PostgreSQL
+- **Authentication:** Supabase Auth (Google OAuth & JWT)
+- **Realtime Services:** Supabase WebSockets (`supabase_realtime` pub/sub)
 
 ---
 
-## 🌍 Hosting & Deployment Guide
+## 🚀 Local Development
 
-This application comprises two main parts. The optimal architecture uses **Vercel** for the React Frontend and **Railway (or Render)** for the Backend Services.
+### 1️⃣ Cloud Database Initialization
+AgriVeda natively runs entirely on Supabase.
+1. Create a free account at [Supabase](https://supabase.com/).
+2. Run the secure authentication CLI locally:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref [YOUR_PROJECT_ID]
+   ```
+3. Push your backend architectural migrations to the cloud (creating 10 robust SQL tables instantly):
+   ```bash
+   npx supabase db push
+   ```
 
-### 🌐 A. Deploying the Frontend (Vercel)
-Vercel perfectly handles Vite/React applications automatically.
-1. Create a free account on [Vercel](https://vercel.com).
-2. Connect your GitHub repository.
-3. Upon selecting this repository, set the **Root Directory** to `agriveda-main`.
-4. Vercel will automatically detect Vite. 
-5. In **Environment Variables**, you'll need to define any keys like `GEMINI_API_KEY` if used natively, or `VITE_API_URL` pointing to your hosted Backend API URL.
-6. Click **Deploy**.
-
-### ⚙️ B. Deploying the Backend (Railway / Render)
-The backend requires Node.js, PostgreSQL, and Redis.
-
-**Option 1: Railway (Easiest)**
-1. Login to [Railway.app](https://railway.app/).
-2. Click **New Project** -> **Deploy from GitHub repo**.
-3. Select this repository and set the root directory to `/backend`.
-4. Railway will automatically find the Dockerfile.
-5. In your Railway project, click **New** -> **Database** -> Add **PostgreSQL** AND **Redis**.
-6. Railway automatically exposes `DATABASE_URL` and `REDIS_URL`. Map these exactly to your Backend Service variables.
-7. Set `NODE_ENV=production` and `PORT=5000`.
-
-**Option 2: Render.com (Alternative)**
-1. Create a new **Web Service** tied to your repository.
-2. Select the `backend` directory.
-3. Create a **PostgreSQL** instance alongside a **Redis** instance from the Render dashboard.
-4. Input their private connection strings into your Web Service Environment Variables (`DATABASE_URL`, `REDIS_HOST`).
-5. Set Build Command: `npm install && npx prisma generate && npx prisma db push && npx tsc`
-6. Set Start Command: `node dist/server.js`
-
-### 🔗 C. Connecting the Two
-
-Once your backend is successfully deployed:
-1. Navigate to your Frontend code.
-2. Add a production proxy or replace your `/api/v1/...` `fetch()` domain pointers from `localhost` to your new Backend production URL (e.g. `https://agriveda-api.up.railway.app`).
-3. If adjusting the backend CORS policy, whitelist your Vercel domain inside `backend/src/app.ts` under the `app.use(cors({ origin: 'YOUR_VERCEL_URL' }))` rule.
-
----
-
-## 🔑 Environment Variables Reference
-
-**Backend (`backend/.env`)**
+### 2️⃣ Environment Configuration
+Create a `.env` file in the root of the project:
 ```env
-DATABASE_URL="postgresql://user:pass@localhost:5432/agriveda_db"
-REDIS_HOST="localhost"
-REDIS_PORT=6379
-NODE_ENV="development"
-PORT=5000
-JWT_SECRET="super-secret-production-key"
-GEMINI_API_KEY="AI_KEY_FROM_GOOGLE"
+# AI Services
+GEMINI_API_KEY="your_gemini_api_key_here"
+GROQ_API_KEY="your_groq_api_key_here"
+
+# Supabase Connectivity
+VITE_SUPABASE_URL="https://[YOUR_PROJECT_ID].supabase.co"
+VITE_SUPABASE_ANON_KEY="your-anon-key"
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR_PROJECT_ID].supabase.co:5432/postgres"
 ```
-# AgriVeda
 
-## Marketplace backend
+### 3️⃣ Starting the Servers
+AgriVeda utilizes an optimized monorepo system. To boot both the Vite Dashboard and Node.js Controller simultaneously:
+```bash
+npm install
+npm run dev
+```
+> **View Dashboard:** `http://localhost:3000`
 
-The marketplace uses Firebase Authentication and Cloud Firestore. The client API lives in `src/lib/marketplace.ts`; it supports listings, private quotes, vendor profiles and orders.
+---
 
-### Firestore collections
+## 🌍 Hosting & Deployment (Vercel)
 
-| Collection | Purpose |
-| --- | --- |
-| `users/{uid}` | User profile, role and preferences |
-| `vendor_profiles/{uid}` | Business details and vendor verification status |
-| `marketplace_listings/{id}` | Farmer, produce-vendor and farm-input listings |
-| `marketplace_quotes/{id}` | Private buyer-to-seller price negotiations |
-| `marketplace_orders/{id}` | Confirmed trade, delivery and order status |
+The entire AgriVeda platform can be seamlessly hosted via edge networks using Vercel.
 
-### Deploy securely
+**Automated GitHub Deployment (Recommended)**
+1. Ensure your repository is pushed to GitHub.
+2. Go to the [Vercel Dashboard](https://vercel.com/dashboard) and click **"Add New" -> "Project"**.
+3. Import your GitHub repository.
+4. Expand **Environment Variables** and securely paste your `.env` secrets (`GEMINI_API_KEY`, `VITE_SUPABASE_URL`, etc.).
+5. Click **Deploy**.
 
-1. Create a Firebase project and enable Email/Password and Google sign-in in Authentication.
-2. Replace `firebase-applet-config.json` with the Firebase web app configuration for that project.
-3. Deploy the rules in `firestore.rules` using `firebase deploy --only firestore:rules`.
-4. Verify a vendor’s business details through an admin-only Cloud Function or an admin dashboard before setting `vendor_profiles/{uid}.verificationStatus` to `approved`.
-5. For payments, KYC, subsidy eligibility and loan decisions, use verified bank/government APIs or a reviewed back-office process. Do not treat the app’s guidance text as an eligibility decision.
+*Vercel will natively detect the built-in `vercel.json` routing configuration and proxy the `/api/*` endpoints to your unified Edge Server.*
 
-The UI retains sample catalogue items until real `marketplace_listings` records are added. Once active records exist, the app automatically displays the Firestore catalogue.
+---
+
+## 📂 Core End-to-End Modules
+
+- **AI Crop Pathology Scanner:** Extracts secure Supabase Auth JWTs locally and securely proxies images to the Express `/api/analyze-crop` container for Groq/Gemini Llama diagnoses. Automatically pushes results directly into the `crop_diagnosis_reports` PostgreSQL table.
+- **B2B Escrow Marketplace:** Complex Multi-vendor catalog natively authenticated with PostgreSQL Triggers (`handle_new_user`) guaranteeing no data drift between anonymous profiles and marketplace listings.
+- **Realtime Agronomy Community:** Websocket architecture enabled via `Supabase Realtime` Channels, providing millisecond-latency streaming updates whenever global experts reply to community crop-sickness threads. 

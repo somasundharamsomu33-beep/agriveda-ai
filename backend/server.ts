@@ -42,37 +42,100 @@ export const verifySupabaseToken = (req: express.Request, res: express.Response,
   });
 };
 
-// Initialize Gemini Client
+// Initialize Gemini-compatible Client over OpenRouter
 const getGeminiAi = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
     return null;
   }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
+  return {
+    models: {
+      generateContent: async (params: any) => {
+        let systemPrompt = '';
+        if (params.config?.systemInstruction) {
+          systemPrompt = typeof params.config.systemInstruction === 'string'
+            ? params.config.systemInstruction
+            : JSON.stringify(params.config.systemInstruction);
+        }
+
+        let messages: any[] = [];
+        if (systemPrompt) {
+          messages.push({ role: 'system', content: systemPrompt });
+        }
+
+        let userContent: any[] = [];
+        let isJson = params.config?.responseMimeType === 'application/json' || !!params.config?.responseSchema;
+        let requiresFormatHint = isJson ? '\n\nIMPORTANT: Return ONLY valid JSON.' : '';
+
+        if (typeof params.contents === 'string') {
+          userContent.push({ type: 'text', text: params.contents + requiresFormatHint });
+        } else if (params.contents?.parts) {
+          for (const part of params.contents.parts) {
+            if (part.text) {
+              userContent.push({ type: 'text', text: part.text + requiresFormatHint });
+            }
+            if (part.inlineData) {
+              const base64 = part.inlineData.data;
+              const mime = part.inlineData.mimeType || 'image/jpeg';
+              userContent.push({
+                type: 'image_url',
+                image_url: { url: `data:${mime};base64,${base64}` }
+              });
+            }
+          }
+        }
+
+        messages.push({ role: 'user', content: userContent });
+
+        const model = 'openai/gpt-4o'; // OpenRouter model
+
+        const fetchRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+            'X-Title': 'AgriVeda AI',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model,
+            messages,
+            temperature: 0.5
+          }),
+        });
+
+        if (!fetchRes.ok) {
+          const errText = await fetchRes.text();
+          throw new Error('OpenRouter API Error: ' + errText);
+        }
+
+        const data = await fetchRes.json();
+        let textResult = data.choices?.[0]?.message?.content || '';
+
+        // Ensure clean JSON output for functions expecting it
+        let cleaned = textResult.replace(/```json\s*/ig, '').replace(/```\w*\s*/g, '').replace(/```\s*$/g, '').trim();
+
+        return { text: cleaned };
+      }
+    }
+  };
 };
 
-// Initialize Groq AI Client (Ultra-fast Llama-3.3-70B Inference)
+// Initialize Groq AI Client -> Proxy through OpenRouter Mini Core
 const callGroqAi = async ({
   messages,
   temperature = 0.5,
   jsonMode = false,
-  model = 'groq/compound'
+  model = 'openai/gpt-4o'
 }): Promise<string | null> => {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey || apiKey === 'MY_GROQ_API_KEY' || apiKey.includes('YOUR_GROQ')) {
-    console.error('Groq API Key invalid or missing:', apiKey);
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    console.error('OpenRouter API Key invalid or missing');
     return null;
   }
   try {
     const payload: any = {
-      model,
+      model: 'openai/gpt-4o', // Override model for OpenRouter
       messages,
       temperature,
     };
@@ -80,10 +143,12 @@ const callGroqAi = async ({
       payload.response_format = { type: 'json_object' };
     }
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
+        'X-Title': 'AgriVeda AI',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(payload)
@@ -91,7 +156,7 @@ const callGroqAi = async ({
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('Groq API Error:', res.status, errText);
+      console.error('OpenRouter API Error:', res.status, errText);
       // If jsonMode failed, retry once without jsonMode
       if (jsonMode) {
         return callGroqAi({ messages, temperature, jsonMode: false, model });
@@ -102,7 +167,7 @@ const callGroqAi = async ({
     const data = await res.json();
     return data.choices?.[0]?.message?.content || null;
   } catch (err) {
-    console.error('Groq API Fetch Error:', err);
+    console.error('OpenRouter API Fetch Error:', err);
     return null;
   }
 };

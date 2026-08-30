@@ -546,7 +546,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-black text-white">MapCN Agri-GIS & Bank Loans</h4>
+                <h4 className="text-sm font-black text-white">Agri-GIS & Bank Loans</h4>
                 <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
                   Interactive Portal
                 </span>

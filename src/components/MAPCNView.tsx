@@ -108,7 +108,7 @@ export const MAPCNView: React.FC<MAPCNViewProps> = ({
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-semibold uppercase tracking-wider backdrop-blur-md">
               <Activity className="w-3.5 h-3.5 animate-pulse" />
-              <span>MAPCN Live APMC Market Network</span>
+              <span>Market Live APMC Network</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               Mandi & APMC Price Commodity Network

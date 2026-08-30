@@ -37,7 +37,7 @@ const BOOT_STEPS: BootStep[] = [
     id: 3,
     timePct: 58,
     dir: '/net/apmc/mapcn-feed',
-    label: 'Establishing Realtime MAPCN Mandi Network',
+    label: 'Establishing Realtime Market Mandi Network',
     sublabel: 'Syncing live auction rates, arrivals & e-NAM nodes',
     icon: Server
   },

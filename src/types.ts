@@ -157,6 +157,9 @@ export interface VerificationApplication {
   reviewedAt?: string;
   reviewerNotes?: string;
   data: RoleVerificationData;
+  auditLogs?: VerificationAuditLog[];
+}
+
 export interface UserProfile {
   id?: string;
   name: string;

@@ -385,6 +385,7 @@ export function useMarkerContext() {
 }
 
 export type MapMarkerProps = {
+  key?: React.Key;
   longitude: number;
   latitude: number;
   children: ReactNode;

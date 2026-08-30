@@ -19,7 +19,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const navItems = [
     { id: 'home' as ActiveTab, label: 'Home', icon: Home },
     { id: 'calendar' as ActiveTab, label: 'Calendar', icon: Calendar },
-    { id: 'mapcn' as ActiveTab, label: 'MAPCN', icon: TrendingUp },
+    { id: 'mapcn' as ActiveTab, label: t.mapcn || 'Market', icon: TrendingUp },
     { id: 'maps' as ActiveTab, label: t.maps || 'Maps', icon: MapPin },
     { id: 'scan' as ActiveTab, label: 'Scan AI', icon: Camera, isCenter: true },
     { id: 'assistant' as ActiveTab, label: 'Voice AI', icon: Mic },

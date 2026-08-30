@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
-import { WelcomeModal } from './components/WelcomeModal';
 import { AuthModal } from './components/AuthModal';
 import { OfflineBanner } from './components/OfflineBanner';
 import { DashboardView } from './components/DashboardView';
@@ -17,6 +16,8 @@ import { MapsView } from './components/MapsView';
 import { RoleOnboardingModal } from './components/onboarding/RoleOnboardingModal';
 import { VerificationAdminModal } from './components/verification/VerificationAdminModal';
 import { MAPCNView } from './components/MAPCNView';
+import { AppLoadingScreen } from './components/AppLoadingScreen';
+import { UserTutorialModal } from './components/onboarding/UserTutorialModal';
 
 import { ActiveTab, CropDiagnosisReport, VerificationStatusLevel } from './types';
 import { useFirebase } from './context/FirebaseContext';
@@ -25,7 +26,8 @@ import { Bell, X, ShieldAlert, Bot, Sparkles } from 'lucide-react';
 export default function App() {
   const { user, profile, setProfile, savedReports, saveReport } = useFirebase();
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
-  const [showWelcomeModal, setShowWelcomeModal] = useState(true);
+  const [isLoadingApp, setIsLoadingApp] = useState(true);
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showRoleOnboardingModal, setShowRoleOnboardingModal] = useState(false);
   const [showVerificationAdminModal, setShowVerificationAdminModal] = useState(false);
@@ -48,6 +50,15 @@ export default function App() {
     }));
   };
 
+  const handleLoadingComplete = () => {
+    setIsLoadingApp(false);
+    setShowTutorialModal(true);
+  };
+
+  if (isLoadingApp) {
+    return <AppLoadingScreen onLoadingComplete={handleLoadingComplete} durationMs={3500} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans selection:bg-emerald-200 selection:text-emerald-900 flex flex-col">
       
@@ -62,6 +73,7 @@ export default function App() {
         onOpenNotifications={() => setShowNotifications(true)}
         onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
         onOpenAdminVerification={() => setShowVerificationAdminModal(true)}
+        onOpenTutorial={() => setShowTutorialModal(true)}
         unreadCount={2}
       />
 
@@ -76,6 +88,7 @@ export default function App() {
               setActiveTab('scan');
             }}
             latestReport={activeReport}
+            onOpenTutorial={() => setShowTutorialModal(true)}
           />
         )}
 
@@ -150,15 +163,14 @@ export default function App() {
         )}
       </main>
 
-      {/* Screen 1: Welcome Onboarding Modal */}
-      <WelcomeModal
-        isOpen={showWelcomeModal}
-        onClose={() => setShowWelcomeModal(false)}
+      {/* Screen 1: Interactive 8-Slide UI Walkthrough Tutorial */}
+      <UserTutorialModal
+        isOpen={showTutorialModal}
+        onClose={() => setShowTutorialModal(false)}
         profile={profile}
         setProfile={setProfile}
-        onGetStarted={() => {
-          setShowWelcomeModal(false);
-        }}
+        setActiveTab={setActiveTab}
+        onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
       />
 
       {/* Screen 2: Login / Signup Modal */}

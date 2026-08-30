@@ -379,6 +379,11 @@ export const sampleCommunityPosts: CommunityPost[] = [
         text: 'During fruit set, Brinjal requires higher Potassium (K) to boost fruit weight and shine. Apply Nitrogen 30kg + Potash 40kg per acre as top dressing. Maintain moist soil but prevent waterlogging.',
         timeAgo: '4 hours ago',
         likes: 10
+      }
+    ]
+  }
+];
+
 export const sampleMAPCNMandiCenters: MAPCNMandiCenter[] = [
   {
     id: 'mandi-vellore',

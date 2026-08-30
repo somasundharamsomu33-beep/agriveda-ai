@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sprout, Bell, Globe, User, ChevronDown, Check, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Sprout, Bell, Globe, User, ChevronDown, Check, ShieldCheck, ShieldAlert, Compass, HelpCircle } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { translations } from '../data/mockData';
 import { AgriLogo } from './ui/AgriLogo';
@@ -12,6 +12,7 @@ interface HeaderProps {
   onOpenNotifications: () => void;
   onOpenRoleOnboarding?: () => void;
   onOpenAdminVerification?: () => void;
+  onOpenTutorial?: () => void;
   unreadCount: number;
 }
 
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenNotifications,
   onOpenRoleOnboarding,
   onOpenAdminVerification,
+  onOpenTutorial,
   unreadCount,
 }) => {
   const t = translations[profile.language] || translations.en;
@@ -126,6 +128,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Interactive UI Guide & Tutorial Trigger */}
+            {onOpenTutorial && (
+              <button
+                onClick={onOpenTutorial}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-emerald-300 border border-slate-700 transition-all active:scale-95 shadow-2xs cursor-pointer"
+                title="Launch Interactive UI Guide & Feature Walkthrough"
+              >
+                <Compass className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="hidden sm:inline">UI Guide</span>
+              </button>
+            )}
 
             {/* Notification Bell */}
             <button

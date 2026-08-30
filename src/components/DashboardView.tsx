@@ -28,6 +28,7 @@ interface DashboardViewProps {
   setActiveTab: (tab: ActiveTab) => void;
   onSelectReport: (report: CropDiagnosisReport) => void;
   latestReport?: CropDiagnosisReport | null;
+  onOpenTutorial?: () => void;
 }
 
 export interface SmartActionItem {
@@ -48,7 +49,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   profile,
   setActiveTab,
   onSelectReport,
-  latestReport
+  latestReport,
+  onOpenTutorial
 }) => {
   const t = translations[profile.language] || translations.en;
 
@@ -222,6 +224,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <Mic className="w-4 h-4 text-amber-400" />
                 <span>Voice Copilot</span>
               </button>
+              {onOpenTutorial && (
+                <button
+                  onClick={onOpenTutorial}
+                  className="px-3.5 py-2.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-emerald-300 hover:text-white font-bold text-xs flex items-center gap-1.5 border border-emerald-500/30 shadow-md active:scale-95 transition-all cursor-pointer"
+                  title="Launch 8-Slide UI Tutorial & Feature Guide"
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span>UI Walkthrough</span>
+                </button>
+              )}
             </div>
           </div>
 

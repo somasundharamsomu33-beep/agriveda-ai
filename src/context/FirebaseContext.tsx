@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { UserProfile, CropDiagnosisReport, CommunityPost, CommunityReply } from '../types';
-import { initialUserProfile } from '../data/mockData';
+import { initialUserProfile, guestUserProfile } from '../data/mockData';
 import { getPendingQueue, removePendingQueueItem, queueOfflineAction } from '../lib/offlineStorage';
+import { AuthService } from '../lib/authService';
 
 interface SyncNotice {
   message: string;
@@ -34,7 +35,10 @@ const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined
 export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile>(initialUserProfile);
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const existing = AuthService.getCurrentSession();
+    return existing || initialUserProfile;
+  });
   const [savedReports, setSavedReports] = useState<CropDiagnosisReport[]>([]);
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>([]);
   const [syncNotice, setSyncNotice] = useState<SyncNotice | null>(null);
@@ -168,8 +172,13 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const likePost = async () => { };
   const likeReply = async () => { };
-  const signInWithGoogle = async () => { await supabase.auth.signInWithOAuth({ provider: 'google' }); };
-  const logout = async () => { await supabase.auth.signOut(); };
+  const logout = async () => {
+    AuthService.clearCurrentSession();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
+    setProfile(guestUserProfile);
+  };
 
   // This alias maintains backwards compatibility with everywhere you used useFirebase!
   return (

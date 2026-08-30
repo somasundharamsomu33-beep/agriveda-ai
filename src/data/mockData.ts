@@ -43,7 +43,29 @@ export const initialUserProfile: UserProfile = {
       cropType: 'Finger Millet (Ragi)',
       soilCondition: 'Fertile Humus Layer'
     }
-  ]
+  ],
+  isAuthenticated: true,
+  role: 'farmer'
+};
+
+export const guestUserProfile: UserProfile = {
+  id: '',
+  name: 'Guest Farmer',
+  firstName: 'Guest',
+  secondName: '',
+  email: '',
+  phone: '',
+  location: 'Vellore, Tamil Nadu, India',
+  farmId: 'GUEST-00000',
+  farmSizeAcres: 0,
+  primaryCrop: 'Select Crop',
+  soilType: 'Red Loamy Soil',
+  language: 'en',
+  avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+  role: 'farmer',
+  verificationStatus: 'REGISTERED',
+  isAuthenticated: false,
+  landPhotos: []
 };
 
 export const sampleCropImages = [

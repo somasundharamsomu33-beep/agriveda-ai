@@ -20,7 +20,7 @@ import { AppLoadingScreen } from './components/AppLoadingScreen';
 import { UserTutorialModal } from './components/onboarding/UserTutorialModal';
 import { SignOutConfirmModal } from './components/ui/SignOutConfirmModal';
 import { AuthService } from './lib/authService';
-import { initialUserProfile } from './data/mockData';
+import { initialUserProfile, guestUserProfile } from './data/mockData';
 
 import { ActiveTab, CropDiagnosisReport, VerificationStatusLevel } from './types';
 import { useFirebase } from './context/FirebaseContext';
@@ -61,7 +61,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    setProfile(initialUserProfile);
+    setProfile(guestUserProfile);
     setShowSignOutModal(false);
     setShowAuthModal(true);
   };

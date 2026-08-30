@@ -31,12 +31,17 @@ import {
   BadgeCheck,
   Lock,
   ShieldAlert,
+  LogIn,
+  Store,
+  Landmark,
+  GraduationCap
 } from 'lucide-react';
 import { UserProfile, CropDiagnosisReport, ActiveTab, LandPhotoSnap } from '../types';
 import { translations, sampleCropImages } from '../data/mockData';
 import { useFirebase } from '../context/FirebaseContext';
 import { generateCropReportPDF } from '../utils/pdfExport';
 import { VerificationEngine } from '../lib/verificationEngine';
+import { AuthService } from '../lib/authService';
 
 interface ProfileViewProps {
   profile: UserProfile;
@@ -262,6 +267,84 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setProfile(prev => ({ ...prev, language: e.target.value as any }));
   };
+
+  // Signed Out / Guest State
+  if (profile.isAuthenticated === false) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-4 space-y-6 text-center animate-in fade-in">
+        <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 flex items-center justify-center mx-auto shadow-xl">
+          <Lock className="w-10 h-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-black text-slate-900">You are currently signed out</h2>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
+            Sign in to access your registered farmland plot, view verified certificates, review pathology diagnosis reports, and manage APMC commodity rates.
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            onClick={onOpenAuth}
+            className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-xl shadow-emerald-700/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <LogIn className="w-4 h-4" />
+            <span>Sign In to Your Account</span>
+          </button>
+          {onOpenRoleOnboarding && (
+            <button
+              onClick={onOpenRoleOnboarding}
+              className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs border border-slate-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Register New Account</span>
+            </button>
+          )}
+        </div>
+
+        {/* Demo Personas Quick Sign-In */}
+        <div className="pt-6 border-t border-slate-200 text-left">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 text-center">
+            Or Click to Sign In with Verified Demo Personas
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {[
+              { role: 'Farmer', name: 'Ravi Kumar', cred: '9876543210', pass: 'AgriVeda@2026', icon: Sprout },
+              { role: 'B2B Buyer', name: 'K. Balasubramaniam', cred: '9443244556', pass: 'AgriVeda@2026', icon: Store },
+              { role: 'Research Scholar', name: 'Dr. Ananya Swaminathan', cred: '9842155432', pass: 'AgriVeda@2026', icon: GraduationCap },
+              { role: 'Bank / NABARD Officer', name: 'V. Srinivasa Rao', cred: '9848012345', pass: 'AgriVeda@2026', icon: Landmark }
+            ].map(demo => {
+              const Icon = demo.icon;
+              return (
+                <div
+                  key={demo.cred}
+                  onClick={() => {
+                    const result = AuthService.authenticateUser(demo.cred, demo.pass);
+                    if (result.success && result.profile) {
+                      setProfile(result.profile);
+                    }
+                  }}
+                  className="p-3 bg-white rounded-2xl border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black text-slate-900">{demo.name}</p>
+                      <p className="text-[10px] text-slate-500 font-medium">{demo.role} • {demo.cred}</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-600 group-hover:translate-x-0.5 transition-transform">
+                    Sign In →
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-24 animate-in fade-in max-w-3xl mx-auto">

@@ -234,24 +234,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }, 600);
   };
 
-  // 4. Handle Social Login via Firebase Google Auth
+  // 4. Handle Social Login via Google Auth
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     setErrorMsg('');
     try {
+      // First attempt Firebase Google Popup
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      setProfile(prev => ({
-        ...prev,
-        name: user.displayName || fullName || 'Ravi Kumar',
-        phone: user.phoneNumber || prev.phone || '+91 9876543210',
-        avatarUrl: user.photoURL || prev.avatarUrl,
-        language: selectedLanguage,
-        role: selectedRole
-      }));
+      if (!user || !user.email) {
+        throw new Error('No user data returned from Google Provider.');
+      }
 
-      setSuccessMsg(`Welcome, ${user.displayName || 'User'}! Signed in with Google.`);
+      const newProfile: UserProfile = {
+        name: user.displayName || 'Google User',
+        firstName: user.displayName?.split(' ')[0] || 'User',
+        secondName: user.displayName?.split(' ').slice(1).join(' ') || '',
+        phone: user.phoneNumber || '+91 98765 43210',
+        email: user.email,
+        avatarUrl: user.photoURL || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+        language: selectedLanguage,
+        role: selectedRole,
+        location: 'Tamil Nadu, India',
+        farmId: `FARM-${Math.floor(10000 + Math.random() * 90000)}`,
+        farmSizeAcres: 2.5,
+        primaryCrop: 'Paddy / Rice',
+        soilType: 'Red Loamy Soil',
+        verificationStatus: 'IDENTITY_VERIFIED',
+        isAuthenticated: true
+      };
+
+      setProfile(newProfile);
+      AuthService.saveCurrentSession(newProfile);
+
+      setSuccessMsg(`Welcome, ${user.displayName || user.email}! Authenticated successfully via Google.`);
       setCurrentScreen('success');
 
       setTimeout(() => {
@@ -262,35 +279,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           else if (selectedRole === 'loan-officer' || selectedRole === 'researcher' || selectedRole === 'institute') setActiveTab('maps');
           else if (selectedRole === 'vendor' || selectedRole === 'retail_vendor' || selectedRole === 'wholesale_vendor') setActiveTab('marketplace');
           else if (selectedRole === 'agronomist') setActiveTab('community');
-          else if (selectedRole === 'business') setActiveTab('market');
+          else if (selectedRole === 'business') setActiveTab('mapcn');
           else setActiveTab('home');
         }
-      }, 1000);
+      }, 900);
     } catch (err: any) {
-      console.error('FIREBASE GOOGLE AUTH:', err);
+      console.error('Google Auth Error:', err);
       if (err.code === 'auth/popup-closed-by-user') {
-        setErrorMsg('Sign-in cancelled. Please try again.');
+        setErrorMsg('Google Sign-in was cancelled by closing the authentication popup window.');
+      } else if (err.code === 'auth/popup-blocked') {
+        setErrorMsg('Google Sign-in popup was blocked by your browser. Please allow popups or use Mobile/Password.');
       } else if (err.code === 'auth/unauthorized-domain') {
-        setErrorMsg('Domain not authorized in Firebase Console. Please add agriveda-ai.vercel.app to Authorized Domains.');
+        setErrorMsg('Domain is not authorized for Google OAuth in Firebase Console. Please use your Mobile & Password.');
+      } else if (err.code === 'auth/invalid-api-key' || err.code === 'auth/api-key-not-valid' || (err.message && err.message.includes('API key'))) {
+        setErrorMsg('Google OAuth requires production Google Client credentials. Please use your Email / Mobile & Password to sign in.');
       } else {
-        // Fallback for seamless dev/demo login
-        setProfile(prev => ({
-          ...prev,
-          name: fullName || 'Ravi Kumar',
-          language: selectedLanguage,
-          role: selectedRole
-        }));
-        setSuccessMsg('Signed in with Google! Redirecting...');
-        setCurrentScreen('success');
-        setTimeout(() => {
-          setSuccessMsg('');
-          onClose();
-          if (setActiveTab) {
-            if (selectedRole === 'farmer') setActiveTab('home');
-            else if (selectedRole === 'loan-officer' || selectedRole === 'researcher' || selectedRole === 'institute') setActiveTab('maps');
-            else setActiveTab('home');
-          }
-        }, 1000);
+        setErrorMsg(`Google Authentication Failed: ${err?.message || 'Unable to authenticate'}. Please use your registered Mobile & Password.`);
       }
     } finally {
       setIsLoading(false);

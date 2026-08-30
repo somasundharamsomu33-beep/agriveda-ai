@@ -172,6 +172,7 @@ export interface UserProfile {
   language: Language;
   avatarUrl: string;
   role?: UserRole;
+  isAuthenticated?: boolean;
   plan?: 'free' | 'pro';
   verificationStatus?: VerificationStatusLevel | VerificationStatus;
   verificationScore?: number;

@@ -245,7 +245,8 @@ export class AuthService {
       avatarUrl: matchedAccount.avatarUrl,
       role: matchedAccount.role,
       verificationStatus: (matchedAccount.verificationStatus as any) || 'FULLY_VERIFIED',
-      verificationScore: 92
+      verificationScore: 92,
+      isAuthenticated: true
     };
 
     // Save active session

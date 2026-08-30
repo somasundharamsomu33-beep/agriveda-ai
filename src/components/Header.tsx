@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sprout, Bell, Globe, User, ChevronDown, Check, ShieldCheck, ShieldAlert, Compass, HelpCircle, LogOut } from 'lucide-react';
+import { Sprout, Bell, Globe, User, ChevronDown, Check, ShieldCheck, ShieldAlert, Compass, HelpCircle, LogOut, LogIn } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { translations } from '../data/mockData';
 import { AgriLogo } from './ui/AgriLogo';
@@ -191,31 +191,44 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
-            {/* User Profile Pill */}
-            <button
-              onClick={onOpenAuth}
-              className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium transition-all cursor-pointer"
-              title="View Account & Switch Roles"
-            >
-              <img
-                src={profile.avatarUrl}
-                alt={profile.name}
-                className="w-6 h-6 rounded-full object-cover border border-slate-600"
-              />
-              <div className="hidden lg:block text-left">
-                <p className="font-bold text-white text-[11px] leading-tight">{profile.name}</p>
-                <p className="text-[10px] text-emerald-400 font-bold uppercase leading-none">{profile.role || 'Farmer'}</p>
-              </div>
-            </button>
+            {/* User Profile Pill or Sign In Button */}
+            {profile.isAuthenticated ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={onOpenAuth}
+                  className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium transition-all cursor-pointer"
+                  title="View Account & Switch Roles"
+                >
+                  <img
+                    src={profile.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'}
+                    alt={profile.name}
+                    className="w-6 h-6 rounded-full object-cover border border-slate-600"
+                  />
+                  <div className="hidden lg:block text-left">
+                    <p className="font-bold text-white text-[11px] leading-tight">{profile.name}</p>
+                    <p className="text-[10px] text-emerald-400 font-bold uppercase leading-none">{profile.role || 'Farmer'}</p>
+                  </div>
+                </button>
 
-            {/* Header Sign Out Button */}
-            {onOpenSignOutConfirm && (
+                {/* Header Sign Out Button */}
+                {onOpenSignOutConfirm && (
+                  <button
+                    onClick={onOpenSignOutConfirm}
+                    className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-rose-950/70 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-500/50 transition-all cursor-pointer"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ) : (
               <button
-                onClick={onOpenSignOutConfirm}
-                className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-rose-950/70 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-500/50 transition-all cursor-pointer"
-                title="Sign Out"
+                onClick={onOpenAuth}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer border border-emerald-400/30"
+                title="Sign In or Create an Account"
               >
-                <LogOut className="w-4 h-4" />
+                <LogIn className="w-4 h-4 text-white" />
+                <span>Sign In</span>
               </button>
             )}
 

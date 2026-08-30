@@ -47,6 +47,7 @@ interface ProfileViewProps {
   setActiveTab: (tab: ActiveTab) => void;
   onNavigateToLandPhoto?: (photo: LandPhotoSnap) => void;
   onOpenRoleOnboarding?: () => void;
+  onOpenSignOutConfirm?: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
@@ -58,6 +59,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   setActiveTab,
   onNavigateToLandPhoto,
   onOpenRoleOnboarding,
+  onOpenSignOutConfirm,
 }) => {
   const { logout } = useFirebase();
   const t = translations[profile.language] || translations.en;
@@ -950,18 +952,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </div>
 
         <button
-          onClick={async () => {
-            if (confirm('Are you sure you want to sign out?')) {
-              try {
-                await logout();
-              } catch (err) {
-                console.error(err);
-              }
+          onClick={() => {
+            if (onOpenSignOutConfirm) {
+              onOpenSignOutConfirm();
+            } else {
+              logout();
             }
           }}
-          className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          className="w-full py-2.5 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-4 h-4 text-rose-600" />
           <span>{t.logout}</span>
         </button>
       </div>

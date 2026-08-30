@@ -11,6 +11,7 @@ import { signInWithOAuth } from '../lib/supabase';
 import { auth, googleProvider } from '../lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { AgriLogo } from './ui/AgriLogo';
+import { AuthService, SEEDED_ACCOUNTS } from '../lib/authService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -107,38 +108,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
-    if (!emailOrPhone) {
-      setErrorMsg('Please enter your registered Email or Mobile Number.');
+    if (!emailOrPhone || !emailOrPhone.trim()) {
+      setErrorMsg('Please enter your registered Email Address or Mobile Number.');
+      return;
+    }
+    if (!password || !password.trim()) {
+      setErrorMsg('Please enter your account password.');
       return;
     }
     setIsLoading(true);
 
     setTimeout(() => {
       setIsLoading(false);
-      setProfile(prev => ({
-        ...prev,
-        name: fullName || 'Ravi Kumar',
-        phone: emailOrPhone.includes('@') ? prev.phone : `+91 ${emailOrPhone}`,
-        language: selectedLanguage,
-        role: selectedRole
-      }));
+      const authResult = AuthService.authenticateUser(emailOrPhone, password);
 
-      setSuccessMsg('Signed in successfully! Redirecting...');
+      if (!authResult.success) {
+        setErrorMsg(authResult.error || 'Invalid credentials. Please verify your email/mobile and password.');
+        return;
+      }
+
+      if (authResult.profile) {
+        setProfile(authResult.profile);
+      }
+
+      setSuccessMsg(`Welcome back, ${authResult.profile?.name || 'Farmer'}! Signed in successfully.`);
       setCurrentScreen('success');
 
       setTimeout(() => {
         setSuccessMsg('');
         onClose();
         if (setActiveTab) {
-          if (selectedRole === 'farmer') setActiveTab('home');
-          else if (selectedRole === 'loan-officer' || selectedRole === 'researcher' || selectedRole === 'institute') setActiveTab('maps');
-          else if (selectedRole === 'vendor' || selectedRole === 'retail_vendor' || selectedRole === 'wholesale_vendor') setActiveTab('marketplace');
-          else if (selectedRole === 'agronomist') setActiveTab('community');
-          else if (selectedRole === 'business') setActiveTab('market');
+          const role = authResult.profile?.role;
+          if (role === 'farmer') setActiveTab('home');
+          else if (role === 'loan-officer' || role === 'researcher' || role === 'institute' || role === 'financial_institution' || role === 'research_scholar') setActiveTab('maps');
+          else if (role === 'vendor' || role === 'retail_vendor' || role === 'wholesale_vendor') setActiveTab('marketplace');
+          else if (role === 'agronomist') setActiveTab('community');
+          else if (role === 'business') setActiveTab('mapcn');
           else setActiveTab('home');
         }
-      }, 1000);
-    }, 900);
+      }, 900);
+    }, 600);
   };
 
   // 2. Handle Registration Submission
@@ -160,7 +169,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setCountdown(30);
       setCanResend(false);
       setCurrentScreen('otp');
-    }, 800);
+    }, 600);
   };
 
   // 3. Handle OTP Verification
@@ -175,18 +184,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      setProfile(prev => ({
-        ...prev,
+
+      // Save newly registered account into persistent registry
+      const regResult = AuthService.registerAccount({
+        name: fullName,
+        phone: phone,
+        email: email,
+        password: password,
+        role: selectedRole,
+        location: userLocation,
+        primaryCrop: primaryCrop,
+        farmSizeAcres: farmSize,
+        language: selectedLanguage
+      });
+
+      const newProfile: UserProfile = {
         name: fullName,
         phone: `+91 ${phone}`,
+        email: email,
         location: userLocation,
         role: selectedRole,
         primaryCrop: primaryCrop,
         farmSizeAcres: farmSize,
-        language: selectedLanguage
-      }));
+        language: selectedLanguage,
+        farmId: regResult.account?.farmId || `FARM-${Math.floor(10000 + Math.random() * 90000)}`,
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+        soilType: 'Red Loamy Soil',
+        verificationStatus: 'REGISTERED'
+      };
 
-      setSuccessMsg('Account Verified Successfully! Welcome to AgriVeda AI.');
+      setProfile(newProfile);
+      AuthService.saveCurrentSession(newProfile);
+
+      setSuccessMsg('Account Registered & Verified! Welcome to AgriVeda AI.');
       setCurrentScreen('success');
 
       setTimeout(() => {
@@ -197,11 +227,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           else if (selectedRole === 'loan-officer' || selectedRole === 'researcher' || selectedRole === 'institute') setActiveTab('maps');
           else if (selectedRole === 'vendor' || selectedRole === 'retail_vendor' || selectedRole === 'wholesale_vendor') setActiveTab('marketplace');
           else if (selectedRole === 'agronomist') setActiveTab('community');
-          else if (selectedRole === 'business') setActiveTab('market');
+          else if (selectedRole === 'business') setActiveTab('mapcn');
           else setActiveTab('home');
         }
-      }, 1200);
-    }, 800);
+      }, 900);
+    }, 600);
   };
 
   // 4. Handle Social Login via Firebase Google Auth
@@ -472,15 +502,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Select Your Login Persona
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                    <span>Quick Demo Login (Select Persona)</span>
+                    <span className="text-[10px] text-emerald-600 font-bold">Password: AgriVeda@2026</span>
                   </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
                     {[
-                      { id: 'farmer', label: 'Farmer', icon: Sprout },
-                      { id: 'loan-officer', label: 'Loan Officer', icon: Building2 },
-                      { id: 'researcher', label: 'Researcher', icon: GraduationCap },
-                      { id: 'institute', label: 'Institute / Bank', icon: Landmark },
+                      { id: 'farmer', label: 'Farmer', phone: '9876543210', name: 'Ravi Kumar', icon: Sprout },
+                      { id: 'business', label: 'B2B Buyer', phone: '9443244556', name: 'K. Balasubramaniam', icon: Store },
+                      { id: 'research_scholar', label: 'Scholar', phone: '9842155432', name: 'Dr. Ananya Swaminathan', icon: GraduationCap },
+                      { id: 'financial_institution', label: 'Bank / NABARD', phone: '9848012345', name: 'V. Srinivasa Rao', icon: Landmark },
+                      { id: 'government', label: 'Govt APMC', phone: '9443188900', name: 'Thiru. M. Senthil Kumar', icon: Building2 },
                     ].map((r) => {
                       const Icon = r.icon;
                       const isSel = selectedRole === r.id;
@@ -490,27 +522,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           type="button"
                           onClick={() => {
                             setSelectedRole(r.id as UserRole);
-                            if (r.id === 'farmer') {
-                              setEmailOrPhone('9876543210');
-                              setFullName('Ravi Kumar (Punjab Farm)');
-                            } else if (r.id === 'loan-officer') {
-                              setEmailOrPhone('officer.sharma@sbi.co.in');
-                              setFullName('Harpreet Sharma (SBI Agri Officer)');
-                            } else if (r.id === 'researcher') {
-                              setEmailOrPhone('dr.verma@icar.gov.in');
-                              setFullName('Dr. S. K. Verma (ICAR Lead)');
-                            } else if (r.id === 'institute') {
-                              setEmailOrPhone('credit.director@nabard.org');
-                              setFullName('NABARD Regional Directorate');
-                            }
+                            setEmailOrPhone(r.phone);
+                            setPassword('AgriVeda@2026');
+                            setFullName(r.name);
+                            setErrorMsg('');
                           }}
-                          className={`px-2 py-1.5 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all border ${isSel
+                          className={`px-2 py-1.5 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition-all border ${isSel
                               ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20'
                               : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                             }`}
                         >
                           <Icon className="w-3.5 h-3.5" />
-                          <span>{r.label}</span>
+                          <span className="truncate">{r.label}</span>
                         </button>
                       );
                     })}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sprout, Bell, Globe, User, ChevronDown, Check, ShieldCheck, ShieldAlert, Compass, HelpCircle } from 'lucide-react';
+import { Sprout, Bell, Globe, User, ChevronDown, Check, ShieldCheck, ShieldAlert, Compass, HelpCircle, LogOut } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { translations } from '../data/mockData';
 import { AgriLogo } from './ui/AgriLogo';
@@ -13,6 +13,7 @@ interface HeaderProps {
   onOpenRoleOnboarding?: () => void;
   onOpenAdminVerification?: () => void;
   onOpenTutorial?: () => void;
+  onOpenSignOutConfirm?: () => void;
   unreadCount: number;
 }
 
@@ -31,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenRoleOnboarding,
   onOpenAdminVerification,
   onOpenTutorial,
+  onOpenSignOutConfirm,
   unreadCount,
 }) => {
   const t = translations[profile.language] || translations.en;
@@ -193,7 +195,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenAuth}
               className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200 font-medium transition-all cursor-pointer"
-              title="View Profile & Switch Roles"
+              title="View Account & Switch Roles"
             >
               <img
                 src={profile.avatarUrl}
@@ -205,6 +207,17 @@ export const Header: React.FC<HeaderProps> = ({
                 <p className="text-[10px] text-emerald-400 font-bold uppercase leading-none">{profile.role || 'Farmer'}</p>
               </div>
             </button>
+
+            {/* Header Sign Out Button */}
+            {onOpenSignOutConfirm && (
+              <button
+                onClick={onOpenSignOutConfirm}
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-rose-950/70 text-slate-400 hover:text-rose-300 border border-slate-700 hover:border-rose-500/50 transition-all cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            )}
 
           </div>
         </div>

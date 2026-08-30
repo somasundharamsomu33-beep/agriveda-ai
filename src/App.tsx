@@ -18,17 +18,21 @@ import { VerificationAdminModal } from './components/verification/VerificationAd
 import { MAPCNView } from './components/MAPCNView';
 import { AppLoadingScreen } from './components/AppLoadingScreen';
 import { UserTutorialModal } from './components/onboarding/UserTutorialModal';
+import { SignOutConfirmModal } from './components/ui/SignOutConfirmModal';
+import { AuthService } from './lib/authService';
+import { initialUserProfile } from './data/mockData';
 
 import { ActiveTab, CropDiagnosisReport, VerificationStatusLevel } from './types';
 import { useFirebase } from './context/FirebaseContext';
 import { Bell, X, ShieldAlert, Bot, Sparkles } from 'lucide-react';
 
 export default function App() {
-  const { user, profile, setProfile, savedReports, saveReport } = useFirebase();
+  const { user, profile, setProfile, savedReports, saveReport, logout } = useFirebase();
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
   const [isLoadingApp, setIsLoadingApp] = useState(true);
   const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [showRoleOnboardingModal, setShowRoleOnboardingModal] = useState(false);
   const [showVerificationAdminModal, setShowVerificationAdminModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -48,6 +52,18 @@ export default function App() {
       ...prev,
       verificationStatus: newStatus
     }));
+  };
+
+  const handleConfirmLogout = async () => {
+    AuthService.clearCurrentSession();
+    try {
+      await logout();
+    } catch (e) {
+      console.error(e);
+    }
+    setProfile(initialUserProfile);
+    setShowSignOutModal(false);
+    setShowAuthModal(true);
   };
 
   const handleLoadingComplete = () => {
@@ -74,6 +90,7 @@ export default function App() {
         onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
         onOpenAdminVerification={() => setShowVerificationAdminModal(true)}
         onOpenTutorial={() => setShowTutorialModal(true)}
+        onOpenSignOutConfirm={() => setShowSignOutModal(true)}
         unreadCount={2}
       />
 
@@ -159,6 +176,7 @@ export default function App() {
               setActiveTab('maps');
             }}
             onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
+            onOpenSignOutConfirm={() => setShowSignOutModal(true)}
           />
         )}
       </main>
@@ -195,6 +213,14 @@ export default function App() {
         isOpen={showVerificationAdminModal}
         onClose={() => setShowVerificationAdminModal(false)}
         onApproveUser={handleAdminApproveUser}
+      />
+
+      {/* Screen 5: Dedicated Sign Out Confirmation Modal */}
+      <SignOutConfirmModal
+        isOpen={showSignOutModal}
+        onClose={() => setShowSignOutModal(false)}
+        onConfirmLogout={handleConfirmLogout}
+        profile={profile}
       />
 
       {/* Notifications Drawer */}

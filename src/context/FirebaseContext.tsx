@@ -172,6 +172,18 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const likePost = async () => { };
   const likeReply = async () => { };
+  const signInWithGoogle = async () => {
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      });
+    } catch (e) {
+      console.error('Supabase Google OAuth error:', e);
+    }
+  };
   const logout = async () => {
     AuthService.clearCurrentSession();
     try {

@@ -1,5 +1,5 @@
-export type Language = 'en' | 'ta' | 'hi' | 'te';
-export type AIModelType = 'groq/compound' | 'openai/gpt-oss-120b' | 'gemma2-9b-it' | 'gemini-1.5-flash' | 'gemini-1.5-pro';
+export type Language = 'en' | 'ta' | 'hi' | 'te' | 'auto';
+export type AIModelType = 'openai/gpt-4o' | 'anthropic/claude-3.5-sonnet' | 'meta-llama/llama-3.1-70b-instruct' | 'google/gemini-flash-1.5' | string;
 
 export interface LandPhotoSnap {
   id: string;

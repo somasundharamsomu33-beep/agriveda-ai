@@ -87,7 +87,8 @@ const getGeminiAi = () => {
 
         messages.push({ role: 'user', content: userContent });
 
-        const model = 'openai/gpt-4o'; // OpenRouter model
+        // Use the model provided in params, fallback to gpt-4o
+        const model = params.model || 'openai/gpt-4o';
 
         const fetchRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
@@ -128,38 +129,53 @@ const callGroqAi = async ({
   jsonMode = false,
   model = 'openai/gpt-4o'
 }): Promise<string | null> => {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+  const isNvidia = model.startsWith('nvidia:');
+  const actualModel = isNvidia ? model.replace('nvidia:', '') : model;
+
+  const apiKey = isNvidia ? process.env.NVIDIA_API_KEY : process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.error('OpenRouter API Key invalid or missing');
+    console.error((isNvidia ? 'NVIDIA' : 'OpenRouter') + ' API Key invalid or missing');
     return null;
   }
+
   try {
     const payload: any = {
-      model: 'openai/gpt-4o', // Override model for OpenRouter
+      model: actualModel,
       messages,
       temperature,
     };
-    if (jsonMode) {
+    // Nvidia NIM doesn't strictly support json_object in the same way everywhere, but we can pass it
+    if (jsonMode && !isNvidia) {
       payload.response_format = { type: 'json_object' };
     }
 
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const endpoint = isNvidia ? 'https://integrate.api.nvidia.com/v1/chat/completions' : 'https://openrouter.ai/api/v1/chat/completions';
+
+    // Some endpoints don't need 'HTTP-Referer', but passing them doesn't hurt.
+    const headers: any = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    };
+    if (!isNvidia) {
+      headers['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
+      headers['X-Title'] = 'AgriVeda AI';
+    }
+
+    const res = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
-        'X-Title': 'AgriVeda AI',
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify(payload)
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('OpenRouter API Error:', res.status, errText);
+      console.error(`${isNvidia ? 'NVIDIA' : 'OpenRouter'} API Error:`, res.status, errText);
       // If jsonMode failed, retry once without jsonMode
-      if (jsonMode) {
+      if (jsonMode && res.status !== 402 && !isNvidia) {
         return callGroqAi({ messages, temperature, jsonMode: false, model });
+      }
+      if (res.status === 402) {
+        throw new Error(`402 Payment Required: Insufficient Credits on ${isNvidia ? 'NVIDIA' : 'OpenRouter'} Account`);
       }
       return null;
     }
@@ -249,12 +265,12 @@ app.get('/api/profile', verifySupabaseToken, async (req: express.Request, res: e
 });
 
 // 1. API Route: Crop Analysis
-app.post('/api/analyze-crop', verifySupabaseToken, async (req: express.Request, res: express.Response) => {
+app.post('/api/analyze-crop', async (req: express.Request, res: express.Response) => {
   try {
     const { cropType, soilType, farmArea, location, imageBase64, sampleImageId } = req.body;
 
     // The user's secure Supabase session is available here!
-    const user = (req as any).user;
+    const user = (req as any).user || { email: 'Guest User' };
     console.log(`[Crop Analyzer] User ${user.email} initiated a scan for ${cropType}`);
 
     // Check if sample image ID was passed
@@ -322,7 +338,7 @@ Include:
     parts.push({ text: promptText });
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'openai/gpt-4o',
       contents: { parts },
       config: {
         systemInstruction: 'You are AgriVeda AI, an elite agricultural plant pathologist and agronomist assistant. You output clear, practical JSON for farmers.',
@@ -373,7 +389,7 @@ Include:
 // 2. API Route: Voice / Chat Assistant (End-to-End Multimodal)
 app.post('/api/voice-assistant', async (req, res) => {
   try {
-    const { prompt, language = 'en', context, imageBase64, model = 'llama-3.3-70b-versatile' } = req.body;
+    const { prompt, language = 'en', context, imageBase64, model = 'llama-3.3-70b-versatile', history = [] } = req.body;
     if (!prompt && !imageBase64) {
       return res.status(400).json({ error: 'Prompt or image is required' });
     }
@@ -425,10 +441,11 @@ app.post('/api/voice-assistant', async (req, res) => {
       intentCategory = 'Crop Management';
     }
 
-    const langInstruction = language === 'ta' ? 'Respond strictly in clear, natural Tamil script (தமிழ்).' :
-      language === 'hi' ? 'Respond strictly in clear, natural Hindi script (हिंदी).' :
-        language === 'te' ? 'Respond strictly in clear, natural Telugu script (తెలుగు).' :
-          'Respond in clear, professional English.';
+    const langInstruction = language === 'auto' ? 'Auto-detect the language from the user prompt (Tamil, Hindi, Telugu, or English). Respond strictly in the SAME language the user spoke.' :
+      language === 'ta' ? 'Respond strictly in clear, natural Tamil script (தமிழ்).' :
+        language === 'hi' ? 'Respond strictly in clear, natural Hindi script (हिंदी).' :
+          language === 'te' ? 'Respond strictly in clear, natural Telugu script (తెలుగు).' :
+            'Respond in clear, professional English.';
 
     const systemPrompt = `You are AgriVeda AI, an elite multilingual agricultural copilot for smallholder and commercial farmers.
 FARMER CONTEXT:
@@ -494,26 +511,39 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
     const userPromptText = prompt || 'Analyze farmer query for crop context and provide actionable guidance.';
     let groqRes = null;
 
-    // Auto-swap to Gemini Vision if an image is uploaded (Groq text models don't take image parts)
-    let activeModel = imageBase64 ? 'gemini-1.5-flash' : model;
-    if (activeModel.includes('llama')) activeModel = 'groq/compound';
-    const isGeminiModel = activeModel.startsWith('gemini');
+    // Decide which implementation to use based on the model provided
+    let activeModel = model;
+    if (imageBase64 && (model.includes('gemma') || activeModel.includes('llama') || activeModel.includes('openrouter/free'))) {
+      activeModel = 'openai/gpt-4o'; // fallback to gpt-4o for vision
+    }
+    const isGeminiModel = activeModel.startsWith('gemini') || activeModel.startsWith('google');
 
     if (!isGeminiModel) {
-      groqRes = await callGroqAi({
-        model: activeModel,
-        messages: [
-          {
-            role: 'system',
-            content: `${systemPrompt}\n\nProvide response in JSON format with keys: intentCategory (string), text (string), hasActionCard (boolean), actionType (string optional), actionTitle (string optional), actionDetails (string optional), suggestedFollowups (array of strings).`
-          },
-          {
-            role: 'user',
-            content: `Farmer Question: "${userPromptText}"`
-          }
-        ],
-        jsonMode: true
-      });
+      try {
+        groqRes = await callGroqAi({
+          model: activeModel,
+          messages: [
+            {
+              role: 'system',
+              content: `${systemPrompt}\n\nProvide response in JSON format with keys: intentCategory (string), text (string), hasActionCard (boolean), actionType (string optional), actionTitle (string optional), actionDetails (string optional), suggestedFollowups (array of strings).`
+            },
+            ...history,
+            {
+              role: 'user',
+              content: `Farmer Question: "${userPromptText}"`
+            }
+          ],
+          jsonMode: true
+        });
+      } catch (err: any) {
+        if (err.message.includes('402')) {
+          return res.json({
+            intentCategory: 'General Agricultural Question',
+            text: '⚠️ **AI Engine Offline:** Your OpenRouter API Key has insufficient credits (402 Payment Required). Please top-up your OpenRouter account.',
+            suggestedFollowups: []
+          });
+        }
+      }
     }
 
     if (groqRes) {
@@ -558,10 +588,10 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
         suggestedFollowups: followupsArr
       });
     } else if (!isGeminiModel) {
-      // User explicitly requested Groq, but it returned null (meaning invalid/missing API key, or API outage)
+      // User explicitly requested an OpenRouter model, but it returned null
       return res.json({
         intentCategory: 'General Agricultural Question',
-        text: '⚠️ **Groq Engine Offline:** Your `.env` file is missing a valid `GROQ_API_KEY`. Please replace "gsk_YOUR_GROQ_API_KEY" with your real key to unleash Llama-3/Mixtral/Gemma!',
+        text: '⚠️ **AI Engine Offline:** Your `.env` file is missing a valid `OPENROUTER_API_KEY`. Please check your configuration.',
         suggestedFollowups: []
       });
     }
@@ -724,10 +754,11 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
       });
     }
 
-    const promptContent = prompt || 'Analyze this crop photo and provide structured pathology diagnosis and advice.';
+    let historyText = history.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+    const promptContent = (historyText ? `Conversation History:\n${historyText}\n\n` : '') + (prompt || 'Analyze this crop photo and provide structured pathology diagnosis and advice.');
     parts.push({ text: promptContent });
 
-    const targetGeminiModel = isGeminiModel ? activeModel : 'gemini-1.5-flash';
+    const targetGeminiModel = isGeminiModel ? activeModel : 'google/gemini-1.5-flash';
 
     const response = await ai.models.generateContent({
       model: targetGeminiModel,
@@ -829,7 +860,7 @@ app.post('/api/crop-calendar', async (req, res) => {
       const ai = getGeminiAi();
       if (ai) {
         const response = await ai.models.generateContent({
-          model: 'gemini-1.5-flash',
+          model: 'google/gemini-1.5-flash',
           contents: `Generate a 5-step key milestone calendar for growing ${cropName} starting from sowing date ${sowingDate || 'Today'}. Return JSON with totalDurationDays, and array of events [{dayNumber, dateStr, title, category, description, recommendedTime}]`,
           config: {
             responseMimeType: 'application/json'
@@ -1329,7 +1360,7 @@ Provide JSON with properties:
 - impact: clear, measurable benefit (e.g., "Prevents 30% yield drop from fungal rot")`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
+      model: 'google/gemini-1.5-flash',
       contents: promptText,
       config: {
         systemInstruction: 'You are AgriVeda AI, an expert agronomist providing actionable, highly localized seasonal farming tips based on agricultural cycles in India.',
@@ -1387,6 +1418,32 @@ Provide JSON with properties:
       monthUsed: currentMonth,
       cropUsed: primaryCrop
     });
+  }
+});
+
+app.post('/api/external-support', async (req, res) => {
+  try {
+    const { message, language } = req.body;
+    const ai = getGeminiAi();
+    if (!ai) return res.status(400).json({ reply: 'AI engine unavailable.' });
+
+    const systemPrompt = `You are a helpful customer support agent for the AgriVeda platform.
+    Your job is to assist users in using the platform itself (e.g. Navigation, features, troubleshooting).
+    If asked about farming, remind them to use the AgriVeda main Voice Assistant / Crop Scanner tools.
+    Language preference: ${language || 'en'}`;
+
+    const response = await ai.models.generateContent({
+      model: 'openrouter/free',
+      contents: message,
+      config: {
+        systemInstruction: systemPrompt
+      }
+    });
+
+    res.json({ reply: response.text || 'I am here to help.' });
+  } catch (err) {
+    console.error('Support route error:', err);
+    res.status(500).json({ reply: 'An error occurred fetching support.' });
   }
 });
 

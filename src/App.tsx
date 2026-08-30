@@ -17,6 +17,7 @@ import { RoleOnboardingModal } from './components/onboarding/RoleOnboardingModal
 import { VerificationAdminModal } from './components/verification/VerificationAdminModal';
 import { MAPCNView } from './components/MAPCNView';
 import { AppLoadingScreen } from './components/AppLoadingScreen';
+import { ExternalSupportWidget } from './components/ExternalSupportWidget';
 import { UserTutorialModal } from './components/onboarding/UserTutorialModal';
 import { SignOutConfirmModal } from './components/ui/SignOutConfirmModal';
 import { AuthService } from './lib/authService';
@@ -77,7 +78,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans selection:bg-emerald-200 selection:text-emerald-900 flex flex-col">
-      
+
       {/* Offline Connectivity & Cache Banner */}
       <OfflineBanner />
 

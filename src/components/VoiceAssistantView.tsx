@@ -8,10 +8,9 @@ import { Language, UserProfile, VoiceMessage, AgriIntentCategory, AIModelType } 
 import { translations } from '../data/mockData';
 
 const AI_MODELS = [
-  { id: 'groq/compound', label: 'Groq Compound (Fast)', icon: '⚡' },
-  { id: 'openai/gpt-oss-120b', label: 'GPT OSS 120B (Balanced)', icon: '⚖️' },
-  { id: 'gemma2-9b-it', label: 'Gemma-2 9B (Efficient)', icon: '🌿' },
-  { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Vision)', icon: '👁️' }
+  { id: 'nvidia:meta/llama-3.1-8b-instruct', label: 'Nvidia NIM Llama 8B', icon: '⚡' },
+  { id: 'openrouter/free', label: 'OpenRouter Free Model', icon: '☁️' },
+  { id: 'openai/gpt-4o', label: 'GPT-4o (Vision) [Requires Paid Credits]', icon: '👁️' }
 ];
 
 interface VoiceAssistantViewProps {
@@ -23,7 +22,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
   const t = translations[profile.language] || translations.en;
 
   const [selectedLang, setSelectedLang] = useState<Language>(profile.language || 'en');
-  const [selectedModel, setSelectedModel] = useState<AIModelType>('groq/compound');
+  const [selectedModel, setSelectedModel] = useState<AIModelType>('nvidia:meta/llama-3.1-8b-instruct');
   const [editingContext, setEditingContext] = useState(false);
 
   // Farmer Context editable state
@@ -190,6 +189,10 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
           language: selectedLang,
           model: selectedModel,
           imageBase64: currentAttached,
+          history: messages.slice(-10).map(m => ({
+            role: m.sender === 'user' ? 'user' : 'assistant',
+            content: m.text
+          })),
           context: {
             farmerName: farmerContext.farmerName,
             cropType: farmerContext.cropType,
@@ -454,7 +457,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
           <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 shrink-0 mr-1">
             <Globe className="w-3.5 h-3.5 text-emerald-400" /> Language:
           </span>
-          {(['en', 'ta', 'hi', 'te'] as Language[]).map(lang => (
+          {(['auto', 'en', 'ta', 'hi', 'te'] as Language[]).map(lang => (
             <button
               key={lang}
               onClick={() => setSelectedLang(lang)}
@@ -463,7 +466,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                 }`}
             >
-              {lang === 'en' ? 'English' : lang === 'ta' ? 'தமிழ்' : lang === 'hi' ? 'हिंदी' : 'తెలుగు'}
+              {lang === 'auto' ? 'Auto Detect' : lang === 'en' ? 'English' : lang === 'ta' ? 'தமிழ்' : lang === 'hi' ? 'हिंदी' : 'తెలుగు'}
             </button>
           ))}
         </div>

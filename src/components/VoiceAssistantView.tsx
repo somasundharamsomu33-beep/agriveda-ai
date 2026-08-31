@@ -7,11 +7,7 @@ import {
 import { Language, UserProfile, VoiceMessage, AgriIntentCategory, AIModelType } from '../types';
 import { translations } from '../data/mockData';
 
-const AI_MODELS = [
-  { id: 'nvidia:meta/llama-3.1-8b-instruct', label: 'Nvidia NIM Llama 8B', icon: '⚡' },
-  { id: 'openrouter/free', label: 'OpenRouter Free Model', icon: '☁️' },
-  { id: 'openai/gpt-4o', label: 'GPT-4o (Vision) [Requires Paid Credits]', icon: '👁️' }
-];
+
 
 interface VoiceAssistantViewProps {
   profile: UserProfile;
@@ -22,7 +18,6 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
   const t = translations[profile.language] || translations.en;
 
   const [selectedLang, setSelectedLang] = useState<Language>(profile.language || 'en');
-  const [selectedModel, setSelectedModel] = useState<AIModelType>('nvidia:meta/llama-3.1-8b-instruct');
   const [editingContext, setEditingContext] = useState(false);
 
   // Farmer Context editable state
@@ -187,7 +182,6 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
         body: JSON.stringify({
           prompt: promptText,
           language: selectedLang,
-          model: selectedModel,
           imageBase64: currentAttached,
           history: messages.slice(-10).map(m => ({
             role: m.sender === 'user' ? 'user' : 'assistant',
@@ -216,14 +210,15 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
         sender: 'assistant',
         intentCategory: data.intentCategory || 'General Agricultural Question',
         text: data.text || 'I have analyzed your query. Follow proper soil aeration and morning irrigation routine.',
-        language: selectedLang,
+        language: data.language || selectedLang,
+        voiceId: data.voice_id || 'female_01',
         actionCard: data.actionCard,
         suggestedFollowups: data.suggestedFollowups,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
 
       setMessages(prev => [...prev, aiMsg]);
-      speakText(aiMsg.text, aiMsg.id);
+      speakText(aiMsg.text, aiMsg.id, aiMsg.language, aiMsg.voiceId);
     } catch (err) {
       console.error('Error in voice assistant:', err);
     } finally {
@@ -263,11 +258,12 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
           const base64Audio = reader.result as string;
           setIsLoading(true);
           try {
-            const whisperLang = selectedLang === 'hi' ? 'hi' : selectedLang === 'ta' ? 'ta' : selectedLang === 'te' ? 'te' : 'en';
-            const res = await fetch('/api/transcribe', {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'voice.webm');
+
+            const res = await fetch('http://localhost:8000/api/stt', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ audioBase64: base64Audio, language: whisperLang })
+              body: formData
             });
             const data = await res.json();
 
@@ -275,7 +271,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
               setInputPrompt(data.transcript);
               handleSendMessage(data.transcript);
             } else {
-              alert(data.error || 'Failed to process voice via Groq Whisper API.');
+              alert(data.error || 'Failed to process voice via custom Edge STT API.');
             }
           } catch (e) {
             console.error('Transcription error:', e);
@@ -294,36 +290,58 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
     }
   };
 
-  // Text-to-Speech Output
-  const speakText = (text: string, msgId: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      if (activeSpeechId === msgId) {
-        setActiveSpeechId(null);
-        return;
-      }
+  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
 
+  // Text-to-Speech Output utilizing local Python TTS Engine (Edge-TTS Multi-language)
+  const speakText = async (text: string, msgId: string, msgLang?: string, voiceId?: string) => {
+
+    // Stop currently playing audio on toggle
+    if (activeSpeechId === msgId && audioRefs.current[msgId]) {
+      audioRefs.current[msgId].pause();
+      setActiveSpeechId(null);
+      return;
+    }
+
+    if (activeSpeechId && audioRefs.current[activeSpeechId]) {
+      audioRefs.current[activeSpeechId].pause();
+    }
+
+    setActiveSpeechId(msgId);
+
+    // Replay if already fetched
+    if (audioRefs.current[msgId]) {
+      audioRefs.current[msgId].currentTime = 0;
+      audioRefs.current[msgId].play();
+      return;
+    }
+
+    try {
+      const formData = new FormData();
       const cleanText = text.replace(/[*#_~`]/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      let targetLang = 'en-US';
+      formData.append('text', cleanText);
+      formData.append('language', msgLang || 'en');
+      formData.append('voice_id', voiceId || 'female_01');
 
-      if (selectedLang === 'ta') targetLang = 'ta-IN';
-      else if (selectedLang === 'hi') targetLang = 'hi-IN';
-      else if (selectedLang === 'te') targetLang = 'te-IN';
+      const res = await fetch('http://localhost:8000/api/tts', {
+        method: 'POST',
+        body: formData
+      });
 
-      utterance.lang = targetLang;
+      if (!res.ok) throw new Error('Python TTS failed');
 
-      const voices = window.speechSynthesis.getVoices();
-      const regionalVoice = voices.find(v => v.lang === targetLang || v.lang.startsWith(targetLang.split('-')[0]));
-      if (regionalVoice) {
-        utterance.voice = regionalVoice;
-      }
+      const audioBlob = await res.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
 
-      utterance.onend = () => setActiveSpeechId(null);
-      utterance.onerror = () => setActiveSpeechId(null);
+      audio.onended = () => setActiveSpeechId(null);
+      audio.onerror = () => setActiveSpeechId(null);
 
-      setActiveSpeechId(msgId);
-      window.speechSynthesis.speak(utterance);
+      audioRefs.current[msgId] = audio;
+      audio.play();
+
+    } catch (e) {
+      console.error("TTS Python Error: ", e);
+      setActiveSpeechId(null);
     }
   };
 
@@ -348,7 +366,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                 <h2 className="text-lg font-black text-white">AgriVeda Voice AI Assistant</h2>
                 <div className="flex items-center gap-2">
                   <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 border border-emerald-400/40 shadow-xs">
-                    Multi-Model Engine Enabled
+                    Gemma Vision Engine Enabled
                   </span>
                 </div>
               </div>
@@ -556,26 +574,6 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
             ))}
           </div>
 
-          <div className="mt-2 pt-2 border-t border-slate-700/50">
-            <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 shrink-0 mb-1.5">
-              <Sparkles className="w-3 h-3 text-cyan-400" /> Active AI Model:
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              {AI_MODELS.map(modelObj => (
-                <button
-                  key={modelObj.id}
-                  onClick={() => setSelectedModel(modelObj.id as AIModelType)}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all flex items-center gap-1.5 border ${selectedModel === modelObj.id
-                    ? 'bg-gradient-to-br from-cyan-900 to-teal-900 border-cyan-500 text-cyan-100 shadow-md ring-1 ring-cyan-500/50'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:border-slate-600'
-                    }`}
-                >
-                  <span className="text-xs">{modelObj.icon}</span>
-                  {modelObj.label}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -727,7 +725,7 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-[10px] text-slate-400 font-bold uppercase">AgriVeda Speech Engine</span>
                   <button
-                    onClick={() => speakText(msg.text, msg.id)}
+                    onClick={() => speakText(msg.text, msg.id, msg.language, msg.voiceId)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${activeSpeechId === msg.id
                       ? 'bg-amber-500 text-white shadow-md animate-pulse'
                       : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/70'

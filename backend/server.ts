@@ -44,10 +44,6 @@ export const verifySupabaseToken = (req: express.Request, res: express.Response,
 
 // Initialize Gemini-compatible Client over OpenRouter
 const getGeminiAi = () => {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
   return {
     models: {
       generateContent: async (params: any) => {
@@ -66,6 +62,9 @@ const getGeminiAi = () => {
         let userContent: any[] = [];
         let isJson = params.config?.responseMimeType === 'application/json' || !!params.config?.responseSchema;
         let requiresFormatHint = isJson ? '\n\nIMPORTANT: Return ONLY valid JSON.' : '';
+        if (params.config?.responseSchema) {
+          requiresFormatHint += `\nThe JSON MUST conform to this schema: ${JSON.stringify(params.config.responseSchema)}`;
+        }
 
         if (typeof params.contents === 'string') {
           userContent.push({ type: 'text', text: params.contents + requiresFormatHint });
@@ -88,20 +87,46 @@ const getGeminiAi = () => {
         messages.push({ role: 'user', content: userContent });
 
         // Use the model provided in params, fallback to gpt-4o
-        const model = params.model || 'openai/gpt-4o';
+        const rawModel = params.model || 'openai/gpt-4o';
 
-        const fetchRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        // Delegate to Genuine Google SDK if the user requests a true Gemini model
+        if ((rawModel.startsWith('gemini') || rawModel.startsWith('google/gemini')) && process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'MY_GEMINI_API_KEY') {
+          const geminiSdk = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+          const properModelStr = rawModel.replace('google/', ''); // Strip 'google/' if present
+          return geminiSdk.models.generateContent({
+            model: properModelStr,
+            contents: params.contents,
+            config: params.config
+          });
+        }
+
+        const isNvidia = rawModel.startsWith('nvidia:');
+        const model = isNvidia ? rawModel.replace('nvidia:', '') : rawModel;
+
+        const endpoint = isNvidia
+          ? 'https://integrate.api.nvidia.com/v1/chat/completions'
+          : 'https://openrouter.ai/api/v1/chat/completions';
+
+        const authKey = isNvidia ? process.env.NVIDIA_API_KEY : process.env.OPENROUTER_API_KEY;
+
+        const headers: any = {
+          'Authorization': `Bearer ${authKey}`,
+          'Content-Type': 'application/json',
+        };
+
+        if (!isNvidia) {
+          headers['HTTP-Referer'] = process.env.APP_URL || 'http://localhost:3000';
+          headers['X-Title'] = 'AgriVeda AI';
+        }
+
+        const fetchRes = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'HTTP-Referer': process.env.APP_URL || 'http://localhost:3000',
-            'X-Title': 'AgriVeda AI',
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             model,
             messages,
-            temperature: 0.5
+            temperature: 0.5,
+            max_tokens: 1024
           }),
         });
 
@@ -143,6 +168,7 @@ const callGroqAi = async ({
       model: actualModel,
       messages,
       temperature,
+      max_tokens: 1024
     };
     // Nvidia NIM doesn't strictly support json_object in the same way everywhere, but we can pass it
     if (jsonMode && !isNvidia) {
@@ -182,14 +208,24 @@ const callGroqAi = async ({
 
     const data = await res.json();
     return data.choices?.[0]?.message?.content || null;
-  } catch (err) {
-    console.error('OpenRouter API Fetch Error:', err);
-    return null;
+  } catch (err: any) {
+    console.error('OpenRouter/Nvidia API Fetch Error:', err.message || err);
+    throw err;
   }
 };
 
 const extractJson = (text: string | null): any => {
   if (!text) return null;
+  try {
+    // Attempt to isolate the JSON block if the model added conversational filler
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      return JSON.parse(match[0]);
+    }
+  } catch (err) {
+    // try fallback
+  }
+
   let cleaned = text.replace(/```json\s*/ig, '');
   cleaned = cleaned.replace(/```\w*\s*/g, '');
   cleaned = cleaned.replace(/```\s*$/g, '');
@@ -338,7 +374,7 @@ Include:
     parts.push({ text: promptText });
 
     const response = await ai.models.generateContent({
-      model: 'openai/gpt-4o',
+      model: 'nvidia:meta/llama-3.2-90b-vision-instruct',
       contents: { parts },
       config: {
         systemInstruction: 'You are AgriVeda AI, an elite agricultural plant pathologist and agronomist assistant. You output clear, practical JSON for farmers.',
@@ -360,7 +396,7 @@ Include:
       }
     });
 
-    const parsed = JSON.parse(response.text || '{}');
+    const parsed = extractJson(response.text || '{}') || {};
 
     return res.json({
       id: `report-${Date.now()}`,
@@ -386,10 +422,9 @@ Include:
   }
 });
 
-// 2. API Route: Voice / Chat Assistant (End-to-End Multimodal)
 app.post('/api/voice-assistant', async (req, res) => {
   try {
-    const { prompt, language = 'en', context, imageBase64, model = 'llama-3.3-70b-versatile', history = [] } = req.body;
+    const { prompt, language = 'en', context, imageBase64, model = 'llama3:latest', history = [] } = req.body;
     if (!prompt && !imageBase64) {
       return res.status(400).json({ error: 'Prompt or image is required' });
     }
@@ -447,8 +482,30 @@ app.post('/api/voice-assistant', async (req, res) => {
           language === 'te' ? 'Respond strictly in clear, natural Telugu script (తెలుగు).' :
             'Respond in clear, professional English.';
 
-    const systemPrompt = `You are AgriVeda AI, an elite multilingual agricultural copilot for smallholder and commercial farmers.
-FARMER CONTEXT:
+    const gemmaPromptPath = path.join(process.cwd(), 'backend', 'prompts', 'agriveda_gemma_prompt.md');
+    let baseGemmaPrompt = 'You are AgriVeda AI, an elite multilingual agricultural copilot.';
+    try {
+      const fs = await import('fs');
+      baseGemmaPrompt = fs.readFileSync(gemmaPromptPath, 'utf8');
+    } catch (err) {
+      console.warn('Could not load agriveda_gemma_prompt.md', err);
+    }
+
+    // Live API Data Mock Integration
+    let liveContext = '';
+    if (intentCategory === 'Weather') {
+      // Mock Weather API Call
+      const mockWeather = { temp: 31, humidity: 62, condition: 'Partly Cloudy', rainChance: 15, windSpeed: 12 };
+      liveContext = `\n### LIVE WEATHER API DATA (Current Location: ${userLocation}):\n- Temperature: ${mockWeather.temp}°C\n- Humidity: ${mockWeather.humidity}%\n- Condition: ${mockWeather.condition}\n- Rain Probability: ${mockWeather.rainChance}%\n- Wind Speed: ${mockWeather.windSpeed} km/h\nUse this data to answer accurately.`;
+    } else if (intentCategory === 'Market / Mandi') {
+      // Mock Market API Call
+      const mockMarket = { priceQuintal: 3500, quality: 'Premium', trend: '+5% compared to yesterday', nearestMandi: 'Vellore Main APMC' };
+      liveContext = `\n### LIVE MARKET API DATA (Crop: ${userCrop}, Location: ${userLocation}):\n- Nearest Mandi: ${mockMarket.nearestMandi}\n- Current Price: ₹${mockMarket.priceQuintal} / Quintal\n- Quality: ${mockMarket.quality}\n- Market Trend: ${mockMarket.trend}\nUse this data to answer accurately.`;
+    }
+
+    const systemPrompt = `${baseGemmaPrompt}
+---
+### FARMER CONTEXT:
 - Farmer Name: ${userName}
 - Crop: ${userCrop}
 - Crop Variety: ${userVariety}
@@ -461,89 +518,58 @@ FARMER CONTEXT:
 - Seed Variety: ${userSeedVariety}
 - Seed Bank: ${userSeedBank}
 
-RULES FOR RESPONSE STRUCTURE:
-1. FIRST understand intent and classify query into one of these 15 categories:
-   ['Crop Management', 'Disease / Pest', 'Soil', 'Fertilizer', 'Irrigation', 'Weather', 'Crop Calendar', 'Seed Information', 'Seed Bank', 'Market / Mandi', 'Agricultural Expert', 'Vendor / Product', 'B2B', 'B2C', 'General Agricultural Question']
+${liveContext}
 
-2. If important context is missing (e.g. crop stage or image of yellow leaves):
-   Ask a short targeted clarification question, but also provide an initial plausible explanation.
-
-3. FOR FARMING/AGRONOMY QUESTIONS, use this format:
-   🌾 Crop: ...
-   📅 Crop Stage: ... (Ask for sowing/transplanting date if unavailable)
-   💧 Recommendation: ...
-   📋 Action: ...
-   ⚠️ Important: Mention that fertilizer recommendations depend on soil test, variety, crop stage and local agricultural recommendations.
-
-4. FOR DISEASE DIAGNOSIS (when image/symptoms presented):
-   🌱 Crop: ...
-   🔍 Possible Disease: ...
-   📊 Confidence: ... (If confidence low: "I need a clearer image of the leaf/stem/fruit to make a better assessment.")
-   🧪 Possible Cause: ...
-   🌿 Recommended Management: (Organic / low-risk options, advice to follow product label & local expert guidance)
-   🛡️ Prevention: ...
-
-5. FOR WEATHER QUESTIONS:
-   🌦️ Weather Risk: Low / Medium / High
-   🚜 Recommendation: Suitable / Not recommended
-   ⏰ Better Window: ...
-   ⚠️ Reason: ... (Never invent weather data)
-
-6. FOR SMART CROP CALENDAR:
-   🌱 Stage 1
-   🌿 Stage 2
-   🌾 Stage 3
-   🌻 Stage 4
-   🚜 Harvest
-
-7. FOR SEED BANK QUESTIONS:
-   🌱 Seed Variety
-   📦 Available Quantity
-   📍 Seed Bank Location
-   🌾 Crop Type
-   📅 Storage Information
-   🟢 Availability
-   🌡️ Storage Condition
-   📞 Contact / Exchange Request
-
-LANGUAGE INSTRUCTION: ${langInstruction}`;
+### LANGUAGE INSTRUCTION: ${langInstruction}`;
 
     const userPromptText = prompt || 'Analyze farmer query for crop context and provide actionable guidance.';
     let groqRes = null;
 
-    // Decide which implementation to use based on the model provided
-    let activeModel = model;
-    if (imageBase64 && (model.includes('gemma') || activeModel.includes('llama') || activeModel.includes('openrouter/free'))) {
-      activeModel = 'openai/gpt-4o'; // fallback to gpt-4o for vision
-    }
-    const isGeminiModel = activeModel.startsWith('gemini') || activeModel.startsWith('google');
+    let activeModel = model || 'llama3:latest';
+    if (imageBase64) activeModel = 'llava:latest'; // standard ollama vision model
+    const isGeminiModel = false;
 
-    if (!isGeminiModel) {
-      try {
-        groqRes = await callGroqAi({
-          model: activeModel,
-          messages: [
-            {
-              role: 'system',
-              content: `${systemPrompt}\n\nProvide response in JSON format with keys: intentCategory (string), text (string), hasActionCard (boolean), actionType (string optional), actionTitle (string optional), actionDetails (string optional), suggestedFollowups (array of strings).`
-            },
-            ...history,
-            {
-              role: 'user',
-              content: `Farmer Question: "${userPromptText}"`
-            }
-          ],
-          jsonMode: true
-        });
-      } catch (err: any) {
-        if (err.message.includes('402')) {
-          return res.json({
-            intentCategory: 'General Agricultural Question',
-            text: '⚠️ **AI Engine Offline:** Your OpenRouter API Key has insufficient credits (402 Payment Required). Please top-up your OpenRouter account.',
-            suggestedFollowups: []
-          });
-        }
+    // TRUE LOCAL EXECUTION (OLLAMA API)
+    try {
+      const payload: any = {
+        model: activeModel,
+        messages: [
+          {
+            role: 'system',
+            content: `${systemPrompt}\n\nProvide response in JSON format with exactly these keys: intentCategory (string), text (string), language (string: ta/hi/te/en), voice_id (string: female_01/male_01), hasActionCard (boolean), actionType (string optional), actionTitle (string optional), actionDetails (string optional), suggestedFollowups (array of strings).`
+          },
+          ...history,
+          {
+            role: 'user',
+            content: `Farmer Question: "${userPromptText}"`
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 1024,
+        response_format: { type: 'json_object' }
+      };
+
+      if (imageBase64) {
+        payload.messages[payload.messages.length - 1].content = [
+          { type: 'text', text: `Farmer Question: "${userPromptText}"` },
+          { type: 'image_url', image_url: { url: imageBase64 } }
+        ];
       }
+
+      const ollamaReq = await fetch('http://127.0.0.1:11434/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!ollamaReq.ok) {
+        console.error('Ollama Local AI Engine failed:', await ollamaReq.text());
+      } else {
+        const data = await ollamaReq.json();
+        groqRes = data.choices?.[0]?.message?.content || null;
+      }
+    } catch (err: any) {
+      console.error('Local Ollama Connection Error:', err);
     }
 
     if (groqRes) {
@@ -556,12 +582,18 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
         'Explore Community Seed Bank'
       ];
 
+      let fallbackLang = language;
+      let fallbackVoice = 'female_01';
+
       try {
         const parsed = extractJson(groqRes);
         if (!parsed) throw new Error('No JSON detected');
 
         if (parsed.text) responseText = parsed.text;
         if (parsed.intentCategory) intentCat = parsed.intentCategory;
+        if (parsed.language) fallbackLang = parsed.language;
+        if (parsed.voice_id) fallbackVoice = parsed.voice_id;
+
         if (parsed.hasActionCard && parsed.actionType) {
           actionCardObj = {
             type: parsed.actionType,
@@ -577,21 +609,27 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
           followupsArr = parsed.suggestedFollowups;
         }
       } catch (e) {
-        // Groq returned text directly - use it!
+        // Groq returned text directly - aggressively strip it down for the voice engine so it doesn't read JSON
         responseText = groqRes.replace(/```json\s*/ig, '').replace(/```\s*$/g, '').trim();
+        // If it starts with a bracket and fails JSON parse (likely cut off), artificially clean it for playback
+        if (responseText.startsWith('{')) {
+          const textMatch = responseText.match(/"text"\s*:\s*"([^"]+)"/);
+          if (textMatch) responseText = textMatch[1];
+        }
       }
 
       return res.json({
         intentCategory: intentCat,
         text: responseText,
+        language: fallbackLang,
+        voice_id: fallbackVoice,
         actionCard: actionCardObj,
         suggestedFollowups: followupsArr
       });
     } else if (!isGeminiModel) {
-      // User explicitly requested an OpenRouter model, but it returned null
       return res.json({
         intentCategory: 'General Agricultural Question',
-        text: '⚠️ **AI Engine Offline:** Your `.env` file is missing a valid `OPENROUTER_API_KEY`. Please check your configuration.',
+        text: `⚠️ **Local Engine Offline:** Your local Ollama instance on port 11434 is not running or the model failed to generate. Please ensure you ran 'ollama run gemma4:latest'.`,
         suggestedFollowups: []
       });
     }
@@ -771,13 +809,18 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
           properties: {
             intentCategory: { type: Type.STRING },
             text: { type: Type.STRING },
+            language: { type: Type.STRING, description: 'ta, hi, te, en' },
+            voice_id: { type: Type.STRING, description: 'TTS voice selection' },
+            voice_style: { type: Type.STRING },
+            safety_level: { type: Type.STRING },
+            requires_live_data: { type: Type.BOOLEAN },
             hasActionCard: { type: Type.BOOLEAN },
             actionType: { type: Type.STRING }, // 'fertilizer' | 'weather' | 'market' | 'diagnosis' | 'seedbank' | 'crop_calendar'
             actionTitle: { type: Type.STRING },
             actionDetails: { type: Type.STRING },
             suggestedFollowups: { type: Type.ARRAY, items: { type: Type.STRING } }
           },
-          required: ['intentCategory', 'text', 'hasActionCard', 'suggestedFollowups']
+          required: ['intentCategory', 'text', 'language', 'hasActionCard', 'suggestedFollowups']
         }
       }
     });
@@ -799,6 +842,10 @@ LANGUAGE INSTRUCTION: ${langInstruction}`;
     return res.json({
       intentCategory: parsed.intentCategory || intentCategory,
       text: parsed.text || 'I have analyzed your query. Ensure adequate soil aeration and optimal irrigation schedule.',
+      language: parsed.language || language,
+      voice_id: parsed.voice_id || 'female_01',
+      voice_style: parsed.voice_style || 'friendly',
+      safety_level: parsed.safety_level || 'normal',
       actionCard,
       suggestedFollowups: parsed.suggestedFollowups || [
         'Calculate fertilizer dosage',

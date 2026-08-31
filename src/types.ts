@@ -877,6 +877,7 @@ export interface VoiceMessage {
   language: Language;
   intentCategory?: AgriIntentCategory;
   audioUrl?: string;
+  voiceId?: string;
   attachedImage?: string;
   timestamp: string;
   actionCard?: {

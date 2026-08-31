@@ -272,19 +272,57 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
                   onChange={e => setCropType(e.target.value)}
                   className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
                 >
-                  <option value="Paddy / Rice">Paddy / Rice</option>
-                  <option value="Ragi / Finger Millet">Ragi / Finger Millet</option>
-                  <option value="Sorghum / Cholam Millet">Sorghum / Cholam Millet</option>
-                  <option value="Moong Dal / Green Gram">Moong Dal / Green Gram</option>
-                  <option value="Black Gram / Urad Dal">Black Gram / Urad Dal</option>
-                  <option value="Groundnut / Peanut">Groundnut / Peanut</option>
-                  <option value="Tomato">Tomato</option>
-                  <option value="Chilli">Chilli</option>
-                  <option value="Cotton">Cotton</option>
-                  <option value="Wheat">Wheat</option>
-                  <option value="Sugarcane">Sugarcane</option>
-                  <option value="Brinjal">Brinjal / Eggplant</option>
-                  <option value="Onion">Onion</option>
+                  <optgroup label="Cereals & Grains">
+                    <option value="Paddy / Rice">Paddy / Rice</option>
+                    <option value="Wheat">Wheat</option>
+                    <option value="Maize / Corn">Maize / Corn</option>
+                    <option value="Barley">Barley</option>
+                  </optgroup>
+                  <optgroup label="Millets">
+                    <option value="Ragi / Finger Millet">Ragi / Finger Millet</option>
+                    <option value="Sorghum / Jowar / Cholam">Sorghum / Jowar</option>
+                    <option value="Pearl Millet / Bajra">Pearl Millet / Bajra</option>
+                    <option value="Foxtail Millet">Foxtail Millet</option>
+                    <option value="Little Millet">Little Millet</option>
+                    <option value="Barnyard Millet">Barnyard Millet</option>
+                  </optgroup>
+                  <optgroup label="Pulses & Legumes">
+                    <option value="Moong Dal / Green Gram">Moong Dal / Green Gram</option>
+                    <option value="Black Gram / Urad Dal">Black Gram / Urad Dal</option>
+                    <option value="Chickpea / Bengal Gram">Chickpea / Bengal Gram</option>
+                    <option value="Pigeon Pea / Toor Dal">Pigeon Pea / Toor Dal</option>
+                    <option value="Cowpea / Karamani">Cowpea / Karamani</option>
+                  </optgroup>
+                  <optgroup label="Vegetables">
+                    <option value="Tomato">Tomato</option>
+                    <option value="Chilli / Peppers">Chilli / Peppers</option>
+                    <option value="Brinjal / Eggplant">Brinjal / Eggplant</option>
+                    <option value="Onion">Onion</option>
+                    <option value="Potato">Potato</option>
+                    <option value="Cabbage">Cabbage</option>
+                    <option value="Cauliflower">Cauliflower</option>
+                    <option value="Okra / Lady's Finger">Okra / Lady's Finger</option>
+                    <option value="Carrot">Carrot</option>
+                    <option value="Radish">Radish</option>
+                    <option value="Spinach / Keerai">Spinach / Keerai</option>
+                  </optgroup>
+                  <optgroup label="Fruits">
+                    <option value="Mango">Mango</option>
+                    <option value="Banana">Banana</option>
+                    <option value="Papaya">Papaya</option>
+                    <option value="Guava">Guava</option>
+                    <option value="Citrus / Lemon">Citrus / Lemon</option>
+                    <option value="Watermelon">Watermelon</option>
+                  </optgroup>
+                  <optgroup label="Cash Crops & Oilseeds">
+                    <option value="Cotton">Cotton</option>
+                    <option value="Sugarcane">Sugarcane</option>
+                    <option value="Groundnut / Peanut">Groundnut / Peanut</option>
+                    <option value="Sunflower">Sunflower</option>
+                    <option value="Mustard">Mustard</option>
+                    <option value="Turmeric">Turmeric</option>
+                    <option value="Ginger">Ginger</option>
+                  </optgroup>
                 </select>
               </div>
 

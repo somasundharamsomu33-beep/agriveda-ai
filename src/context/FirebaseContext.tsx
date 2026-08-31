@@ -89,6 +89,9 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       } else {
         setLoading(false);
       }
+    }).catch(err => {
+      console.warn('Supabase local bypass (mock mode):', err.message);
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -188,7 +191,7 @@ export const SupabaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     AuthService.clearCurrentSession();
     try {
       await supabase.auth.signOut();
-    } catch (e) {}
+    } catch (e) { }
     setProfile(guestUserProfile);
   };
 

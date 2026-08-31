@@ -8,8 +8,6 @@ import { UserProfile, UserRole, Language, ActiveTab } from '../types';
 import { translations } from '../data/mockData';
 import { useFirebase } from '../context/FirebaseContext';
 import { signInWithOAuth } from '../lib/supabase';
-import { auth, googleProvider } from '../lib/firebase';
-import { signInWithPopup } from 'firebase/auth';
 import { AgriLogo } from './ui/AgriLogo';
 import { AuthService, SEEDED_ACCOUNTS } from '../lib/authService';
 
@@ -239,76 +237,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     setErrorMsg('');
     try {
-      // First attempt Firebase Google Popup
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
-      if (!user || !user.email) {
-        throw new Error('No user data returned from Google Provider.');
+      if (import.meta.env.VITE_SUPABASE_ANON_KEY?.startsWith('your-')) {
+        setErrorMsg('Setup Required: Please paste your real Supabase Anon Key into the .env file to enable Google Login.');
+        return;
       }
-
-      const newProfile: UserProfile = {
-        name: user.displayName || 'Google User',
-        firstName: user.displayName?.split(' ')[0] || 'User',
-        secondName: user.displayName?.split(' ').slice(1).join(' ') || '',
-        phone: user.phoneNumber || '+91 98765 43210',
-        email: user.email,
-        avatarUrl: user.photoURL || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
-        language: selectedLanguage,
-        role: selectedRole,
-        location: 'Tamil Nadu, India',
-        farmId: `FARM-${Math.floor(10000 + Math.random() * 90000)}`,
-        farmSizeAcres: 2.5,
-        primaryCrop: 'Paddy / Rice',
-        soilType: 'Red Loamy Soil',
-        verificationStatus: 'IDENTITY_VERIFIED',
-        isAuthenticated: true
-      };
-
-      setProfile(newProfile);
-      AuthService.saveCurrentSession(newProfile);
-
-      setSuccessMsg(`Welcome, ${user.displayName || user.email}! Authenticated successfully via Google.`);
-      setCurrentScreen('success');
-
-      setTimeout(() => {
-        setSuccessMsg('');
-        onClose();
-        if (setActiveTab) {
-          if (selectedRole === 'farmer') setActiveTab('home');
-          else if (selectedRole === 'loan-officer' || selectedRole === 'researcher' || selectedRole === 'institute') setActiveTab('maps');
-          else if (selectedRole === 'vendor' || selectedRole === 'retail_vendor' || selectedRole === 'wholesale_vendor') setActiveTab('marketplace');
-          else if (selectedRole === 'agronomist') setActiveTab('community');
-          else if (selectedRole === 'business') setActiveTab('mapcn');
-          else setActiveTab('home');
-        }
-      }, 900);
+      await signInWithOAuth('google');
+      // The browser will securely redirect to the Google Login page now.
     } catch (err: any) {
-      console.error('Google Auth Error:', err);
-      if (err.code === 'auth/popup-closed-by-user') {
-        setErrorMsg('Google Sign-in was cancelled by closing the authentication popup window.');
-      } else if (err.code === 'auth/popup-blocked') {
-        setErrorMsg('Google Sign-in popup was blocked by your browser. Please allow popups or use Mobile/Password.');
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setErrorMsg('Domain is not authorized for Google OAuth in Firebase Console. Please use your Mobile & Password.');
-      } else if (err.code === 'auth/invalid-api-key' || err.code === 'auth/api-key-not-valid' || (err.message && err.message.includes('API key'))) {
-        setErrorMsg('Google OAuth requires production Google Client credentials. Please use your Email / Mobile & Password to sign in.');
-      } else {
-        setErrorMsg(`Google Authentication Failed: ${err?.message || 'Unable to authenticate'}. Please use your registered Mobile & Password.`);
-      }
+      console.error('SUPABASE GOOGLE AUTH ERROR:', err);
+      setErrorMsg(`Google Auth failed: ${err?.message || 'Check your Supabase URL in .env'}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGithubAuth = async () => {
+    setIsLoading(true);
+    setErrorMsg('');
     try {
-      setErrorMsg('');
+      if (import.meta.env.VITE_SUPABASE_ANON_KEY?.startsWith('your-')) {
+        setErrorMsg('Setup Required: Please paste your real Supabase Anon Key into the .env file to enable GitHub Login.');
+        return;
+      }
       await signInWithOAuth('github');
-      // The browser will redirect to Supabase /auth/v1/oauth/authorize here.
+      // The browser will securely redirect to the GitHub Login page now.
     } catch (err: any) {
-      console.error('SUPABASE AUTH ERROR:', err);
-      setErrorMsg(`Auth failed: ${err?.message || 'Check your Anon Key in .env'}`);
+      console.error('SUPABASE GITHUB AUTH ERROR:', err);
+      setErrorMsg(`GitHub Auth failed: ${err?.message || 'Check your Supabase URL in .env'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -532,8 +489,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             setErrorMsg('');
                           }}
                           className={`px-2 py-1.5 rounded-xl text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition-all border ${isSel
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20'
-                              : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-500/20'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                             }`}
                         >
                           <Icon className="w-3.5 h-3.5" />

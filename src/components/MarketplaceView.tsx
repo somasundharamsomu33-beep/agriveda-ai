@@ -442,24 +442,21 @@ export const MarketplaceView: React.FC<{ profile: UserProfile; userId?: string }
   return (
     <div className="space-y-6 pb-20 max-w-6xl mx-auto">
       
-      {/* Top Framer Ambient Header */}
+      {/* Top Header Banner */}
       <motion.section 
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 text-white p-6 sm:p-8 shadow-2xl overflow-hidden relative border border-slate-800/80"
+        className="rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl relative overflow-hidden border border-emerald-800"
       >
-        <div className="absolute -right-10 -bottom-10 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-10 -top-10 w-60 h-60 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        
         <div className="relative z-10 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 backdrop-blur-md">
-                <Handshake className="w-3.5 h-3.5 text-emerald-400" /> Framer Multi-Role Trade Engine
+              <span className="px-3 py-1 text-[11px] font-black uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5">
+                <Handshake className="w-3.5 h-3.5 text-amber-300" /> Direct Farm Marketplace
               </span>
-              <span className="px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 backdrop-blur-md">
-                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" /> Certified Direct Sourcing
+              <span className="px-3 py-1 text-[11px] font-black uppercase tracking-wider rounded-full bg-emerald-800 text-emerald-100 border border-emerald-700 flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" /> Verified Seeds & Inputs
               </span>
             </div>
 

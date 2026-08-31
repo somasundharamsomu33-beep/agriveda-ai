@@ -639,11 +639,11 @@ export const MapsView: React.FC<MapsViewProps> = ({
   const roleCategories = [
     {
       id: "farmer" as AgriRoleCategory,
-      label: "Farmer Portal",
-      sub: "Loans, Schemes & Branches",
+      label: "My Farm Map",
+      sub: "Loans, Schemes & Field GIS",
       icon: Sprout,
       color: "from-emerald-500 to-green-600",
-      activeBg: "bg-emerald-600 text-white shadow-emerald-500/20",
+      activeBg: "bg-emerald-700 text-white shadow-emerald-700/20",
     },
     {
       id: "loan-officer" as AgriRoleCategory,

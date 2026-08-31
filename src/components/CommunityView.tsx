@@ -87,26 +87,27 @@ export const CommunityView: React.FC<CommunityViewProps> = ({ profile }) => {
     <div className="space-y-5 pb-24 animate-in fade-in max-w-2xl mx-auto">
       
       {/* Header Banner */}
-      <div className="bg-slate-900 text-white rounded-2xl p-5 shadow-sm border border-slate-800 space-y-3">
+      <div className="bg-gradient-to-br from-emerald-900 via-emerald-950 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-emerald-800 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center shadow-sm">
-              <Users className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-2xl bg-emerald-700 text-white font-bold flex items-center justify-center shadow-md">
+              <Users className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">{t.agriCommunity}</h2>
-              <p className="text-xs text-slate-400">Connect, share advice &amp; real-time photos with verified agronomists</p>
+              <h2 className="text-xl font-black text-white">{t.agriCommunity || 'Farmer Community Forum'}</h2>
+              <p className="text-xs text-emerald-200/90 font-medium">Connect, ask questions & share photo advice with local agronomists</p>
             </div>
           </div>
 
           <button
             onClick={() => setShowAskModal(true)}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 transition-all transform active:scale-95 shrink-0"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Ask &amp; Share</span>
+            <span>Ask Question</span>
           </button>
         </div>
+      </div>
 
         {/* Search & Filter Bar */}
         <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row gap-2.5">
@@ -129,7 +130,6 @@ export const CommunityView: React.FC<CommunityViewProps> = ({ profile }) => {
             )}
           </div>
         </div>
-      </div>
 
       {/* Crop Filter Pills */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">

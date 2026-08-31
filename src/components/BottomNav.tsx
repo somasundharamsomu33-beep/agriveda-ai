@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Calendar, Camera, ShoppingBasket, Mic, Users, User, TrendingUp, MapPin } from 'lucide-react';
+import { Home, Calendar, Camera, Mic, MapPin, TrendingUp, User, Users } from 'lucide-react';
 import { ActiveTab, Language } from '../types';
 import { translations } from '../data/mockData';
 
@@ -17,19 +17,17 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   const t = translations[language] || translations.en;
 
   const navItems = [
-    { id: 'home' as ActiveTab, label: 'Home', icon: Home },
-    { id: 'calendar' as ActiveTab, label: 'Calendar', icon: Calendar },
-    { id: 'mapcn' as ActiveTab, label: t.mapcn || 'Market', icon: TrendingUp },
-    { id: 'maps' as ActiveTab, label: t.maps || 'Maps', icon: MapPin },
-    { id: 'scan' as ActiveTab, label: 'Scan AI', icon: Camera, isCenter: true },
-    { id: 'assistant' as ActiveTab, label: 'Voice AI', icon: Mic },
-    { id: 'community' as ActiveTab, label: 'Community', icon: Users },
-    { id: 'profile' as ActiveTab, label: 'Profile', icon: User },
+    { id: 'home' as ActiveTab, label: t.navHome || 'Home', icon: Home },
+    { id: 'maps' as ActiveTab, label: t.myFarmMap || 'My Farm', icon: MapPin },
+    { id: 'scan' as ActiveTab, label: t.cropDoctor || 'Crop Doctor', icon: Camera, isCenter: true },
+    { id: 'market' as ActiveTab, label: t.marketPrices || 'Market', icon: TrendingUp },
+    { id: 'assistant' as ActiveTab, label: t.askAgriVeda || 'Ask AI', icon: Mic },
+    { id: 'profile' as ActiveTab, label: t.profile || 'Profile', icon: User },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 shadow-xl px-2 py-1.5 sm:py-2">
-      <div className="max-w-xl mx-auto flex items-center justify-around">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-emerald-950/95 backdrop-blur-lg border-t border-emerald-800/60 shadow-2xl px-2 py-1.5 sm:py-2">
+      <div className="max-w-md mx-auto flex items-center justify-between px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -39,23 +37,23 @@ export const BottomNav: React.FC<BottomNavProps> = ({
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="relative -top-4 flex flex-col items-center group focus:outline-none"
+                className="relative -top-5 flex flex-col items-center group focus:outline-none cursor-pointer"
               >
                 <div
-                  className={`w-13 h-13 rounded-xl flex items-center justify-center shadow-lg transition-all transform group-active:scale-95 ${
+                  className={`w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all transform group-active:scale-95 border-2 border-amber-300 ${
                     isActive
-                      ? 'bg-blue-600 text-white ring-4 ring-blue-500/20 scale-105'
-                      : 'bg-blue-600 text-white hover:bg-blue-700 ring-4 ring-slate-900'
+                      ? 'bg-emerald-600 text-white ring-4 ring-emerald-500/40 scale-105'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-500 ring-4 ring-emerald-950'
                   }`}
                 >
-                  <Camera className="w-6 h-6" />
+                  <Camera className="w-7 h-7 text-white" />
                 </div>
                 <span
-                  className={`text-[10px] font-bold mt-1 tracking-tight ${
-                    isActive ? 'text-blue-400 font-bold' : 'text-slate-400'
+                  className={`text-[10px] font-black mt-1 tracking-tight px-2 py-0.5 rounded-full ${
+                    isActive ? 'bg-amber-400 text-slate-950' : 'text-emerald-200'
                   }`}
                 >
-                  {t.scanCrop}
+                  {t.scanCrop || 'Scan Crop'}
                 </span>
               </button>
             );
@@ -65,14 +63,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center py-1.5 px-2 rounded-lg transition-all ${
+              className={`flex flex-col items-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
                 isActive
-                  ? 'text-blue-400 font-bold bg-white/10'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'text-amber-300 font-extrabold bg-emerald-900/80 border border-emerald-700/50'
+                  : 'text-emerald-200/80 hover:text-white hover:bg-emerald-900/40'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'stroke-[2.5px] text-blue-400' : 'stroke-2'}`} />
-              <span className="text-[10px] tracking-tight mt-1 font-medium leading-none">
+              <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px] text-amber-300' : 'stroke-2 text-emerald-300'}`} />
+              <span className="text-[10px] tracking-tight mt-1 font-bold leading-none">
                 {item.label}
               </span>
             </button>

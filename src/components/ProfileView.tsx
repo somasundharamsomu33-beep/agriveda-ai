@@ -379,9 +379,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       )}
 
       {/* Profile Overview Card */}
-      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/60 text-white rounded-3xl p-6 shadow-xl border border-slate-800 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
+      <div className="bg-gradient-to-br from-emerald-900 via-emerald-950 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-emerald-800 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center gap-5 relative z-10">
           <img
             src={profile.avatarUrl}
@@ -392,8 +390,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           <div className="flex-1 text-center sm:text-left min-w-0">
             <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
               <h3 className="text-xl font-black text-white truncate">{profile.name}</h3>
-              <span className="px-2.5 py-0.5 text-[10px] font-black uppercase rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                Verified Farmer
+              <span className="px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                Verified Kisan Passport
               </span>
             </div>
 

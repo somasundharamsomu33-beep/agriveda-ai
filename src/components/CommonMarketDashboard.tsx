@@ -2,18 +2,16 @@ import React, { useState } from 'react';
 import { 
   TrendingUp, MapPin, Store, ArrowUpRight, ArrowDownRight, Sparkles, Building2, 
   Handshake, Users, ShoppingBasket, Filter, Search, Scale, ChevronRight, RefreshCw, 
-  CheckCircle2, AlertCircle, ShieldCheck, Zap, DollarSign, Calendar, BarChart2, Tag
+  CheckCircle2, AlertCircle, ShieldCheck, Zap, DollarSign, Calendar, BarChart2, Tag, ArrowRight
 } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { UserProfile, MarketPriceItem } from '../types';
-import { sampleMarketPrices } from '../data/mockData';
 
 interface CommonMarketDashboardProps {
   profile: UserProfile;
   onNavigateToMarketplace?: () => void;
 }
 
-// Expanded Universal Commodity Mandi Data (All Regions & Categories)
 const universalMarketData: (MarketPriceItem & { category: string; state: string; minQty: string; tradeMode: 'B2B' | 'B2C' | 'Both' })[] = [
   {
     id: 'm-paddy-seeraga',
@@ -153,341 +151,204 @@ const universalMarketData: (MarketPriceItem & { category: string; state: string;
       { date: '20 Aug', price: 186 },
       { date: '21 Aug', price: 185 },
     ],
-    aiAdvice: '🌶️ Temporary price dip due to heavy arrival at Guntur. Expected to recover by 10-15% next month. Hold cold storage stocks.'
-  },
-  {
-    id: 'm-cotton',
-    cropName: 'Cotton (Long Staple Fiber)',
-    category: 'Spices',
-    state: 'Tamil Nadu',
-    currentPrice: 62,
-    priceChange: 3.0,
-    percentageChange: 5.0,
-    unit: 'kg',
-    bestMarket: 'Coimbatore Textile Mill Market',
-    minQty: '100 kg (B2B)',
-    tradeMode: 'B2B',
-    regionalMarkets: [
-      { marketName: 'Coimbatore Market', price: 64, distanceKm: 280, isBest: true },
-      { marketName: 'Vellore Co-op', price: 62, distanceKm: 15 },
-    ],
-    priceHistory: [
-      { date: '15 Aug', price: 58 },
-      { date: '16 Aug', price: 59 },
-      { date: '17 Aug', price: 59 },
-      { date: '18 Aug', price: 60 },
-      { date: '19 Aug', price: 61 },
-      { date: '20 Aug', price: 61.5 },
-      { date: '21 Aug', price: 62 },
-    ],
-    aiAdvice: '🧵 Textile mills buying actively. Ensure lint is free of leaf trash for Grade-A pricing bonus.'
+    aiAdvice: '🌶️ Slight price dip due to fresh Guntur arrivals. Hold high-grade sun-dried chilli for 2 weeks until festival trading picks up.'
   }
 ];
 
-export const CommonMarketDashboard: React.FC<CommonMarketDashboardProps> = ({ profile, onNavigateToMarketplace }) => {
-  const [selectedCropId, setSelectedCropId] = useState('m-paddy-seeraga');
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [searchFilter, setSearchFilter] = useState('');
+export const CommonMarketDashboard: React.FC<CommonMarketDashboardProps> = ({
+  profile,
+  onNavigateToMarketplace
+}) => {
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCrop, setSelectedCrop] = useState<typeof universalMarketData[0]>(universalMarketData[3]);
 
-  const selectedItem = universalMarketData.find(item => item.id === selectedCropId) || universalMarketData[0];
+  const categories = ['All', 'Grains & Millets', 'Pulses', 'Vegetables', 'Spices'];
 
   const filteredItems = universalMarketData.filter(item => {
-    const matchCat = activeCategory === 'All' || item.category === activeCategory;
-    const matchQuery = item.cropName.toLowerCase().includes(searchFilter.toLowerCase()) || item.bestMarket.toLowerCase().includes(searchFilter.toLowerCase());
-    return matchCat && matchQuery;
+    const matchesCat = selectedCategory === 'All' || item.category === selectedCategory;
+    const matchesSearch = item.cropName.toLowerCase().includes(searchQuery.toLowerCase()) || item.bestMarket.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCat && matchesSearch;
   });
 
   return (
-    <div className="space-y-6 pb-24 animate-in fade-in max-w-6xl mx-auto">
-      
-      {/* Universal Dashboard Banner */}
-      <section className="rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 text-white p-6 sm:p-8 shadow-2xl overflow-hidden relative border border-slate-800 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 flex items-center justify-center font-black text-xl shadow-lg ring-4 ring-emerald-500/20">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-black text-white">Universal Common Market Dashboard</h1>
-                <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Live Mandi + B2B + B2C
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 font-medium">For Farmers, Wholesale Vendors, B2B Traders, and Retail Buyers across India</p>
-            </div>
-          </div>
+    <div className="space-y-6 pb-24 animate-in fade-in max-w-4xl mx-auto">
 
-          {onNavigateToMarketplace && (
-            <button
-              onClick={onNavigateToMarketplace}
-              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-2 shadow-md transition-all"
-            >
-              <Store className="w-4 h-4" />
-              <span>Open B2B/B2C Marketplace</span>
-            </button>
-          )}
+      {/* Header Banner */}
+      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-emerald-700" />
+            <span>Market Prices • Mandi Quotes</span>
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">
+            Live commodity prices, regional Mandi comparisons, and AI sell-timing recommendations.
+          </p>
         </div>
 
-        {/* Live Mandi Ticker Bar */}
-        <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800/80 overflow-x-auto scrollbar-none flex items-center gap-4 text-xs">
-          <span className="text-[11px] font-black uppercase text-emerald-400 shrink-0 flex items-center gap-1">
-            <Zap className="w-3.5 h-3.5" /> Mandi Ticker:
-          </span>
+        {onNavigateToMarketplace && (
+          <button
+            onClick={onNavigateToMarketplace}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-2xl shadow-sm transition-all self-start sm:self-auto cursor-pointer"
+          >
+            <ShoppingBasket className="w-4 h-4" />
+            <span>Go to Agri Marketplace →</span>
+          </button>
+        )}
+      </div>
 
-          <div className="flex items-center gap-6 whitespace-nowrap">
-            {universalMarketData.map(item => (
-              <div key={item.id} className="flex items-center gap-2 cursor-pointer" onClick={() => setSelectedCropId(item.id)}>
-                <span className="font-bold text-slate-200">{item.cropName.split(' ')[0]}</span>
-                <span className="font-black text-amber-400">₹{item.currentPrice}/{item.unit}</span>
-                <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
-                  item.priceChange >= 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
-                }`}>
-                  {item.priceChange >= 0 ? '▲' : '▼'} {Math.abs(item.percentageChange)}%
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Main Selected Commodity Deep Dive */}
-      <section className="bg-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-800 space-y-6">
-        
-        {/* Commodity Selector Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-            {universalMarketData.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setSelectedCropId(item.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all border ${
-                  selectedCropId === item.id
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-md scale-105'
-                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                }`}
-              >
-                {item.cropName.split(' (')[0]}
-              </button>
-            ))}
-          </div>
-
-          <div className="text-right shrink-0">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Best Mandi Sourcing Hub</span>
-            <span className="text-xs font-black text-emerald-400 flex items-center justify-end gap-1 mt-0.5">
-              <Store className="w-3.5 h-3.5" /> {selectedItem.bestMarket}
-            </span>
-          </div>
+      {/* Search & Category Filter */}
+      <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search crop name (Tomato, Rice, Millet, Chilli)..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-semibold focus:border-emerald-600 outline-none shadow-2xs"
+          />
         </div>
 
-        {/* Selected Commodity Metrics & Trend Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          
-          {/* Price Metrics Left */}
-          <div className="space-y-4 lg:col-span-1">
-            <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider bg-slate-800 text-emerald-300 px-3 py-1 rounded-md border border-slate-700 inline-block">
-                {selectedItem.category} • {selectedItem.state}
-              </span>
-              <h2 className="text-xl font-black text-white">{selectedItem.cropName}</h2>
-            </div>
-
-            <div className="p-4 bg-slate-950/90 rounded-2xl border border-slate-800 space-y-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase">Current Market Rate</span>
-              <div className="flex items-baseline gap-3">
-                <h3 className="text-4xl font-black text-amber-400">
-                  ₹{selectedItem.currentPrice}
-                  <span className="text-sm font-medium text-slate-400">/{selectedItem.unit}</span>
-                </h3>
-
-                <div className={`flex items-center gap-0.5 text-xs font-extrabold px-2.5 py-1 rounded-lg border ${
-                  selectedItem.priceChange >= 0
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                    : 'bg-red-500/20 text-red-300 border-red-500/30'
-                }`}>
-                  {selectedItem.priceChange >= 0 ? <ArrowUpRight className="w-4 h-4 text-emerald-400" /> : <ArrowDownRight className="w-4 h-4 text-red-400" />}
-                  <span>{selectedItem.priceChange >= 0 ? '+' : ''}₹{selectedItem.priceChange} ({selectedItem.percentageChange}%)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-0.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Trade Mode</span>
-                <p className="font-extrabold text-emerald-300">{selectedItem.tradeMode} Exchange</p>
-              </div>
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700/80 space-y-0.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Min Order (MOQ)</span>
-                <p className="font-extrabold text-amber-300">{selectedItem.minQty}</p>
-              </div>
-            </div>
-
-            {/* Groq AI Market Advisory Box */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/90 to-slate-950 border border-emerald-500/30 space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-black">
-                <Sparkles className="w-4 h-4" />
-                <span>Groq AI Harvest &amp; Procurement Advice</span>
-              </div>
-              <p className="text-xs text-emerald-100 font-medium leading-relaxed">
-                {selectedItem.aiAdvice}
-              </p>
-            </div>
-          </div>
-
-          {/* 7-Day Price Recharts Chart Right */}
-          <div className="lg:col-span-2 bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-emerald-400" />
-                <span>7-Day Price History Trajectory</span>
-              </h4>
-              <span className="text-[10px] text-slate-400 font-bold">Updated Today</span>
-            </div>
-
-            <div className="h-56 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={selectedItem.priceHistory}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 11, fontWeight: 700 }} />
-                  <YAxis stroke="#64748b" tick={{ fontSize: 11 }} domain={['dataMin - 2', 'dataMax + 2']} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="price"
-                    name="Mandi Price (₹)"
-                    stroke="#10b981"
-                    strokeWidth={3}
-                    dot={{ fill: '#34d399', r: 5, strokeWidth: 2, stroke: '#064e3b' }}
-                    activeDot={{ r: 7 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Regional Mandi Comparison Matrix */}
-        <div className="pt-2 border-t border-slate-800 space-y-3">
-          <h3 className="text-sm font-black text-white flex items-center gap-2">
-            <Store className="w-4 h-4 text-emerald-400" />
-            <span>Regional Mandi Rate Comparison Matrix ({selectedItem.cropName.split(' ')[0]})</span>
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {selectedItem.regionalMarkets.map((m, idx) => (
-              <div key={idx} className={`p-3.5 rounded-2xl border transition-all ${
-                m.isBest
-                  ? 'bg-emerald-950/60 border-emerald-500/50 text-white shadow-md'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-300'
-              }`}>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <span className="font-extrabold text-slate-200">{m.marketName}</span>
-                  {m.isBest && (
-                    <span className="text-[9px] font-black uppercase bg-emerald-500 text-slate-950 px-2 py-0.5 rounded-full">
-                      ★ Top Mandi Rate
-                    </span>
-                  )}
-                </div>
-                <p className="text-xl font-black text-amber-400">₹{m.price} <span className="text-xs font-normal text-slate-400">/{selectedItem.unit}</span></p>
-                <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-1">
-                  <MapPin className="w-3 h-3" /> Distance: {m.distanceKm} km from your location
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-      </section>
-
-      {/* Commodity Exchange Grid Across Categories */}
-      <section className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <Scale className="w-5 h-5 text-emerald-600" />
-              <span>Universal Mandi Exchange Matrix</span>
-            </h3>
-            <p className="text-xs text-slate-500 font-medium">Compare prices, trend directions, and order requirements across major crop categories</p>
-          </div>
-
-          <div className="relative min-w-[220px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={searchFilter}
-              onChange={e => setSearchFilter(e.target.value)}
-              placeholder="Search commodity or mandi..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-          </div>
-        </div>
-
-        {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {['All', 'Grains & Millets', 'Pulses', 'Vegetables', 'Spices'].map(cat => (
+        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto scrollbar-none">
+          {categories.map(cat => (
             <button
               key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all border ${
-                activeCategory === cat
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3.5 py-2 rounded-2xl text-xs font-black shrink-0 transition-all cursor-pointer ${
+                selectedCategory === cat ? 'bg-emerald-700 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
               }`}
             >
               {cat}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Table View for Commodities */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-black uppercase text-[10px]">
-                <th className="p-3">Commodity &amp; State</th>
-                <th className="p-3">Category</th>
-                <th className="p-3">Live Rate</th>
-                <th className="p-3">7-Day Trend</th>
-                <th className="p-3">Best Mandi Hub</th>
-                <th className="p-3">Trade Mode</th>
-                <th className="p-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredItems.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-3 font-bold text-slate-900">
-                    <p>{item.cropName}</p>
-                    <span className="text-[10px] font-normal text-slate-500">{item.state}</span>
-                  </td>
-                  <td className="p-3 font-semibold text-slate-600">{item.category}</td>
-                  <td className="p-3 font-black text-slate-900 text-sm">₹{item.currentPrice}/{item.unit}</td>
-                  <td className="p-3">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold inline-flex items-center gap-0.5 ${
-                      item.priceChange >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+      {/* Main Grid: Crop Cards + Selected Crop Market Intelligence */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* 📋 Crop Cards Listing (5 Cols) */}
+        <div className="lg:col-span-5 space-y-3">
+          {filteredItems.map(item => {
+            const isSelected = selectedCrop.id === item.id;
+            const isPositive = item.percentageChange >= 0;
+
+            return (
+              <div
+                key={item.id}
+                onClick={() => setSelectedCrop(item)}
+                className={`p-4 rounded-3xl border transition-all cursor-pointer ${
+                  isSelected ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500/20' : 'bg-white text-slate-900 border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                      isSelected ? 'bg-emerald-800 text-emerald-200' : 'bg-slate-100 text-slate-600'
                     }`}>
-                      {item.priceChange >= 0 ? '▲ +' : '▼ '}{item.percentageChange}%
+                      {item.category}
                     </span>
-                  </td>
-                  <td className="p-3 font-semibold text-emerald-700">{item.bestMarket}</td>
-                  <td className="p-3 font-bold text-slate-700">{item.tradeMode}</td>
-                  <td className="p-3 text-right">
-                    <button
-                      onClick={() => setSelectedCropId(item.id)}
-                      className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-emerald-600 text-white font-bold text-[11px] transition-all"
-                    >
-                      Inspect Rate
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <h3 className="text-sm font-black mt-1">{item.cropName}</h3>
+                    <p className={`text-[11px] font-medium mt-0.5 ${isSelected ? 'text-emerald-200' : 'text-slate-500'}`}>
+                      📍 Best: {item.bestMarket}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-lg font-black block">₹{item.currentPrice} <span className="text-[10px] font-normal">/{item.unit}</span></span>
+                    <span className={`text-[11px] font-black inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full ${
+                      isPositive
+                        ? (isSelected ? 'bg-emerald-800 text-emerald-200' : 'bg-emerald-100 text-emerald-800')
+                        : (isSelected ? 'bg-rose-900 text-rose-200' : 'bg-rose-100 text-rose-800')
+                    }`}>
+                      {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                      {isPositive ? '+' : ''}{item.percentageChange}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </section>
+
+        {/* 📈 Selected Crop Detail & Mandi Price Comparison (7 Cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-5">
+            
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 bg-emerald-100 text-emerald-900 rounded-full">
+                  {selectedCrop.state} • Mandi Rate
+                </span>
+                <h3 className="text-xl font-black text-slate-900 mt-2">{selectedCrop.cropName}</h3>
+                <p className="text-xs text-slate-500 font-medium">Minimum Trade Qty: {selectedCrop.minQty}</p>
+              </div>
+
+              <div className="text-right">
+                <span className="text-2xl font-black text-slate-900">₹{selectedCrop.currentPrice} <span className="text-xs text-slate-400 font-normal">/{selectedCrop.unit}</span></span>
+                <span className="text-xs text-emerald-700 font-extrabold block">7-Day Trend: +{selectedCrop.percentageChange}%</span>
+              </div>
+            </div>
+
+            {/* AI Sell Timing Advisory */}
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-1">
+              <span className="text-[11px] font-black text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>AI Mandi Sell Timing Recommendation</span>
+              </span>
+              <p className="text-xs text-amber-950 font-medium leading-relaxed">
+                {selectedCrop.aiAdvice}
+              </p>
+            </div>
+
+            {/* Regional Mandi Comparison Table */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">Regional Mandi Price Comparison</h4>
+              <div className="space-y-2">
+                {selectedCrop.regionalMarkets.map((m, idx) => (
+                  <div key={idx} className={`p-3 rounded-2xl border flex items-center justify-between text-xs ${
+                    m.isBest ? 'bg-emerald-50 border-emerald-300 font-extrabold' : 'bg-slate-50 border-slate-200 text-slate-700'
+                  }`}>
+                    <div>
+                      <span className="font-bold text-slate-900">{m.marketName}</span>
+                      <span className="text-[10px] text-slate-400 block font-normal">Distance: {m.distanceKm} km away</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-black text-slate-900">₹{m.price} /{selectedCrop.unit}</span>
+                      {m.isBest && (
+                        <span className="text-[10px] bg-emerald-700 text-white font-black px-2 py-0.5 rounded-full">
+                          Best Return
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 7-Day Price History Chart */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">7-Day Mandi Price Trend (₹/kg)</h4>
+              <div className="h-44 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={selectedCrop.priceHistory}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 700 }} />
+                    <YAxis tick={{ fontSize: 10, fill: '#15803d', fontWeight: 700 }} domain={['auto', 'auto']} />
+                    <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '0.75rem', color: '#fff', fontSize: '12px' }} />
+                    <Line type="monotone" dataKey="price" stroke="#15803d" strokeWidth={3} dot={{ fill: '#15803d', r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
 
     </div>
   );

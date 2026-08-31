@@ -4,10 +4,8 @@ import {
   Camera, Image as ImageIcon, CheckCircle, AlertTriangle, CloudSun,
   TrendingUp, Calculator, Shield, Leaf, X, Play, Square, Calendar, Sprout, Filter, Edit3, Save, Layers
 } from 'lucide-react';
-import { Language, UserProfile, VoiceMessage, AgriIntentCategory, AIModelType } from '../types';
+import { Language, UserProfile, VoiceMessage, AgriIntentCategory } from '../types';
 import { translations } from '../data/mockData';
-
-
 
 interface VoiceAssistantViewProps {
   profile: UserProfile;
@@ -20,7 +18,6 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
   const [selectedLang, setSelectedLang] = useState<Language>(profile.language || 'en');
   const [editingContext, setEditingContext] = useState(false);
 
-  // Farmer Context editable state
   const [farmerContext, setFarmerContext] = useState({
     farmerName: profile.name,
     cropType: profile.primaryCrop || 'Tomato',
@@ -43,19 +40,19 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
       sender: 'assistant',
       intentCategory: 'General Agricultural Question',
       text: selectedLang === 'ta'
-        ? `வணக்கம் ${farmerContext.farmerName}! நான் உங்கள் அக்ரிவேதா குரோக் AI வேளாண்மை உதவியாளர். உங்கள் ${farmerContext.cropType} (${farmerContext.cropVariety}) பயிர், உரம், இலை நோய், வானிலை அல்லது விதை வங்கி பற்றிய எந்தக் கேள்வியையும் கேட்கலாம்.`
+        ? `வணக்கம் ${farmerContext.farmerName}! நான் உங்கள் அக்ரிவேதா AI உதவியாளர். உங்கள் ${farmerContext.cropType} பயிர், உரம், நோய், வானிலை அல்லது விதை வங்கி பற்றி எதை வேண்டுமானாலும் கேட்கலாம்.`
         : selectedLang === 'hi'
-          ? `नमस्ते ${farmerContext.farmerName}! मैं आपका एग्रीवेदा AI कृषि सहायक हूँ। अपनी ${farmerContext.cropType} (${farmerContext.cropVariety}) फसल, खाद, बीमारी, मौसम या बीज बैंक के बारे में पूछें।`
+          ? `नमस्ते ${farmerContext.farmerName}! मैं आपका एग्रीवेदा AI कृषि सहायक हूँ। अपनी ${farmerContext.cropType} फसल, खाद, बीमारी या मौसम के बारे में पूछें।`
           : selectedLang === 'te'
-            ? `నమస్తే ${farmerContext.farmerName}! నేను మీ అగ్రివేద AI వ్యవసాయ సహాయకుడిని. మీ ${farmerContext.cropType} పంట, ఎరువులు, వాతావరణం లేదా విత్తన బ్యాంకు గురించి అడగండి.`
-            : `Welcome ${farmerContext.farmerName}! I am your AgriVeda AI Copilot. Ask any question about your ${farmerContext.cropType} (${farmerContext.farmArea} Acres), fertilizer schedules, weather spray risks, smart crop calendar, or Community Seed Bank.`,
+            ? `నమస్తే ${farmerContext.farmerName}! నేను మీ అగ్రివేద AI సహాయకుడిని. మీ ${farmerContext.cropType} పంట, ఎరువులు లేదా వాతావరణం గురించి అడగండి.`
+            : `Welcome ${farmerContext.farmerName}! I am Ask AgriVeda, your agricultural AI voice copilot. Ask any question about your ${farmerContext.cropType} crop, fertilizer dosage, weather spray risk, or Community Seed Bank.`,
       language: selectedLang,
       timestamp: 'Just now',
       suggestedFollowups: [
-        'Calculate fertilizer for my farm',
+        'Calculate fertilizer dosage for my crop',
         'Can I spray pesticide today?',
-        'Show Community Seed Bank items',
-        'When should I harvest my crop?'
+        'Show Community Seed Bank listings',
+        'When should I harvest?'
       ]
     }
   ]);
@@ -67,15 +64,18 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
   const [activeSpeechId, setActiveSpeechId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Send initial query if provided from another view (e.g. Seed Bank)
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
+
   useEffect(() => {
     if (initialQuery) {
       handleSendMessage(`Tell me about ${initialQuery} sowing and preservation guidelines`);
     }
   }, [initialQuery]);
 
-  // 15 Intent categories definition for UI chips
   const intentCategories: { id: AgriIntentCategory; label: string; icon: string }[] = [
     { id: 'Crop Management', label: 'Crop Mgmt', icon: '🌾' },
     { id: 'Disease / Pest', label: 'Disease / Pest', icon: '🔍' },
@@ -87,18 +87,13 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
     { id: 'Soil', label: 'Soil Health', icon: '🏔️' },
     { id: 'Irrigation', label: 'Irrigation', icon: '💧' },
     { id: 'Market / Mandi', label: 'Market Mandi', icon: '📈' },
-    { id: 'Agricultural Expert', label: 'Agri Expert', icon: '👨‍🌾' },
-    { id: 'Vendor / Product', label: 'Vendors', icon: '🛒' },
-    { id: 'B2B', label: 'B2B Trade', icon: '🏭' },
-    { id: 'B2C', label: 'B2C Retail', icon: '🏬' },
     { id: 'General Agricultural Question', label: 'General Q&A', icon: '💡' }
   ];
 
-  // Multilingual quick preset prompts matching 15 categories
   const quickPrompts = [
     {
       category: 'Disease / Pest' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '🌿 இலை மஞ்சள் நோய்' : selectedLang === 'hi' ? '🌿 पत्ती में पीलापन' : '🌿 Leaf Yellowing Query',
+      label: selectedLang === 'ta' ? '🌿 இலை மஞ்சள் நோய்' : selectedLang === 'hi' ? '🌿 पत्ती में पीलापन' : '🌿 Yellowing Leaf Remedy',
       text: selectedLang === 'ta'
         ? 'என் தக்காளி செடி இலை மஞ்சள் நிறமாக மாறுகிறது, என்ன செய்ய வேண்டும்?'
         : selectedLang === 'hi'
@@ -107,705 +102,359 @@ export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile,
     },
     {
       category: 'Fertilizer' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '🧪 NPK உர அளவு' : selectedLang === 'hi' ? '🧪 NPK खाद की मात्रा' : '🧪 Rice Fertilizer Schedule',
+      label: selectedLang === 'ta' ? '🧪 NPK உர அளவு' : selectedLang === 'hi' ? '🧪 NPK खाद की मात्रा' : '🧪 NPK Fertilizer Dosage',
       text: selectedLang === 'ta'
-        ? `என் நெல் பயிருக்கு எப்போது உரமிட வேண்டும்? NPK உர அளவு என்ன?`
+        ? `என் ${farmerContext.cropType} பயிருக்கு எப்போது உரமிட வேண்டும்? NPK உர அளவு என்ன?`
         : selectedLang === 'hi'
-          ? `धान की फसल में खाद कब और कितनी मात्रा में दें?`
-          : `When should I fertilize my rice crop? Give step-by-step NPK dosage.`
+          ? `${farmerContext.cropType} फसल में खाद की मात्रा और समय क्या है?`
+          : `What is the exact NPK fertilizer schedule for my ${farmerContext.cropType} crop?`
     },
     {
       category: 'Weather' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '🌦️ இன்று மருந்து தெளிக்கலாமா?' : selectedLang === 'hi' ? '🌦️ क्या आज स्प्रे करें?' : '🌦️ Can I spray today?',
+      label: selectedLang === 'ta' ? '🌦️ இன்று மருந்து தெளிக்கலாமா?' : selectedLang === 'hi' ? '🌦️ क्या आज स्प्रे करें?' : '🌦️ Spray Window Today',
       text: selectedLang === 'ta'
         ? `${farmerContext.location} பகுதியில் இன்று மருந்து தெளிக்க வானிலை உகந்ததா?`
         : selectedLang === 'hi'
           ? `क्या ${farmerContext.location} में आज कीटनाशक स्प्रे करना सुरक्षित है?`
-          : `Can I spray pesticides today in ${farmerContext.location}? Check rain and wind risk.`
-    },
-    {
-      category: 'Crop Calendar' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '📅 பயிர் காலண்டர்' : selectedLang === 'hi' ? '📅 फसल कैलेंडर' : '📅 Crop Harvest Timeline',
-      text: selectedLang === 'ta'
-        ? `${farmerContext.cropType} பயிருக்கு எப்போது அறுவடை மற்றும் பாசனம் செய்ய வேண்டும்?`
-        : selectedLang === 'hi'
-          ? `${farmerContext.cropType} की फसल में सिंचाई और कटाई कब करें?`
-          : `When should I fertilize, irrigate, and harvest my ${farmerContext.cropType} crop?`
-    },
-    {
-      category: 'Seed Bank' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '🌱 சமூக விதை வங்கி' : selectedLang === 'hi' ? '🌱 देसी बीज बैंक' : '🌱 Community Seed Bank',
-      text: selectedLang === 'ta'
-        ? `வேலூர் சமூக விதை வங்கியில் கிடைக்கும் பாரம்பரிய நாட்டு காய்கறி விதைகள் என்ன?`
-        : selectedLang === 'hi'
-          ? `सामुदायिक बीज बैंक में कौन सी पारंपरिक बीज किस्में उपलब्ध हैं?`
-          : `What heritage seeds are available in the Community Seed Bank? Provide storage conditions and availability.`
+          : `Is it safe to spray pesticide today in ${farmerContext.location}? Check rain & wind risk.`
     }
   ];
 
-  // Image Upload Handler
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setAttachedImage(reader.result as string);
-      };
+      reader.onloadend = () => setAttachedImage(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  // Send message to server
-  const handleSendMessage = async (textToSend?: string) => {
-    const promptText = textToSend || inputPrompt;
-    if (!promptText.trim() && !attachedImage) return;
-
-    const userMsg: VoiceMessage = {
-      id: `msg-${Date.now()}`,
-      sender: 'user',
-      text: promptText || 'Analyzing attached crop photo...',
-      language: selectedLang,
-      attachedImage: attachedImage || undefined,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    const currentAttached = attachedImage;
-    setMessages(prev => [...prev, userMsg]);
-    setInputPrompt('');
-    setAttachedImage(null);
-    setIsLoading(true);
-
-    try {
-      const res = await fetch('/api/voice-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: promptText,
-          language: selectedLang,
-          imageBase64: currentAttached,
-          history: messages.slice(-10).map(m => ({
-            role: m.sender === 'user' ? 'user' : 'assistant',
-            content: m.text
-          })),
-          context: {
-            farmerName: farmerContext.farmerName,
-            cropType: farmerContext.cropType,
-            cropVariety: farmerContext.cropVariety,
-            sowingDate: farmerContext.sowingDate,
-            cropAgeDays: farmerContext.cropAgeDays,
-            soilType: farmerContext.soilType,
-            irrigationMethod: farmerContext.irrigationMethod,
-            farmArea: farmerContext.farmArea,
-            location: farmerContext.location,
-            seedVariety: farmerContext.seedVariety,
-            seedBankName: farmerContext.seedBankName
-          }
-        })
-      });
-
-      const data = await res.json();
-
-      const aiMsg: VoiceMessage = {
-        id: `msg-ai-${Date.now()}`,
-        sender: 'assistant',
-        intentCategory: data.intentCategory || 'General Agricultural Question',
-        text: data.text || 'I have analyzed your query. Follow proper soil aeration and morning irrigation routine.',
-        language: data.language || selectedLang,
-        voiceId: data.voice_id || 'female_01',
-        actionCard: data.actionCard,
-        suggestedFollowups: data.suggestedFollowups,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setMessages(prev => [...prev, aiMsg]);
-      speakText(aiMsg.text, aiMsg.id, aiMsg.language, aiMsg.voiceId);
-    } catch (err) {
-      console.error('Error in voice assistant:', err);
-    } finally {
-      setIsLoading(false);
+  const handleMicClick = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert('Speech recognition is not supported in your browser.');
+      return;
     }
-  };
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<BlobPart[]>([]);
-
-  // Groq Whisper Multilingual Speech Recognition
-  const handleTapToSpeak = async () => {
     if (isListening) {
-      // Stop ongoing recording
-      mediaRecorderRef.current?.stop();
       setIsListening(false);
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream); // Let browser decide best format
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      let langCode = 'en-US';
+      if (selectedLang === 'ta') langCode = 'ta-IN';
+      else if (selectedLang === 'hi') langCode = 'hi-IN';
+      else if (selectedLang === 'te') langCode = 'te-IN';
+
+      recognition.lang = langCode;
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputPrompt(transcript);
+        handleSendMessage(transcript);
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
-        stream.getTracks().forEach(track => track.stop());
-
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64Audio = reader.result as string;
-          setIsLoading(true);
-          try {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'voice.webm');
-
-            const res = await fetch('http://localhost:8000/api/stt', {
-              method: 'POST',
-              body: formData
-            });
-            const data = await res.json();
-
-            if (res.ok && data.transcript) {
-              setInputPrompt(data.transcript);
-              handleSendMessage(data.transcript);
-            } else {
-              alert(data.error || 'Failed to process voice via custom Edge STT API.');
-            }
-          } catch (e) {
-            console.error('Transcription error:', e);
-            alert('Network error connecting to Whisper STT.');
-          } finally {
-            setIsLoading(false);
-          }
-        };
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
       };
 
-      mediaRecorder.start();
-      setIsListening(true);
+      recognition.start();
     } catch (err) {
-      console.error('Microphone access denied or error:', err);
-      alert('Microphone access is required to use Groq Multi-Model Voice AI.');
+      console.error(err);
+      setIsListening(false);
     }
   };
 
-  const audioRefs = useRef<{ [key: string]: HTMLAudioElement }>({});
+  const handleSendMessage = async (textToSend?: string) => {
+    const text = textToSend || inputPrompt;
+    if (!text.trim() && !attachedImage) return;
 
-  // Text-to-Speech Output utilizing local Python TTS Engine (Edge-TTS Multi-language)
-  const speakText = async (text: string, msgId: string, msgLang?: string, voiceId?: string) => {
+    const userMsgId = `user-${Date.now()}`;
+    const newMsg: VoiceMessage = {
+      id: userMsgId,
+      sender: 'user',
+      text,
+      attachedImage: attachedImage || undefined,
+      language: selectedLang,
+      timestamp: 'Just now'
+    };
 
-    // Stop currently playing audio on toggle
-    if (activeSpeechId === msgId && audioRefs.current[msgId]) {
-      audioRefs.current[msgId].pause();
-      setActiveSpeechId(null);
-      return;
-    }
-
-    if (activeSpeechId && audioRefs.current[activeSpeechId]) {
-      audioRefs.current[activeSpeechId].pause();
-    }
-
-    setActiveSpeechId(msgId);
-
-    // Replay if already fetched
-    if (audioRefs.current[msgId]) {
-      audioRefs.current[msgId].currentTime = 0;
-      audioRefs.current[msgId].play();
-      return;
-    }
+    setMessages(prev => [...prev, newMsg]);
+    setInputPrompt('');
+    setAttachedImage(null);
+    setIsLoading(true);
 
     try {
-      const formData = new FormData();
-      const cleanText = text.replace(/[*#_~`]/g, '');
-      formData.append('text', cleanText);
-      formData.append('language', msgLang || 'en');
-      formData.append('voice_id', voiceId || 'female_01');
-
-      const res = await fetch('http://localhost:8000/api/tts', {
+      const response = await fetch('/api/voice-assistant', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: text,
+          language: selectedLang,
+          context: farmerContext,
+          imageBase64: attachedImage
+        })
       });
 
-      if (!res.ok) throw new Error('Python TTS failed');
+      const data = await response.json();
 
-      const audioBlob = await res.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      const botMsg: VoiceMessage = {
+        id: `bot-${Date.now()}`,
+        sender: 'assistant',
+        intentCategory: data.intentCategory || 'General Agricultural Question',
+        text: data.text || 'I could not process that query.',
+        language: data.language || selectedLang,
+        voiceId: data.voice_id || 'female_01',
+        actionCard: data.actionCard,
+        suggestedFollowups: data.suggestedFollowups || ['Ask for fertilizer dosage', 'Check weather spray risk'],
+        timestamp: 'Just now'
+      };
 
-      audio.onended = () => setActiveSpeechId(null);
-      audio.onerror = () => setActiveSpeechId(null);
+      setMessages(prev => [...prev, botMsg]);
 
-      audioRefs.current[msgId] = audio;
-      audio.play();
-
-    } catch (e) {
-      console.error("TTS Python Error: ", e);
-      setActiveSpeechId(null);
+      if (data.text) {
+        speakText(data.text, data.language || selectedLang);
+      }
+    } catch (err) {
+      console.error('Voice assistant backend error:', err);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `err-${Date.now()}`,
+          sender: 'assistant',
+          intentCategory: 'General Agricultural Question',
+          text: '⚠️ Network Connection Issue. Please check your connectivity and try again.',
+          timestamp: 'Just now'
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const filteredMessages = messages.filter(msg => {
-    if (selectedCategoryFilter === 'All') return true;
-    if (msg.sender === 'user') return true;
-    return msg.intentCategory === selectedCategoryFilter;
-  });
+  const speakText = (text: string, lang: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text.replace(/[*#]/g, ''));
+      let targetLang = 'en-US';
+      if (lang === 'ta') targetLang = 'ta-IN';
+      else if (lang === 'hi') targetLang = 'hi-IN';
+      else if (lang === 'te') targetLang = 'te-IN';
+
+      utterance.lang = targetLang;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const filteredMessages = selectedCategoryFilter === 'All'
+    ? messages
+    : messages.filter(m => m.sender === 'user' || m.intentCategory === selectedCategoryFilter);
 
   return (
-    <div className="space-y-5 pb-24 animate-in fade-in max-w-3xl mx-auto">
+    <div className="space-y-4 pb-24 animate-in fade-in max-w-4xl mx-auto">
 
-      {/* Top Header & Farm Context Drawer */}
-      <div className="bg-slate-900 text-white rounded-3xl p-5 shadow-xl border border-slate-800 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 text-white flex items-center justify-center shadow-lg ring-4 ring-emerald-500/20">
-              <Bot className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex flex-col gap-1 items-start">
-                <h2 className="text-lg font-black text-white">AgriVeda Voice AI Assistant</h2>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 border border-emerald-400/40 shadow-xs">
-                    Gemma Vision Engine Enabled
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Title Header Bar */}
+      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Mic className="w-6 h-6 text-amber-600" />
+            <span>Ask AgriVeda • AI Voice Copilot</span>
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">
+            Multilingual agricultural assistant for Tamil, Hindi, Telugu, and English.
+          </p>
+        </div>
 
-          <div className="flex items-center gap-2">
+        {/* Language Selector */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          {(['en', 'ta', 'hi', 'te'] as Language[]).map(l => (
             <button
-              onClick={() => setEditingContext(prev => !prev)}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 transition-all border border-slate-700 flex items-center gap-1.5 text-xs font-bold"
-              title="Edit Farmer Context"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>{editingContext ? 'Close' : 'Context'}</span>
-            </button>
-
-            <button
-              onClick={() => setMessages([messages[0]])}
-              className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all border border-slate-700 flex items-center gap-1.5 text-xs font-bold"
-              title="Reset conversation"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Farmer Context Bar */}
-        <div className="p-3 bg-slate-800/90 rounded-2xl border border-slate-700/80 space-y-2 text-xs">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              <Leaf className="w-3.5 h-3.5" /> Active Farm Context:
-            </span>
-            <span className="text-slate-400 font-normal">
-              {farmerContext.cropType} ({farmerContext.cropVariety}) • {farmerContext.farmArea} Acres
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 font-medium">
-            <span className="px-2.5 py-1 bg-slate-900 text-emerald-300 rounded-lg border border-slate-700">
-              🌾 {farmerContext.cropType} ({farmerContext.cropVariety})
-            </span>
-            <span className="px-2.5 py-1 bg-slate-900 text-slate-300 rounded-lg border border-slate-700">
-              📅 Sowing: {farmerContext.sowingDate || 'Not set'}
-            </span>
-            <span className="px-2.5 py-1 bg-slate-900 text-slate-300 rounded-lg border border-slate-700">
-              🏔️ {farmerContext.soilType}
-            </span>
-            <span className="px-2.5 py-1 bg-slate-900 text-slate-300 rounded-lg border border-slate-700">
-              💧 {farmerContext.irrigationMethod}
-            </span>
-            <span className="px-2.5 py-1 bg-slate-900 text-slate-300 rounded-lg border border-slate-700">
-              📍 {farmerContext.location}
-            </span>
-          </div>
-
-          {/* Context Editor Drawer */}
-          {editingContext && (
-            <div className="pt-3 border-t border-slate-700/80 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in text-slate-200">
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">Crop & Variety:</label>
-                <input
-                  type="text"
-                  value={farmerContext.cropVariety}
-                  onChange={e => setFarmerContext({ ...farmerContext, cropVariety: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-emerald-300"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">Sowing Date:</label>
-                <input
-                  type="text"
-                  value={farmerContext.sowingDate}
-                  onChange={e => setFarmerContext({ ...farmerContext, sowingDate: e.target.value })}
-                  placeholder="e.g. 01 June 2024"
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-bold text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">Soil Type:</label>
-                <input
-                  type="text"
-                  value={farmerContext.soilType}
-                  onChange={e => setFarmerContext({ ...farmerContext, soilType: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-medium text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-0.5">Irrigation Method:</label>
-                <input
-                  type="text"
-                  value={farmerContext.irrigationMethod}
-                  onChange={e => setFarmerContext({ ...farmerContext, irrigationMethod: e.target.value })}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-medium text-white"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Language selector tabs */}
-        <div className="flex items-center gap-1.5 pt-1 overflow-x-auto">
-          <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 shrink-0 mr-1">
-            <Globe className="w-3.5 h-3.5 text-emerald-400" /> Language:
-          </span>
-          {(['auto', 'en', 'ta', 'hi', 'te'] as Language[]).map(lang => (
-            <button
-              key={lang}
-              onClick={() => setSelectedLang(lang)}
-              className={`px-3 py-1 text-xs font-bold rounded-xl transition-all ${selectedLang === lang
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                }`}
-            >
-              {lang === 'auto' ? 'Auto Detect' : lang === 'en' ? 'English' : lang === 'ta' ? 'தமிழ்' : lang === 'hi' ? 'हिंदी' : 'తెలుగు'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 15-Category Intent Filters & Presets */}
-      <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200/90 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-            <Filter className="w-4 h-4 text-emerald-600" /> Explore Intent Categories (15 Fields):
-          </span>
-          <span className="text-[10px] font-extrabold text-emerald-700 uppercase bg-emerald-50 px-2 py-0.5 rounded-md">
-            AgriVeda Intent System
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <button
-            onClick={() => setSelectedCategoryFilter('All')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${selectedCategoryFilter === 'All'
-              ? 'bg-slate-900 text-white shadow-xs'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              key={l}
+              onClick={() => setSelectedLang(l)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer ${
+                selectedLang === l ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
-          >
-            All Questions
-          </button>
-          {intentCategories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategoryFilter(cat.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all flex items-center gap-1.5 ${selectedCategoryFilter === cat.id
-                ? 'bg-emerald-700 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
             >
-              <span>{cat.icon}</span>
-              <span>{cat.label}</span>
+              {l}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Voice Mic & Interactive Presets Zone */}
-      <div className="bg-gradient-to-br from-emerald-950 via-teal-950 to-slate-950 rounded-3xl p-6 border border-emerald-800/40 shadow-xl text-center space-y-4 text-white relative overflow-hidden">
-        <div className="relative z-10 space-y-3">
-          {/* Animated Mic Recording Button */}
-          <div className="relative w-24 h-24 mx-auto flex items-center justify-center">
-            {isListening && (
-              <>
-                <div className="absolute inset-0 rounded-full bg-emerald-500/30 animate-ping" />
-                <div className="absolute -inset-3 rounded-full border-2 border-emerald-400/50 animate-pulse" />
-              </>
-            )}
-            <button
-              onClick={handleTapToSpeak}
-              className={`w-20 h-20 rounded-3xl flex flex-col items-center justify-center shadow-2xl transition-all transform active:scale-95 ${isListening
-                ? 'bg-rose-600 text-white ring-8 ring-rose-500/30 scale-105'
-                : 'bg-gradient-to-tr from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white ring-4 ring-emerald-500/20'
-                }`}
-            >
-              <Mic className={`w-7 h-7 ${isListening ? 'animate-bounce' : ''}`} />
-              <span className="text-[9px] font-black uppercase mt-1 tracking-wider">
-                {isListening ? 'Listening...' : 'Tap to Speak'}
-              </span>
-            </button>
-          </div>
-
-          <div>
-            <h3 className="text-xs sm:text-sm font-bold text-emerald-200">
-              {isListening ? 'Listening to your query...' : 'Ask by Voice, Text, or Upload Leaf Photo'}
-            </h3>
-            <p className="text-[11px] text-slate-300">
-              Multilingual NLP tuned for smallholder & commercial farming
-            </p>
-          </div>
-
-          {/* Quick Preset Action Chips */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-            {quickPrompts.map((qp, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSendMessage(qp.text)}
-                className="px-3 py-1.5 bg-slate-900/90 hover:bg-emerald-900/90 border border-slate-700/80 hover:border-emerald-500/60 rounded-xl text-xs font-semibold text-slate-200 hover:text-white shadow-sm transition-all text-left flex items-center gap-1.5"
-              >
-                <span>{qp.label}</span>
-              </button>
-            ))}
-          </div>
-
-        </div>
+      {/* Quick Category Chips */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          onClick={() => setSelectedCategoryFilter('All')}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-black shrink-0 transition-all cursor-pointer ${
+            selectedCategoryFilter === 'All' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200'
+          }`}
+        >
+          All Q&A
+        </button>
+        {intentCategories.slice(0, 6).map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setSelectedCategoryFilter(cat.id)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedCategoryFilter === cat.id ? 'bg-emerald-700 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <span>{cat.icon}</span>
+            <span>{cat.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Chat Messages Thread */}
-      <div className="space-y-4">
-        {filteredMessages.map((msg) => (
+      {/* Conversation Stage */}
+      <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 min-h-[420px] max-h-[560px] overflow-y-auto space-y-4">
+        {filteredMessages.map(msg => (
           <div
             key={msg.id}
-            className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
+            className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
           >
-            <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-md ${msg.sender === 'user'
-              ? 'bg-slate-900 ring-2 ring-slate-700'
-              : 'bg-gradient-to-br from-emerald-600 to-teal-700 ring-2 ring-emerald-500/30'
-              }`}>
-              {msg.sender === 'user' ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
-            </div>
-
-            <div className={`max-w-[88%] sm:max-w-[82%] rounded-3xl p-5 shadow-sm space-y-3 ${msg.sender === 'user'
-              ? 'bg-slate-900 text-white border border-slate-800'
-              : 'bg-white border border-slate-200/90 text-slate-900'
-              }`}>
-              {/* Message Header */}
-              <div className="flex items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs font-black ${msg.sender === 'user' ? 'text-emerald-400' : 'text-emerald-800'}`}>
-                    {msg.sender === 'user' ? farmerContext.farmerName : 'AgriVeda AI Agronomist'}
-                  </span>
-                  {msg.intentCategory && (
-                    <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      {msg.intentCategory}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] text-slate-400 font-medium">
-                  {msg.timestamp}
+            <div className={`max-w-2xl rounded-3xl p-4 space-y-2 ${
+              msg.sender === 'user'
+                ? 'bg-emerald-700 text-white rounded-tr-xs'
+                : 'bg-slate-50 text-slate-900 border border-slate-200 rounded-tl-xs'
+            }`}>
+              
+              {/* Category Badge for Bot */}
+              {msg.sender === 'assistant' && msg.intentCategory && (
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 bg-emerald-100 text-emerald-900 rounded-full inline-block">
+                  {msg.intentCategory}
                 </span>
-              </div>
-
-              {/* User Attached Image (If any) */}
-              {msg.attachedImage && (
-                <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-xs max-w-xs">
-                  <img src={msg.attachedImage} alt="Uploaded crop leaf" className="w-full h-40 object-cover" />
-                </div>
               )}
 
               {/* Message Content */}
-              <div className="text-xs sm:text-sm leading-relaxed font-medium whitespace-pre-line space-y-2">
+              <p className="text-xs sm:text-sm font-medium whitespace-pre-line leading-relaxed">
                 {msg.text}
-              </div>
+              </p>
 
-              {/* Structured Action Cards */}
+              {/* Attached Image Preview */}
+              {msg.imageBase64 && (
+                <img src={msg.imageBase64} alt="Attached crop" className="w-32 h-32 object-cover rounded-xl border border-white/20 mt-2" />
+              )}
+
+              {/* Action Card Rendering */}
               {msg.actionCard && (
-                <div className="mt-3 p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/70 border border-emerald-200/80 space-y-3 text-slate-900 shadow-2xs">
-                  <div className="flex items-center gap-2 border-b border-emerald-200/60 pb-2">
-                    {msg.actionCard.type === 'fertilizer' && <Calculator className="w-5 h-5 text-emerald-700" />}
-                    {msg.actionCard.type === 'weather' && <CloudSun className="w-5 h-5 text-amber-600" />}
-                    {msg.actionCard.type === 'market' && <TrendingUp className="w-5 h-5 text-blue-600" />}
-                    {msg.actionCard.type === 'mapcn' && <TrendingUp className="w-5 h-5 text-emerald-600" />}
-                    {msg.actionCard.type === 'diagnosis' && <Shield className="w-5 h-5 text-rose-600" />}
-                    {msg.actionCard.type === 'seedbank' && <Sprout className="w-5 h-5 text-emerald-700" />}
-                    {msg.actionCard.type === 'crop_calendar' && <Calendar className="w-5 h-5 text-indigo-600" />}
-                    <h4 className="text-xs font-black text-slate-900">{msg.actionCard.title}</h4>
-                  </div>
-
-                  {msg.actionCard.type === 'mapcn' && (
-                    <div className="bg-white p-3 rounded-xl border border-emerald-200 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between font-bold text-emerald-900">
-                        <span>{msg.actionCard.data.crop || 'Commodity'}: ₹{msg.actionCard.data.modalPrice || 3500}/q</span>
-                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md">
-                          {msg.actionCard.data.mandi || 'APMC Yard'}
-                        </span>
-                      </div>
-                      <p className="text-slate-600 text-[11px]">{msg.actionCard.data.outlook || 'Live arrivals active.'}</p>
-                    </div>
-                  )}
-
-                  {msg.actionCard.type === 'fertilizer' && (
-                    <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 text-center text-xs">
-                      <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">Urea Dosage</p>
-                        <p className="text-sm font-black text-emerald-800">{msg.actionCard.data.ureaKg || 45} kg</p>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">DAP Dosage</p>
-                        <p className="text-sm font-black text-emerald-800">{msg.actionCard.data.dapKg || 30} kg</p>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-emerald-200">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase">MOP (Potash)</p>
-                        <p className="text-sm font-black text-emerald-800">{msg.actionCard.data.mopKg || 25} kg</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {msg.actionCard.type === 'seedbank' && (
-                    <div className="bg-white p-3 rounded-xl border border-emerald-200 space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between font-bold text-emerald-900">
-                        <span>Variety: {msg.actionCard.data.variety || 'Country Tomato'}</span>
-                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md">
-                          {msg.actionCard.data.qtyKg || 45} kg Available
-                        </span>
-                      </div>
-                      <p className="text-slate-600 text-[11px]">Vault: {msg.actionCard.data.location}</p>
-                      <p className="text-slate-800 font-bold text-[11px]">Contact: {msg.actionCard.data.contact}</p>
-                    </div>
-                  )}
-
-                  {msg.actionCard.type === 'weather' && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-xl border border-emerald-200 text-xs">
-                      <div>
-                        <p className="font-black text-slate-900">{msg.actionCard.data.temp || 31}°C • Humidity {msg.actionCard.data.humidity || 60}%</p>
-                        <p className="text-slate-500 text-[11px]">Rain Chance: {msg.actionCard.data.rainChance || 10}% | Wind: {msg.actionCard.data.windSpeed || 12} km/h</p>
-                      </div>
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-lg text-[11px]">
-                        {msg.actionCard.data.spraySafety || 'Safe Spray Window (7-9 AM)'}
-                      </span>
-                    </div>
-                  )}
-
-                  {msg.actionCard.type === 'diagnosis' && (
-                    <div className="space-y-2 text-xs">
-                      <div className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-emerald-200">
-                        <span className="font-bold text-slate-800">Issue: {msg.actionCard.data.detectedIssue}</span>
-                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-black">
-                          {msg.actionCard.data.confidence}% Confidence
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                <div className="mt-3 p-3.5 bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
+                  <span className="text-xs font-black text-emerald-800 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>{msg.actionCard.title}</span>
+                  </span>
+                  <p className="text-xs text-slate-700 font-medium">{msg.actionCard.data?.details || msg.actionCard.data?.crop}</p>
                 </div>
               )}
 
-              {/* Followups */}
-              {msg.suggestedFollowups && msg.suggestedFollowups.length > 0 && (
-                <div className="pt-2 flex flex-wrap gap-1.5">
-                  {msg.suggestedFollowups.map((sf, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSendMessage(sf)}
-                      className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1"
-                    >
-                      <span>💡 {sf}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* TTS Controls */}
+              {/* Audio Playback Button */}
               {msg.sender === 'assistant' && (
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase">AgriVeda Speech Engine</span>
-                  <button
-                    onClick={() => speakText(msg.text, msg.id, msg.language, msg.voiceId)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${activeSpeechId === msg.id
-                      ? 'bg-amber-500 text-white shadow-md animate-pulse'
-                      : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/70'
-                      }`}
-                  >
-                    {activeSpeechId === msg.id ? <Square className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                    <span>{activeSpeechId === msg.id ? 'Stop Audio' : 'Listen Voice'}</span>
-                  </button>
-                </div>
+                <button
+                  onClick={() => speakText(msg.text, msg.language || selectedLang)}
+                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 pt-1 cursor-pointer"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>Listen Audio</span>
+                </button>
               )}
             </div>
+
+            {/* Follow-up suggestions */}
+            {msg.suggestedFollowups && msg.suggestedFollowups.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2 pl-2">
+                {msg.suggestedFollowups.map((q, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSendMessage(q)}
+                    className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-[11px] font-bold border border-amber-200 transition-colors cursor-pointer"
+                  >
+                    + {q}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
 
         {isLoading && (
-          <div className="flex items-center gap-3 text-xs font-bold text-slate-800 bg-white p-4 rounded-2xl border border-slate-200 max-w-sm shadow-md animate-pulse">
-            <Sparkles className="w-5 h-5 text-emerald-600 animate-spin" />
-            <span>AgriVeda AI analyzing crop pathology & weather context...</span>
+          <div className="flex items-center gap-2 p-3 bg-slate-100 text-slate-600 rounded-2xl text-xs font-bold w-fit animate-pulse">
+            <RefreshCw className="w-4 h-4 animate-spin text-emerald-700" />
+            <span>AgriVeda AI is formulating response...</span>
           </div>
         )}
+
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Multimodal Input & Attachment Bar */}
-      <div className="bg-white p-3 rounded-3xl border border-slate-200 shadow-lg space-y-2 sticky bottom-2 z-20">
+      {/* Quick Preset Queries */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {quickPrompts.map((qp, i) => (
+          <button
+            key={i}
+            onClick={() => handleSendMessage(qp.text)}
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 rounded-2xl border border-slate-200 text-xs font-bold shrink-0 transition-all cursor-pointer shadow-2xs"
+          >
+            {qp.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Preview Attached Image */}
+      {/* 🎙️ PROMINENT PUSH-TO-TALK MIC & PROMPT COMPOSER */}
+      <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 space-y-3">
         {attachedImage && (
-          <div className="relative inline-block pl-2 pt-1">
-            <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-emerald-500 shadow-xs">
-              <img src={attachedImage} alt="Crop attachment" className="w-full h-full object-cover" />
-              <button
-                onClick={() => setAttachedImage(null)}
-                className="absolute top-1 right-1 p-0.5 bg-slate-900/80 text-white rounded-full hover:bg-rose-600"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
+          <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-900 rounded-xl text-xs font-bold w-fit">
+            <span>Attached Image</span>
+            <button onClick={() => setAttachedImage(null)} className="text-rose-600 hover:underline">Remove</button>
           </div>
         )}
 
         <div className="flex items-center gap-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageSelect}
-            accept="image/*"
-            className="hidden"
-          />
+          {/* File Upload Trigger */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors shrink-0"
+            className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors cursor-pointer shrink-0"
             title="Attach Leaf Photo"
           >
-            <Camera className="w-5 h-5" />
+            <ImageIcon className="w-5 h-5 text-emerald-700" />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
           </button>
 
-          <button
-            onClick={handleTapToSpeak}
-            className={`p-3 rounded-2xl transition-colors shrink-0 ${isListening
-              ? 'bg-rose-600 text-white animate-bounce'
-              : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800'
-              }`}
-            title="Voice Speech Input"
-          >
-            <Mic className="w-5 h-5" />
-          </button>
-
+          {/* Text Input */}
           <input
             type="text"
             value={inputPrompt}
             onChange={e => setInputPrompt(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-            placeholder={attachedImage ? 'Ask query about attached photo...' : t.askQuestion}
-            className="flex-1 px-4 py-3 text-xs sm:text-sm text-slate-800 focus:outline-none bg-slate-50 rounded-2xl border border-slate-200 focus:border-emerald-500"
+            placeholder={selectedLang === 'ta' ? 'அக்ரிவேதாவிடம் உங்கள் கேள்வியைக் கேளுங்கள்...' : selectedLang === 'hi' ? 'एग्रीवेदा से अपनी फसल सवाल पूछें...' : 'Ask AgriVeda any farming query...'}
+            className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold focus:bg-white focus:border-emerald-600 outline-none"
           />
 
+          {/* Large Mic Button */}
+          <button
+            onClick={handleMicClick}
+            className={`p-3.5 rounded-2xl font-black transition-all shadow-md cursor-pointer shrink-0 ${
+              isListening
+                ? 'bg-rose-600 text-white animate-pulse ring-4 ring-rose-500/30'
+                : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+            }`}
+            title="Push to Speak"
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+
+          {/* Send Button */}
           <button
             onClick={() => handleSendMessage()}
-            disabled={(!inputPrompt.trim() && !attachedImage) || isLoading}
-            className="p-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 text-white rounded-2xl transition-all shrink-0 shadow-md"
+            disabled={!inputPrompt.trim() && !attachedImage}
+            className="p-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl transition-colors cursor-pointer disabled:opacity-50 shrink-0"
           >
             <Send className="w-5 h-5" />
           </button>

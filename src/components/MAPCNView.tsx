@@ -100,21 +100,18 @@ export const MAPCNView: React.FC<MAPCNViewProps> = ({
     <div className="space-y-6 pb-20 animate-in fade-in max-w-7xl mx-auto">
       
       {/* Top Banner Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-emerald-950 via-slate-900 to-blue-950 text-white p-6 sm:p-8 shadow-2xl border border-emerald-800/40">
-        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-950 to-slate-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-800 space-y-4">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-semibold uppercase tracking-wider backdrop-blur-md">
-              <Activity className="w-3.5 h-3.5 animate-pulse" />
-              <span>Market Live APMC Network</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black uppercase tracking-wider">
+              <Activity className="w-3.5 h-3.5 animate-pulse text-amber-300" />
+              <span>APMC Mandi Network & Seed Vault</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Mandi & APMC Price Commodity Network
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Government Schemes & Seed Exchange Network
             </h1>
-            <p className="text-sm text-slate-300 leading-relaxed font-medium">
-              Real-time commodity arrivals, transparent modal auction rates, regional mandi arbitrage, and direct connections with licensed APMC traders.
+            <p className="text-xs sm:text-sm text-emerald-200/90 leading-relaxed font-medium">
+              Real-time Mandi arrivals, Community Seed Bank listings, heritage seed exchanges, and government agricultural subsidy schemes.
             </p>
           </div>
 

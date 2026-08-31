@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Camera, Upload, CheckCircle, ArrowLeft, Download, Volume2, Share2, AlertTriangle, Sparkles, Sprout, RefreshCw, FileText, FileDown, Check } from 'lucide-react';
+import { Camera, Upload, CheckCircle, ArrowLeft, Download, Volume2, Share2, AlertTriangle, Sparkles, Sprout, RefreshCw, FileText, FileDown, Check, ShieldAlert, Zap, Calculator } from 'lucide-react';
 import { CropDiagnosisReport, UserProfile } from '../types';
 import { translations, sampleCropImages } from '../data/mockData';
 import { generateCropReportPDF } from '../utils/pdfExport';
 import { supabase } from '../lib/supabase';
+import { FertilizerCalculator } from './FertilizerCalculator';
+
 interface CropScanViewProps {
   profile: UserProfile;
   onDiagnosisComplete: (report: CropDiagnosisReport) => void;
@@ -27,10 +29,10 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
   const [selectedImage, setSelectedImage] = useState<string | null>(sampleCropImages[0].url);
   const [selectedSampleId, setSelectedSampleId] = useState<string | null>(sampleCropImages[0].id);
   const [isScanning, setIsScanning] = useState(false);
-  const [showFullReport, setShowFullReport] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [pdfSuccess, setPdfSuccess] = useState(false);
+  const [showFertilizerCalc, setShowFertilizerCalc] = useState(false);
 
   const handleExportPDF = async () => {
     if (!activeReport) return;
@@ -47,7 +49,6 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
     }
   };
 
-  // Handle File Upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -60,7 +61,6 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
     }
   };
 
-  // Perform AI Crop Analysis
   const handleAnalyzeCrop = async () => {
     setIsScanning(true);
     setActiveReport(null);
@@ -104,7 +104,6 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
     }
   };
 
-  // Audio Speech synthesis for accessibility
   const handleReadAloud = (text: string) => {
     if ('speechSynthesis' in window) {
       if (isSpeaking) {
@@ -138,485 +137,241 @@ export const CropScanView: React.FC<CropScanViewProps> = ({
   return (
     <div className="space-y-6 pb-24 animate-in fade-in">
 
-      {/* Title Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+      {/* Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Camera className="w-5 h-5 text-blue-600" />
-            <span>AI Crop Diagnosis</span>
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+            <Camera className="w-6 h-6 text-emerald-700" />
+            <span>Crop Doctor • Scan My Crop</span>
           </h2>
           <p className="text-xs text-slate-500 font-medium">
-            Upload leaf photo or capture crop image for instant pathology analysis
+            Instantly diagnose leaf diseases, fungal spot, pests, and nutrient deficiencies.
           </p>
         </div>
 
-        {activeReport && (
-          <button
-            onClick={() => {
-              setActiveReport(null);
-              setShowFullReport(false);
-            }}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors border border-slate-200"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> New Scan
-          </button>
-        )}
+        <button
+          onClick={() => setShowFertilizerCalc(prev => !prev)}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded-2xl border border-emerald-300 font-bold text-xs transition-colors self-start sm:self-auto cursor-pointer"
+        >
+          <Calculator className="w-4 h-4 text-emerald-700" />
+          <span>{showFertilizerCalc ? 'Hide Fertilizer Calculator' : 'Fertilizer Dosage Calculator'}</span>
+        </button>
       </div>
 
-      {/* VIEW 1: SCAN INPUT FORM (Screen 4) */}
-      {!activeReport && !isScanning && (
-        <div className="space-y-5">
+      {/* Fertilizer Calculator Tab Toggle */}
+      {showFertilizerCalc && (
+        <div className="p-4 bg-emerald-50/60 rounded-3xl border border-emerald-200">
+          <FertilizerCalculator profile={profile} />
+        </div>
+      )}
 
-          {/* Upload / Capture Dropzone */}
-          <div className="bg-slate-50 rounded-xl p-5 border-2 border-dashed border-slate-300 text-center relative overflow-hidden group hover:border-blue-500 transition-colors">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-            {selectedImage ? (
-              <div className="relative max-w-sm mx-auto">
-                <img
-                  src={selectedImage}
-                  alt="Crop preview"
-                  className="w-full h-52 object-cover rounded-xl shadow-sm border border-slate-200"
-                />
-                <label className="absolute bottom-3 right-3 px-3 py-1.5 bg-slate-900/90 hover:bg-slate-900 text-white text-xs font-bold rounded-lg cursor-pointer shadow-md flex items-center gap-1">
-                  <Camera className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Change Photo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-            ) : (
-              <div className="py-6 space-y-3">
-                <div className="w-14 h-14 mx-auto rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
-                  <Upload className="w-7 h-7" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">
-                    Upload or Capture Crop Image
-                  </p>
-                  <p className="text-xs text-slate-500 max-w-xs mx-auto mt-0.5">
-                    Ensure leaf spots, discoloration, or pest damage are clearly visible.
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg cursor-pointer shadow-sm flex items-center gap-2 transition-colors">
-                    <Camera className="w-4 h-4" />
-                    <span>Upload Photo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Preset Sample Crop Images Selector */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Or Choose Sample Infected Crop Leaf:
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {sampleCropImages.map((sample) => (
-                <button
-                  key={sample.id}
-                  onClick={() => {
-                    setSelectedImage(sample.url);
-                    setSelectedSampleId(sample.id);
-                    setCropType(sample.crop);
-                  }}
-                  className={`p-2 rounded-xl border text-left flex items-center gap-2 transition-all ${selectedSampleId === sample.id
-                    ? 'bg-blue-50/80 border-blue-600 ring-1 ring-blue-600 shadow-sm'
-                    : 'bg-white border-slate-200 hover:bg-slate-50'
-                    }`}
-                >
-                  <img
-                    src={sample.url}
-                    alt={sample.name}
-                    className="w-10 h-10 rounded-lg object-cover shrink-0 border border-slate-200"
-                  />
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-900 truncate">
-                      {sample.crop}
-                    </p>
-                    <p className="text-[9px] text-slate-500 truncate">
-                      {sample.issue}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Options */}
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <Sprout className="w-4 h-4 text-blue-600" /> Farm & Crop Details
+        {/* 📸 LEFT COLUMN: PHOTO UPLOAD & SAMPLE SELECTOR (5 Cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-4">
+            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
+              <Upload className="w-4 h-4 text-emerald-700" />
+              <span>Step 1: Upload or Capture Crop Photo</span>
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Crop Type Dropdown */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Crop Type
+            {/* Selected Image Preview Area */}
+            <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center group">
+              {selectedImage ? (
+                <>
+                  <img
+                    src={selectedImage}
+                    alt="Crop Scan Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <label className="px-4 py-2 bg-white text-slate-900 font-bold text-xs rounded-xl shadow-md cursor-pointer hover:bg-slate-100">
+                      Change Photo
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <label className="flex flex-col items-center justify-center p-6 text-center cursor-pointer">
+                  <Camera className="w-10 h-10 text-emerald-600 mb-2" />
+                  <span className="text-xs font-bold text-slate-800">Take Photo or Upload Image</span>
+                  <span className="text-[10px] text-slate-400 mt-1">Supports JPG, PNG up to 10MB</span>
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </label>
-                <select
-                  value={cropType}
-                  onChange={e => setCropType(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <optgroup label="Cereals & Grains">
-                    <option value="Paddy / Rice">Paddy / Rice</option>
-                    <option value="Wheat">Wheat</option>
-                    <option value="Maize / Corn">Maize / Corn</option>
-                    <option value="Barley">Barley</option>
-                  </optgroup>
-                  <optgroup label="Millets">
-                    <option value="Ragi / Finger Millet">Ragi / Finger Millet</option>
-                    <option value="Sorghum / Jowar / Cholam">Sorghum / Jowar</option>
-                    <option value="Pearl Millet / Bajra">Pearl Millet / Bajra</option>
-                    <option value="Foxtail Millet">Foxtail Millet</option>
-                    <option value="Little Millet">Little Millet</option>
-                    <option value="Barnyard Millet">Barnyard Millet</option>
-                  </optgroup>
-                  <optgroup label="Pulses & Legumes">
-                    <option value="Moong Dal / Green Gram">Moong Dal / Green Gram</option>
-                    <option value="Black Gram / Urad Dal">Black Gram / Urad Dal</option>
-                    <option value="Chickpea / Bengal Gram">Chickpea / Bengal Gram</option>
-                    <option value="Pigeon Pea / Toor Dal">Pigeon Pea / Toor Dal</option>
-                    <option value="Cowpea / Karamani">Cowpea / Karamani</option>
-                  </optgroup>
-                  <optgroup label="Vegetables">
-                    <option value="Tomato">Tomato</option>
-                    <option value="Chilli / Peppers">Chilli / Peppers</option>
-                    <option value="Brinjal / Eggplant">Brinjal / Eggplant</option>
-                    <option value="Onion">Onion</option>
-                    <option value="Potato">Potato</option>
-                    <option value="Cabbage">Cabbage</option>
-                    <option value="Cauliflower">Cauliflower</option>
-                    <option value="Okra / Lady's Finger">Okra / Lady's Finger</option>
-                    <option value="Carrot">Carrot</option>
-                    <option value="Radish">Radish</option>
-                    <option value="Spinach / Keerai">Spinach / Keerai</option>
-                  </optgroup>
-                  <optgroup label="Fruits">
-                    <option value="Mango">Mango</option>
-                    <option value="Banana">Banana</option>
-                    <option value="Papaya">Papaya</option>
-                    <option value="Guava">Guava</option>
-                    <option value="Citrus / Lemon">Citrus / Lemon</option>
-                    <option value="Watermelon">Watermelon</option>
-                  </optgroup>
-                  <optgroup label="Cash Crops & Oilseeds">
-                    <option value="Cotton">Cotton</option>
-                    <option value="Sugarcane">Sugarcane</option>
-                    <option value="Groundnut / Peanut">Groundnut / Peanut</option>
-                    <option value="Sunflower">Sunflower</option>
-                    <option value="Mustard">Mustard</option>
-                    <option value="Turmeric">Turmeric</option>
-                    <option value="Ginger">Ginger</option>
-                  </optgroup>
-                </select>
-              </div>
+              )}
+            </div>
 
-              {/* Soil Type Dropdown */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Soil Type
-                </label>
-                <select
-                  value={soilType}
-                  onChange={e => setSoilType(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="Red Soil">Red Soil</option>
-                  <option value="Clay Soil">Clay Soil</option>
-                  <option value="Loam Soil">Loam Soil</option>
-                  <option value="Sandy Loam">Sandy Loam</option>
-                  <option value="Black Cotton Soil">Black Cotton Soil</option>
-                  <option value="Alluvial Soil">Alluvial Soil</option>
-                </select>
-              </div>
-
-              {/* Farm Area in Acres */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Farm Area (in acres)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={farmArea}
-                  onChange={e => setFarmArea(Number(e.target.value))}
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Location / District
-                </label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={e => setLocation(e.target.value)}
-                  placeholder="e.g. Vellore, Tamil Nadu"
-                  className="w-full px-3.5 py-2 rounded-lg border border-slate-200 text-xs font-semibold text-slate-800 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
+            {/* Sample Pathology Images Selector */}
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-700 block">Or Select Sample Leaf Image:</span>
+              <div className="grid grid-cols-3 gap-2">
+                {sampleCropImages.map(sample => (
+                  <button
+                    key={sample.id}
+                    onClick={() => {
+                      setSelectedImage(sample.url);
+                      setSelectedSampleId(sample.id);
+                    }}
+                    className={`relative rounded-xl overflow-hidden border-2 transition-all aspect-square cursor-pointer ${
+                      selectedSampleId === sample.id ? 'border-emerald-600 ring-2 ring-emerald-500/20 scale-95' : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <img src={sample.url} alt={sample.crop} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-0 inset-x-0 bg-slate-950/70 text-white text-[9px] font-extrabold px-1 py-0.5 truncate text-center">
+                      {sample.crop}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Analyze Crop Primary Button */}
+            {/* Farm Context Inputs */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Crop Type</label>
+                  <input
+                    type="text"
+                    value={cropType}
+                    onChange={e => setCropType(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-600 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Soil Type</label>
+                  <input
+                    type="text"
+                    value={soilType}
+                    onChange={e => setSoilType(e.target.value)}
+                    className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-600 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Scan Button */}
             <button
               onClick={handleAnalyzeCrop}
-              className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transform active:scale-98 transition-all mt-4"
+              disabled={isScanning}
+              className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 active:scale-98 text-white font-black text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              <Sparkles className="w-4 h-4 text-white animate-spin" style={{ animationDuration: '3s' }} />
-              <span>{t.analyzeCrop}</span>
+              {isScanning ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span>Analyzing Pathology with AI...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 text-amber-300" />
+                  <span>Run Crop Doctor Diagnosis</span>
+                </>
+              )}
             </button>
 
           </div>
-
         </div>
-      )}
 
-      {/* SCANNING LOADING ANIMATION */}
-      {isScanning && (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-slate-200 space-y-4 my-8">
-          <div className="relative w-32 h-32 mx-auto rounded-xl overflow-hidden border-2 border-blue-600 shadow-md">
-            <img src={selectedImage || sampleCropImages[0].url} alt="Scanning" className="w-full h-full object-cover" />
-            <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-blue-400 via-amber-300 to-blue-400 shadow-lg animate-bounce" style={{ top: '40%' }}></div>
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-slate-900 flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-600 animate-spin" />
-              AgriVeda AI Scanning Crop Leaves...
-            </h3>
-            <p className="text-xs text-slate-500 font-medium max-w-sm mx-auto">
-              Analyzing fungal pathogens, leaf spot patterns, nutrient deficiency, and regional pest risks...
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 2: AI DIAGNOSIS RESULT SCREEN */}
-      {activeReport && !isScanning && (
-        <div className="space-y-5 animate-in fade-in">
-
-          {/* Result Overview Header Card */}
-          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
-
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <span className="text-xs font-bold uppercase text-slate-700 tracking-wider">
-                {t.diagnosisResult}
-              </span>
-              <span className="text-xs text-slate-400 font-medium">
-                {activeReport.timestamp}
-              </span>
-            </div>
-
-            {/* Image Preview with Diagnostic Overlay */}
-            <div className="relative rounded-xl overflow-hidden border border-slate-200 shadow-sm max-w-md mx-auto">
-              <img
-                src={activeReport.imageUrl}
-                alt="Diagnosis preview"
-                className="w-full h-56 object-cover"
-              />
-              <div className="absolute top-3 right-3 px-3 py-1 rounded-md bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold flex items-center gap-1.5 border border-slate-700">
-                <CheckCircle className="w-3.5 h-3.5 text-blue-400" />
-                <span>AI Pathology Verified</span>
-              </div>
-            </div>
-
-            {/* Detected Issue Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
+        {/* 📑 RIGHT COLUMN: STRUCTURED DIAGNOSIS REPORT (7 Cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          {activeReport ? (
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-5">
+              
+              {/* Report Title Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Crop: {activeReport.cropType}
-                  </p>
-                  <h3 className="text-base font-bold text-slate-900 leading-tight">
+                  <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 bg-rose-100 text-rose-800 rounded-full">
+                    {activeReport.riskLevel} Risk • {activeReport.confidence}% AI Confidence
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900 mt-2">
                     {activeReport.detectedIssue}
                   </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    Diagnosis for {activeReport.cropType} ({activeReport.location})
+                  </p>
                 </div>
 
-                <div className="text-right">
-                  <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-md text-white ${activeReport.riskLevel === 'High' ? 'bg-red-600' :
-                    activeReport.riskLevel === 'Medium' ? 'bg-amber-600' : 'bg-emerald-600'
-                    }`}>
-                    {activeReport.riskLevel} Risk
-                  </span>
-                </div>
-              </div>
-
-              {/* Confidence Score Bar */}
-              <div className="pt-1">
-                <div className="flex items-center justify-between text-xs font-bold mb-1">
-                  <span className="text-slate-600">AI Confidence Level</span>
-                  <span className="text-blue-600">{activeReport.confidence}%</span>
-                </div>
-                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-600 rounded-full"
-                    style={{ width: `${activeReport.confidence}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            {/* View Full Report & Export PDF Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <button
-                onClick={() => setShowFullReport(true)}
-                className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-colors"
-              >
-                <span>{t.viewFullReport}</span>
-                <ArrowLeft className="w-4 h-4 rotate-180" />
-              </button>
-
-              <button
-                onClick={handleExportPDF}
-                disabled={isExportingPDF}
-                className="py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-400 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-colors"
-              >
-                {pdfSuccess ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-300" />
-                    <span>PDF Downloaded!</span>
-                  </>
-                ) : (
-                  <>
-                    <FileDown className={`w-4 h-4 ${isExportingPDF ? 'animate-bounce' : ''}`} />
-                    <span>{isExportingPDF ? 'Generating PDF...' : 'Export PDF Report'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-          </div>
-
-          {/* VIEW 3: FULL REPORT EXPANDED SECTION */}
-          {showFullReport && (
-            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4 animate-in fade-in">
-
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Sprout className="w-4 h-4 text-blue-600" />
-                  <span>{t.fullReport}</span>
-                </h3>
-
-                <button
-                  onClick={() => handleReadAloud(`${activeReport.detectedIssue}. Cause: ${activeReport.cause}. Treatment: ${activeReport.treatment.join(', ')}`)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors ${isSpeaking ? 'bg-amber-500 text-white animate-pulse' : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200'
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleReadAloud(`${activeReport.detectedIssue}. Cause: ${activeReport.cause}. Treatment: ${activeReport.treatment?.join(' ')}`)}
+                    className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
+                      isSpeaking ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                     }`}
-                >
-                  <Volume2 className="w-4 h-4" />
-                  <span>{isSpeaking ? 'Pause Audio' : 'Listen Report'}</span>
-                </button>
+                    title="Read Aloud Diagnosis"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={handleExportPDF}
+                    disabled={isExportingPDF}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs rounded-xl border border-emerald-300 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-emerald-700" />
+                    <span>{pdfSuccess ? 'Exported!' : 'Download PDF'}</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Cause Section */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" /> {t.cause}
-                </h4>
-                <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                  {activeReport.cause}
+              {/* 🎯 STRUCTURED AI ADVISORY: Problem -> Cause -> Action -> Next Step */}
+              <div className="space-y-4">
+                
+                {/* 1. PROBLEM */}
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
+                  <span className="text-[11px] font-black text-rose-900 uppercase tracking-wider block">1. Identified Problem</span>
+                  <p className="text-xs font-bold text-rose-950">{activeReport.detectedIssue}</p>
+                </div>
+
+                {/* 2. CAUSE */}
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-1">
+                  <span className="text-[11px] font-black text-amber-900 uppercase tracking-wider block">2. Root Cause & Conditions</span>
+                  <p className="text-xs text-amber-950 font-medium">{activeReport.cause}</p>
+                </div>
+
+                {/* 3. ACTION (Treatment Steps) */}
+                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
+                  <span className="text-[11px] font-black text-emerald-900 uppercase tracking-wider block">3. Immediate Action & Treatment</span>
+                  <ul className="space-y-1.5 text-xs text-emerald-950 font-medium">
+                    {activeReport.treatment?.map((step, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 4. NEXT STEP (Prevention & Fertilizer) */}
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <span className="text-[11px] font-black text-slate-900 uppercase tracking-wider block">4. Next Steps & Prevention</span>
+                  <p className="text-xs text-slate-800 font-medium">
+                    <strong>Fertilizer Advice:</strong> {activeReport.fertilizerSuggestion}
+                  </p>
+                  <ul className="space-y-1 text-xs text-slate-700 font-medium pt-1">
+                    {activeReport.prevention?.map((prev, idx) => (
+                      <li key={idx}>• {prev}</li>
+                    ))}
+                  </ul>
+                </div>
+
+              </div>
+
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 text-center space-y-4 min-h-[400px] flex flex-col items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
+                <Sparkles className="w-8 h-8 text-emerald-700" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">Ready to Scan Your Crop</h3>
+                <p className="text-xs text-slate-500 font-medium max-w-sm mt-1">
+                  Select or upload a leaf photo on the left and tap "Run Crop Doctor Diagnosis" to get an instant pathology report.
                 </p>
               </div>
-
-              {/* Treatment Section */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  🧪 {t.treatment}
-                </h4>
-                <ul className="space-y-1.5">
-                  {activeReport.treatment.map((step, idx) => (
-                    <li key={idx} className="text-xs text-slate-800 flex items-start gap-2">
-                      <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                        {idx + 1}
-                      </span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Prevention Section */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  🛡️ {t.prevention}
-                </h4>
-                <ul className="space-y-1.5">
-                  {activeReport.prevention.map((step, idx) => (
-                    <li key={idx} className="text-xs text-slate-800 flex items-start gap-2">
-                      <CheckCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Fertilizer Suggestion */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
-                <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                  🌾 {t.fertilizerSuggestion}
-                </h4>
-                <p className="text-xs text-slate-800 font-semibold">
-                  {activeReport.fertilizerSuggestion}
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <button
-                  onClick={handleExportPDF}
-                  disabled={isExportingPDF}
-                  className="py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-400 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <FileDown className={`w-4 h-4 ${isExportingPDF ? 'animate-bounce' : ''}`} />
-                  <span>{isExportingPDF ? 'Generating...' : 'Export PDF'}</span>
-                </button>
-
-                <button
-                  onClick={() => alert('Report saved to your Saved Diagnosis History!')}
-                  className="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>{t.saveReport}</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({
-                        title: `AgriVeda AI Report: ${activeReport.detectedIssue}`,
-                        text: `Diagnosis for ${activeReport.cropType}: ${activeReport.detectedIssue}`
-                      });
-                    } else {
-                      alert('Share link copied to clipboard!');
-                    }
-                  }}
-                  className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Share Report</span>
-                </button>
-              </div>
-
             </div>
           )}
-
         </div>
-      )}
+
+      </div>
 
     </div>
   );

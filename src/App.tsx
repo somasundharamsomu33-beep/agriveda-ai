@@ -1,160 +1,280 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useFirebase } from './context/FirebaseContext';
+import { ActiveTab, CropDiagnosisReport, UserProfile, UserRole } from './types';
 import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
 import { BottomNav } from './components/BottomNav';
-import { AuthModal } from './components/AuthModal';
-import { OfflineBanner } from './components/OfflineBanner';
+import { SplashView } from './components/SplashView';
+import { OnboardingView } from './components/OnboardingView';
+import { LoginView } from './components/LoginView';
+import { SignUpView } from './components/SignUpView';
+import { ProfileSetupView } from './components/ProfileSetupView';
+import { KYCVerificationView } from './components/KYCVerificationView';
 import { DashboardView } from './components/DashboardView';
-import { CropScanView } from './components/CropScanView';
 import { VoiceAssistantView } from './components/VoiceAssistantView';
+import { CropScanView } from './components/CropScanView';
 import { CropCalendarView } from './components/CropCalendarView';
 import { WeatherView } from './components/WeatherView';
-import { MarketInsightsView } from './components/MarketInsightsView';
+import { MarketPricesView } from './components/MarketPricesView';
+import { FarmerPassportView } from './components/FarmerPassportView';
+import { MyFarmView } from './components/MyFarmView';
+import { NotificationsView } from './components/NotificationsView';
+import { SettingsView } from './components/SettingsView';
+import { HelpSupportView } from './components/HelpSupportView';
 import { CommunityView } from './components/CommunityView';
-import { ProfileView } from './components/ProfileView';
 import { MarketplaceView } from './components/MarketplaceView';
 import { MapsView } from './components/MapsView';
+import { MAPCNView } from './components/MAPCNView';
+import { AuthModal } from './components/AuthModal';
 import { RoleOnboardingModal } from './components/onboarding/RoleOnboardingModal';
 import { VerificationAdminModal } from './components/verification/VerificationAdminModal';
-import { MAPCNView } from './components/MAPCNView';
-import { AppLoadingScreen } from './components/AppLoadingScreen';
-import { ExternalSupportWidget } from './components/ExternalSupportWidget';
-import { UserTutorialModal } from './components/onboarding/UserTutorialModal';
+import { AdminVerificationAuditPortal } from './components/verification/AdminVerificationAuditPortal';
 import { SignOutConfirmModal } from './components/ui/SignOutConfirmModal';
+import { MultiRoleAuthHub } from './components/auth/MultiRoleAuthHub';
+import { RoleAuthModal } from './components/auth/RoleAuthModal';
+import { B2BVendorDashboardView } from './components/dashboards/B2BVendorDashboardView';
+import { B2CVendorDashboardView } from './components/dashboards/B2CVendorDashboardView';
+import { AgronomistDashboardView } from './components/dashboards/AgronomistDashboardView';
+import { ResearchScholarDashboardView } from './components/dashboards/ResearchScholarDashboardView';
+import { EquipmentVendorDashboardView } from './components/dashboards/EquipmentVendorDashboardView';
+import { TechnicianDashboardView } from './components/dashboards/TechnicianDashboardView';
+import { SparePartsDashboardView } from './components/dashboards/SparePartsDashboardView';
+import { AgriMarketplaceHub } from './components/marketplace/AgriMarketplaceHub';
+import { NearbyServicesHub } from './components/nearby/NearbyServicesHub';
+import { MyLandDashboard } from './components/land/MyLandDashboard';
+import { VendorEcommerceDashboard } from './components/vendor/VendorEcommerceDashboard';
 import { AuthService } from './lib/authService';
-import { initialUserProfile, guestUserProfile } from './data/mockData';
-
-import { ActiveTab, CropDiagnosisReport, VerificationStatusLevel } from './types';
-import { useFirebase } from './context/FirebaseContext';
-import { Bell, X, ShieldAlert, Bot, Sparkles } from 'lucide-react';
+import { Bot, Sparkles } from 'lucide-react';
 
 export default function App() {
-  const { user, profile, setProfile, savedReports, saveReport, logout } = useFirebase();
+  const { user, profile, setProfile, logout } = useFirebase();
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
-  const [isLoadingApp, setIsLoadingApp] = useState(true);
-  const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [activeReport, setActiveReport] = useState<CropDiagnosisReport | null>(null);
+
+  // Auth Modals State
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [selectedAuthRole, setSelectedAuthRole] = useState<UserRole | null>(null);
   const [showRoleOnboardingModal, setShowRoleOnboardingModal] = useState(false);
   const [showVerificationAdminModal, setShowVerificationAdminModal] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [assistantSeedQuery, setAssistantSeedQuery] = useState<string | undefined>(undefined);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
-  const [activeReport, setActiveReport] = useState<CropDiagnosisReport | null>(null);
-  const [targetFocusCoords, setTargetFocusCoords] = useState<[number, number] | null>(null);
-
-  // On diagnosis completion
-  const handleDiagnosisComplete = async (report: CropDiagnosisReport) => {
-    setActiveReport(report);
-    await saveReport(report);
+  // Helper to redirect to role-specific dashboard
+  const redirectToRoleDashboard = (userProfile: UserProfile) => {
+    const role = userProfile.role || 'farmer';
+    if (role === 'b2b_vendor') setActiveTab('b2b_vendor_dashboard');
+    else if (role === 'b2c_vendor') setActiveTab('b2c_vendor_dashboard');
+    else if (role === 'agronomist') setActiveTab('agronomist_dashboard');
+    else if (role === 'research_scholar') setActiveTab('research_scholar_dashboard');
+    else if (role === 'equipment_vendor') setActiveTab('equipment_vendor_dashboard');
+    else if (role === 'technician') setActiveTab('technician_dashboard');
+    else if (role === 'spare_parts_retailer') setActiveTab('spare_parts_dashboard');
+    else setActiveTab('home');
   };
 
-  const handleAdminApproveUser = (userId: string, newStatus: VerificationStatusLevel) => {
-    setProfile(prev => ({
+  const handleAuthSuccess = (updatedProfile: UserProfile) => {
+    setProfile(updatedProfile);
+    setSelectedAuthRole(null);
+    setShowAuthModal(false);
+    redirectToRoleDashboard(updatedProfile);
+  };
+
+  const handleAdminApproveUser = () => {
+    setProfile((prev: UserProfile) => ({
       ...prev,
-      verificationStatus: newStatus
+      verificationStatus: 'FULLY_VERIFIED',
+      verificationScore: 100,
     }));
   };
 
-  const handleConfirmLogout = async () => {
+  const handleConfirmLogout = () => {
+    logout();
     AuthService.clearCurrentSession();
-    try {
-      await logout();
-    } catch (e) {
-      console.error(e);
-    }
-    setProfile(guestUserProfile);
     setShowSignOutModal(false);
-    setShowAuthModal(true);
+    setActiveTab('auth_hub');
   };
-
-  const handleLoadingComplete = () => {
-    setIsLoadingApp(false);
-    setShowTutorialModal(true);
-  };
-
-  if (isLoadingApp) {
-    return <AppLoadingScreen onLoadingComplete={handleLoadingComplete} durationMs={3500} />;
-  }
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans selection:bg-emerald-200 selection:text-emerald-900 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans antialiased">
+      {/* Desktop Sidebar Navigation */}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        profile={profile}
+      />
 
-      {/* Offline Connectivity & Cache Banner */}
-      <OfflineBanner />
-
-      {/* Top Navigation Header */}
+      {/* Top Header */}
       <Header
         profile={profile}
         setProfile={setProfile}
-        onOpenAuth={() => setShowAuthModal(true)}
-        onOpenNotifications={() => setShowNotifications(true)}
-        onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
-        onOpenAdminVerification={() => setShowVerificationAdminModal(true)}
-        onOpenTutorial={() => setShowTutorialModal(true)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenAuth={() => setActiveTab('auth_hub')}
+        onOpenNotifications={() => setActiveTab('notifications')}
         onOpenSignOutConfirm={() => setShowSignOutModal(true)}
         unreadCount={2}
       />
 
-      {/* Main Content Stage */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-24">
+      {/* Main Content View Stage */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-28 lg:pl-72">
+        {/* 1. Splash / Launch Screen */}
+        {activeTab === 'splash' && (
+          <SplashView onContinue={() => setActiveTab('onboarding')} />
+        )}
+
+        {/* 2. Onboarding */}
+        {activeTab === 'onboarding' && (
+          <OnboardingView
+            onComplete={() => setActiveTab('auth_hub')}
+            onSkip={() => setActiveTab('home')}
+          />
+        )}
+
+        {/* 3. Multi-Role Authentication Hub */}
+        {activeTab === 'auth_hub' && (
+          <MultiRoleAuthHub
+            onSelectRole={(role) => setSelectedAuthRole(role)}
+          />
+        )}
+
+        {/* 4. Login & Sign Up Compatibility Views */}
+        {activeTab === 'login' && (
+          <LoginView
+            onLoginSuccess={() => setActiveTab('home')}
+            onNavigateSignUp={() => setActiveTab('signup')}
+            onForgotPassword={() => alert("Password reset link sent to your registered mobile/email.")}
+          />
+        )}
+
+        {activeTab === 'signup' && (
+          <SignUpView
+            onSignUpSuccess={() => setActiveTab('profile_setup')}
+            onNavigateLogin={() => setActiveTab('login')}
+          />
+        )}
+
+        {/* 5. Farmer Profile Setup */}
+        {activeTab === 'profile_setup' && (
+          <ProfileSetupView
+            profile={profile}
+            setProfile={setProfile}
+            onComplete={() => setActiveTab('kyc')}
+          />
+        )}
+
+        {/* 6. KYC Verification */}
+        {activeTab === 'kyc' && (
+          <KYCVerificationView
+            profile={profile}
+            setProfile={setProfile}
+            onComplete={() => setActiveTab('passport')}
+          />
+        )}
+
+        {/* 7. Main Farmer Dashboard */}
         {activeTab === 'home' && (
           <DashboardView
             profile={profile}
             setActiveTab={setActiveTab}
-            onSelectReport={(report) => {
-              setActiveReport(report);
-              setActiveTab('scan');
-            }}
-            latestReport={activeReport}
-            onOpenTutorial={() => setShowTutorialModal(true)}
           />
+        )}
+
+        {/* 8. Role-Specific Dashboards */}
+        {activeTab === 'b2b_vendor_dashboard' && (
+          <B2BVendorDashboardView profile={profile} />
+        )}
+
+        {activeTab === 'b2c_vendor_dashboard' && (
+          <B2CVendorDashboardView profile={profile} />
+        )}
+
+        {activeTab === 'agronomist_dashboard' && (
+          <AgronomistDashboardView profile={profile} />
+        )}
+
+        {activeTab === 'research_scholar_dashboard' && (
+          <ResearchScholarDashboardView profile={profile} />
+        )}
+
+        {activeTab === 'equipment_vendor_dashboard' && (
+          <EquipmentVendorDashboardView profile={profile} />
+        )}
+
+        {activeTab === 'technician_dashboard' && (
+          <TechnicianDashboardView profile={profile} />
+        )}
+
+        {activeTab === 'spare_parts_dashboard' && (
+          <SparePartsDashboardView profile={profile} />
+        )}
+
+        {/* AI Assistant & Core Features */}
+        {activeTab === 'assistant' && (
+          <VoiceAssistantView profile={profile} />
         )}
 
         {activeTab === 'scan' && (
-          <CropScanView
-            profile={profile}
-            onDiagnosisComplete={handleDiagnosisComplete}
-            activeReport={activeReport}
-            setActiveReport={setActiveReport}
-          />
-        )}
-
-        {activeTab === 'assistant' && (
-          <VoiceAssistantView profile={profile} initialQuery={assistantSeedQuery} />
-        )}
-
-        {activeTab === 'maps' && (
-          <MapsView
-            profile={profile}
-            targetFocusCoords={targetFocusCoords}
-          />
-        )}
-
-        {(activeTab === 'mapcn' || activeTab === 'seedbank') && (
-          <MAPCNView
-            profile={profile}
-            setActiveTab={setActiveTab}
-            onAskAssistantWithCommodity={(cropName) => {
-              setAssistantSeedQuery(cropName);
-              setActiveTab('assistant');
-            }}
-          />
+          <CropScanView profile={profile} activeReport={activeReport} onNavigateTab={setActiveTab} />
         )}
 
         {activeTab === 'calendar' && (
           <CropCalendarView profile={profile} />
         )}
 
+        {activeTab === 'weather' && (
+          <WeatherView profile={profile} />
+        )}
+
         {activeTab === 'market' && (
-          <MarketInsightsView profile={profile} setActiveTab={setActiveTab} />
+          <MarketPricesView profile={profile} />
+        )}
+
+        {activeTab === 'passport' && (
+          <FarmerPassportView profile={profile} />
+        )}
+
+        {activeTab === 'my_farm' && (
+          <MyFarmView profile={profile} />
+        )}
+
+        {activeTab === 'notifications' && (
+          <NotificationsView />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsView
+            profile={profile}
+            setProfile={setProfile}
+            onNavigateTab={setActiveTab}
+            onOpenSignOutConfirm={() => setShowSignOutModal(true)}
+          />
+        )}
+
+        {activeTab === 'help' && (
+          <HelpSupportView />
+        )}
+
+        {activeTab === 'my_land' && (
+          <MyLandDashboard profile={profile} />
+        )}
+
+        {activeTab === 'nearby' && (
+          <NearbyServicesHub profile={profile} onNavigateTab={setActiveTab} />
         )}
 
         {activeTab === 'marketplace' && (
-          <MarketplaceView profile={profile} userId={user?.uid} />
+          <AgriMarketplaceHub profile={profile} onNavigateTab={setActiveTab} />
         )}
 
-        {activeTab === 'weather' && (
-          <WeatherView profile={profile} />
+        {activeTab === 'vendor_dashboard' && (
+          <VendorEcommerceDashboard profile={profile} />
+        )}
+
+        {activeTab === 'maps' && (
+          <MapsView profile={profile} targetFocusCoords={null} />
+        )}
+
+        {(activeTab === 'mapcn' || activeTab === 'seedbank') && (
+          <MAPCNView profile={profile} setActiveTab={setActiveTab} />
         )}
 
         {activeTab === 'community' && (
@@ -162,37 +282,43 @@ export default function App() {
         )}
 
         {activeTab === 'profile' && (
-          <ProfileView
-            profile={profile}
-            setProfile={setProfile}
-            onOpenAuth={() => setShowAuthModal(true)}
-            savedReports={savedReports}
-            onSelectReport={(report) => {
-              setActiveReport(report);
-              setActiveTab('scan');
-            }}
-            setActiveTab={setActiveTab}
-            onNavigateToLandPhoto={(photo) => {
-              setTargetFocusCoords(photo.coords);
-              setActiveTab('maps');
-            }}
-            onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
-            onOpenSignOutConfirm={() => setShowSignOutModal(true)}
-          />
+          <FarmerPassportView profile={profile} />
         )}
       </main>
 
-      {/* Screen 1: Interactive 8-Slide UI Walkthrough Tutorial */}
-      <UserTutorialModal
-        isOpen={showTutorialModal}
-        onClose={() => setShowTutorialModal(false)}
-        profile={profile}
-        setProfile={setProfile}
+      {/* Floating AI Assistant FAB */}
+      {activeTab !== 'assistant' && (
+        <button
+          onClick={() => setActiveTab('assistant')}
+          className="fixed bottom-20 right-4 sm:right-6 z-40 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-3 rounded-full shadow-2xl hover:shadow-blue-500/30 flex items-center gap-2 border border-blue-400 hover:scale-105 active:scale-95 transition-all group animate-bounce cursor-pointer"
+        >
+          <div className="relative">
+            <Bot className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping"></span>
+          </div>
+          <span className="text-xs font-black">Ask AgriVeda AI</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+        </button>
+      )}
+
+      {/* Bottom Navigation */}
+      <BottomNav
+        activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenRoleOnboarding={() => setShowRoleOnboardingModal(true)}
+        language={profile.language}
       />
 
-      {/* Screen 2: Login / Signup Modal */}
+      {/* Role Dedicated Authentication Modal */}
+      {selectedAuthRole && (
+        <RoleAuthModal
+          role={selectedAuthRole}
+          onClose={() => setSelectedAuthRole(null)}
+          onSuccess={handleAuthSuccess}
+          onBackToHub={() => setSelectedAuthRole(null)}
+        />
+      )}
+
+      {/* Existing Modals */}
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
@@ -201,7 +327,6 @@ export default function App() {
         setActiveTab={setActiveTab}
       />
 
-      {/* Screen 3: Dedicated Role-Based Registration & Verification Wizard */}
       <RoleOnboardingModal
         isOpen={showRoleOnboardingModal}
         onClose={() => setShowRoleOnboardingModal(false)}
@@ -209,94 +334,18 @@ export default function App() {
         setProfile={setProfile}
       />
 
-      {/* Screen 4: Admin Verification & Compliance Audit Console */}
       <VerificationAdminModal
         isOpen={showVerificationAdminModal}
         onClose={() => setShowVerificationAdminModal(false)}
         onApproveUser={handleAdminApproveUser}
       />
 
-      {/* Screen 5: Dedicated Sign Out Confirmation Modal */}
       <SignOutConfirmModal
         isOpen={showSignOutModal}
         onClose={() => setShowSignOutModal(false)}
         onConfirmLogout={handleConfirmLogout}
         profile={profile}
       />
-
-      {/* Notifications Drawer */}
-      {showNotifications && (
-        <div className="fixed inset-0 z-50 flex items-start justify-end p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-2xl border border-slate-100 space-y-4 relative mt-12">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-              <div className="flex items-center gap-2">
-                <Bell className="w-5 h-5 text-emerald-700" />
-                <h3 className="text-sm font-black text-slate-900">Agri Alerts & Advisories</h3>
-              </div>
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-900 font-extrabold text-xs">
-                  <ShieldAlert className="w-4 h-4 text-amber-600" />
-                  <span>Irrigation Recommended Tomorrow</span>
-                </div>
-                <p className="text-[11px] text-slate-600 font-medium">
-                  Soil moisture level is low in Vellore region. Schedule drip irrigation before 9 AM.
-                </p>
-              </div>
-
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1">
-                <div className="flex items-center gap-1.5 text-emerald-900 font-extrabold text-xs">
-                  <span>Tomato Mandi Price Peak (+16%)</span>
-                </div>
-                <p className="text-[11px] text-slate-600 font-medium">
-                  Tomato prices reached ₹36/kg at Vellore Main Mandi today. Consider harvesting mature crop.
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                setShowNotifications(false);
-                setActiveTab('calendar');
-              }}
-              className="w-full py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl hover:bg-emerald-800"
-            >
-              View Weather & Farming Calendar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Floating AI Copilot Quick Assistant FAB */}
-      {activeTab !== 'assistant' && (
-        <button
-          onClick={() => setActiveTab('assistant')}
-          className="fixed bottom-20 right-4 sm:right-6 z-40 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold px-4 py-3 rounded-full shadow-2xl hover:shadow-emerald-500/30 flex items-center gap-2 border border-emerald-400/40 hover:scale-105 active:scale-95 transition-all group animate-bounce"
-        >
-          <div className="relative">
-            <Bot className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping"></span>
-          </div>
-          <span className="text-xs font-black">AI Copilot</span>
-          <Sparkles className="w-3.5 h-3.5 text-amber-300 group-hover:rotate-12 transition-transform" />
-        </button>
-      )}
-
-      {/* Bottom Navigation Bar */}
-      <BottomNav
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        language={profile.language}
-      />
-
     </div>
   );
 }

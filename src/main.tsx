@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { FirebaseProvider } from './context/FirebaseContext.tsx';
+import { LanguageProvider } from './context/LanguageContext.tsx';
 import { registerServiceWorker } from './lib/offlineStorage.ts';
 
 registerServiceWorker();
@@ -80,7 +81,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <FirebaseProvider>
-        <App />
+        <LanguageProvider>
+          <App />
+        </LanguageProvider>
       </FirebaseProvider>
     </ErrorBoundary>
   </StrictMode>,

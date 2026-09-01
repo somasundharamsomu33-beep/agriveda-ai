@@ -135,8 +135,8 @@ export const NominatimSearch: React.FC<NominatimSearchProps> = ({
           onFocus={() => {
             if (results.length > 0) setIsOpen(true);
           }}
-          placeholder="Search village, mandi, district or bank..."
-          className="w-full pl-9 pr-16 py-2 bg-slate-900/90 hover:bg-slate-900 text-xs font-semibold text-white placeholder:text-slate-400 rounded-xl border border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all shadow-lg backdrop-blur-md"
+          placeholder="🔍 Search farms, vendors, equipment, services, spare parts..."
+          className="w-full pl-9 pr-16 py-2.5 bg-slate-900/90 hover:bg-slate-900 text-xs font-semibold text-white placeholder:text-slate-400 rounded-xl border border-slate-700/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all shadow-lg backdrop-blur-md"
         />
 
         <div className="absolute right-2 flex items-center gap-1">

@@ -1,46 +1,64 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Globe, ChevronDown, Check, ShieldCheck, ShieldAlert, Compass, LogOut, LogIn, Sparkles } from 'lucide-react';
-import { Language, UserProfile } from '../types';
-import { translations } from '../data/mockData';
+import { 
+  Bell, 
+  Globe, 
+  ChevronDown, 
+  Check, 
+  ShieldCheck, 
+  LayoutGrid
+} from 'lucide-react';
+import { ActiveTab, UserProfile } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 import { AgriLogo } from './ui/AgriLogo';
 
 interface HeaderProps {
   profile: UserProfile;
   setProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+  activeTab: ActiveTab;
+  setActiveTab: (tab: ActiveTab) => void;
   onOpenAuth: () => void;
   onOpenNotifications: () => void;
-  onOpenRoleOnboarding?: () => void;
-  onOpenAdminVerification?: () => void;
-  onOpenTutorial?: () => void;
   onOpenSignOutConfirm?: () => void;
   unreadCount: number;
 }
 
-const LANGUAGES: { code: Language; name: string; nativeName: string; badge: string }[] = [
-  { code: 'en', name: 'English', nativeName: 'English', badge: 'EN' },
-  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', badge: 'TA' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिंदी', badge: 'HI' },
-  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', badge: 'TE' }
+const ALL_SCREENS: { id: ActiveTab; name: string }[] = [
+  { id: 'splash', name: '1. Splash / Launch' },
+  { id: 'onboarding', name: '2. Onboarding (3 Steps)' },
+  { id: 'login', name: '3. Login' },
+  { id: 'signup', name: '4. Sign Up' },
+  { id: 'profile_setup', name: '5. Farmer Profile Setup' },
+  { id: 'kyc', name: '6. KYC Verification' },
+  { id: 'home', name: '7. Main Dashboard' },
+  { id: 'assistant', name: '8. AI Farming Assistant' },
+  { id: 'scan', name: '9. Crop Disease Detection' },
+  { id: 'calendar', name: '10. Crop Calendar' },
+  { id: 'weather', name: '11. Weather & Risk Alerts' },
+  { id: 'market', name: '12. Market Prices' },
+  { id: 'passport', name: '13. Farmer Passport' },
+  { id: 'my_farm', name: '14. My Farm' },
+  { id: 'notifications', name: '15. Notifications' },
+  { id: 'settings', name: '16. Settings' },
+  { id: 'help', name: '17. Help & Support' },
 ];
 
 export const Header: React.FC<HeaderProps> = ({
   profile,
   setProfile,
+  activeTab,
+  setActiveTab,
   onOpenAuth,
   onOpenNotifications,
-  onOpenRoleOnboarding,
-  onOpenAdminVerification,
-  onOpenTutorial,
-  onOpenSignOutConfirm,
   unreadCount,
 }) => {
-  const t = translations[profile.language] || translations.en;
+  const { language, setLanguage, currentLangMeta, supportedLanguages, t } = useLanguage();
   const [isLangOpen, setIsLangOpen] = useState(false);
-  const langDropdownRef = useRef<HTMLDivElement>(null);
+  const [isScreensOpen, setIsScreensOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
         setIsLangOpen(false);
       }
     };
@@ -48,81 +66,105 @@ export const Header: React.FC<HeaderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLanguageChange = (lang: Language) => {
-    setProfile(prev => ({ ...prev, language: lang }));
-    setIsLangOpen(false);
-  };
-
-  const currentLangObj = LANGUAGES.find(l => l.code === profile.language) || LANGUAGES[0];
-
   return (
-    <header className="sticky top-0 z-40 bg-emerald-950 text-white shadow-md border-b border-emerald-800/60">
+    <header className="sticky top-0 z-40 bg-blue-900 text-white shadow-md border-b border-blue-800 lg:pl-64">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
         <div className="flex items-center justify-between">
           
-          {/* Logo & Brand Name */}
+          {/* Logo & Mobile Brand Title */}
           <div className="flex items-center gap-3">
-            <AgriLogo size={42} />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-1">
-                  <span className="text-emerald-400 font-black text-2xl sm:text-3xl">AgriVeda</span>
-                  <span className="text-amber-400 font-extrabold text-2xl sm:text-3xl">AI</span>
-                </h1>
-                <span className="hidden md:inline-flex items-center gap-1 text-[10px] uppercase font-extrabold tracking-wider px-2.5 py-0.5 bg-emerald-900/80 text-emerald-300 rounded-full border border-emerald-700/60">
-                  <Sparkles className="w-3 h-3 text-amber-300" />
-                  <span>Farmer First</span>
-                </span>
+            <div className="lg:hidden flex items-center gap-2">
+              <AgriLogo size={36} />
+              <div>
+                <h1 className="text-lg font-black text-white leading-none">{t('appName')}</h1>
+                <p className="text-[10px] text-blue-200 font-medium">{t('tagline')}</p>
               </div>
-              <p className="text-[11px] text-emerald-200/80 hidden sm:block font-medium">
-                {t.tagline || 'Smart Multilingual Agricultural Assistant'}
-              </p>
+            </div>
+
+            {/* 17-Screen Quick Demo Selector */}
+            <div className="relative">
+              <button
+                onClick={() => setIsScreensOpen(prev => !prev)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-800 hover:bg-blue-700 text-xs font-bold text-blue-100 border border-blue-700 transition-all cursor-pointer"
+                title="Quick Demo View Switcher"
+              >
+                <LayoutGrid className="w-3.5 h-3.5 text-amber-300" />
+                <span className="hidden sm:inline">{t('views')}</span>
+                <ChevronDown className="w-3 h-3 text-blue-300" />
+              </button>
+
+              {isScreensOpen && (
+                <div className="absolute left-0 mt-2 w-64 bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 py-2 z-50 max-h-96 overflow-y-auto">
+                  <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    Jump to Screen
+                  </div>
+                  {ALL_SCREENS.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setActiveTab(s.id);
+                        setIsScreensOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs font-bold transition-colors flex items-center justify-between ${
+                        activeTab === s.id ? 'bg-blue-50 text-blue-700 font-black' : 'hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <span>{s.name}</span>
+                      {activeTab === s.id && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Controls: Language, Guide, Notifications, Verification & Profile */}
+          {/* Right Controls: Multilingual Selector, Notifications, Farmer Passport & Profile */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Interactive Language Selector */}
-            <div className="relative" ref={langDropdownRef}>
+            {/* Centralized Multilingual Language Selector */}
+            <div className="relative" ref={langRef}>
               <button
                 onClick={() => setIsLangOpen(prev => !prev)}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800/90 text-xs font-bold text-emerald-100 border border-emerald-700/60 transition-all active:scale-95 shadow-2xs"
-                title="Select Interface Language"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl bg-blue-800 hover:bg-blue-700 text-xs font-bold text-white border border-blue-700 shadow-xs transition-all cursor-pointer"
+                title="Select Language / மொழி / भाषा / భాష"
               >
-                <Globe className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                <span className="font-extrabold uppercase text-[11px] text-amber-300">{currentLangObj.badge}</span>
-                <span className="hidden sm:inline font-medium text-emerald-100">({currentLangObj.nativeName})</span>
-                <ChevronDown className={`w-3 h-3 text-emerald-300 transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`} />
+                <Globe className="w-4 h-4 text-amber-300 shrink-0" />
+                <span className="text-sm">{currentLangMeta.flag}</span>
+                <span className="font-extrabold text-amber-300 text-xs">{currentLangMeta.nativeName}</span>
+                <ChevronDown className={`w-3 h-3 text-blue-200 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isLangOpen && (
-                <div className="absolute right-0 mt-1.5 w-44 bg-white text-slate-800 rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in slide-in-from-top-1">
-                  <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Select Language / மொழி
+                <div className="absolute right-0 mt-2 w-48 bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 py-1.5 z-50 animate-in fade-in">
+                  <div className="px-3.5 py-1.5 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                    {t('selectLanguage')}
                   </div>
 
-                  {LANGUAGES.map((lang) => {
-                    const isSelected = profile.language === lang.code;
+                  {supportedLanguages.map((lang) => {
+                    const isSelected = language === lang.code;
                     return (
                       <button
                         key={lang.code}
-                        onClick={() => handleLanguageChange(lang.code)}
-                        className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center justify-between hover:bg-emerald-50/70 transition-colors ${
-                          isSelected ? 'text-emerald-800 font-bold bg-emerald-50 border-l-4 border-emerald-600' : 'text-slate-700'
+                        onClick={() => {
+                          setLanguage(lang.code);
+                          setProfile(prev => ({ ...prev, language: lang.code }));
+                          setIsLangOpen(false);
+                        }}
+                        className={`w-full text-left px-3.5 py-2.5 text-xs font-bold flex items-center justify-between hover:bg-blue-50 transition-colors cursor-pointer ${
+                          isSelected ? 'text-blue-700 bg-blue-50/80 font-black border-l-4 border-blue-600' : 'text-slate-700'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-5 rounded bg-slate-100 text-slate-600 font-extrabold text-[10px] flex items-center justify-center border border-slate-200">
-                            {lang.badge}
-                          </span>
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-base">{lang.flag}</span>
                           <div>
                             <span className="block text-xs font-bold text-slate-900">{lang.nativeName}</span>
                             <span className="block text-[10px] text-slate-500 font-normal">{lang.name}</span>
                           </div>
                         </div>
 
-                        {isSelected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                        {isSelected && (
+                          <span className="text-xs font-black text-blue-600">✓</span>
+                        )}
                       </button>
                     );
                   })}
@@ -130,105 +172,40 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Interactive UI Guide & Tutorial Trigger */}
-            {onOpenTutorial && (
-              <button
-                onClick={onOpenTutorial}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-xs font-bold text-amber-300 border border-emerald-700/60 transition-all active:scale-95 shadow-2xs cursor-pointer"
-                title="Launch Farmer Guide"
-              >
-                <Compass className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <span className="hidden sm:inline">Farmer Guide</span>
-              </button>
-            )}
-
             {/* Notification Bell */}
             <button
-              onClick={onOpenNotifications}
-              className="relative p-2 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 border border-emerald-700/60 transition-colors cursor-pointer"
-              title="Weather & Farming Alerts"
+              onClick={() => setActiveTab('notifications')}
+              className="relative p-2 rounded-xl bg-blue-800 hover:bg-blue-700 text-blue-100 border border-blue-700 transition-colors cursor-pointer"
+              title="Notifications"
             >
-              <Bell className="w-4 h-4 text-emerald-200" />
+              <Bell className="w-4 h-4 text-blue-200" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-slate-950 text-[10px] font-black rounded-full flex items-center justify-center border-2 border-emerald-950">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-slate-950 text-[10px] font-black rounded-full flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Role Verification Status Pill */}
+            {/* Farmer Passport Status Pill */}
             <button
-              onClick={onOpenRoleOnboarding || onOpenAuth}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm border transition-all active:scale-95 cursor-pointer ${
-                profile.verificationStatus === 'FULLY_VERIFIED'
-                  ? 'bg-emerald-800 border-emerald-500 text-emerald-100 ring-2 ring-emerald-500/20'
-                  : profile.verificationStatus === 'ROLE_VERIFIED'
-                  ? 'bg-blue-900 border-blue-500 text-blue-100'
-                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-300 font-extrabold'
-              }`}
-              title="Role Verification Status"
+              onClick={() => setActiveTab('passport')}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
-              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">
-                {profile.verificationStatus === 'FULLY_VERIFIED'
-                  ? 'Verified Kisan'
-                  : profile.verificationStatus === 'ROLE_VERIFIED'
-                  ? 'Verified Role'
-                  : 'Verify Kisan ID'}
-              </span>
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-200" />
+              <span className="hidden sm:inline">{t('verifiedFarmer')}</span>
             </button>
 
-            {/* Admin Verification Audit Console */}
-            {onOpenAdminVerification && (
-              <button
-                onClick={onOpenAdminVerification}
-                className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-emerald-200 hover:text-white text-[11px] font-bold border border-emerald-700/60 transition-colors cursor-pointer"
-                title="Admin Verification Audit Portal"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-                <span>Admin Audit</span>
-              </button>
-            )}
-
-            {/* User Profile Pill or Sign In Button */}
-            {profile.isAuthenticated ? (
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={onOpenAuth}
-                  className="flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl bg-emerald-900/80 hover:bg-emerald-800 border border-emerald-700/60 text-xs text-emerald-100 font-medium transition-all cursor-pointer"
-                  title="View Account"
-                >
-                  <img
-                    src={profile.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80'}
-                    alt={profile.name}
-                    className="w-6 h-6 rounded-full object-cover border border-emerald-500"
-                  />
-                  <div className="hidden lg:block text-left">
-                    <p className="font-bold text-white text-[11px] leading-tight">{profile.name}</p>
-                    <p className="text-[10px] text-amber-300 font-extrabold uppercase leading-none">{profile.role || 'Farmer'}</p>
-                  </div>
-                </button>
-
-                {onOpenSignOutConfirm && (
-                  <button
-                    onClick={onOpenSignOutConfirm}
-                    className="p-1.5 sm:p-2 rounded-xl bg-emerald-900 hover:bg-rose-900/70 text-emerald-300 hover:text-rose-200 border border-emerald-700 hover:border-rose-500 transition-all cursor-pointer"
-                    title="Sign Out"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={onOpenAuth}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shadow-md transition-all cursor-pointer border border-amber-300"
-                title="Sign In or Create Account"
-              >
-                <LogIn className="w-4 h-4 text-slate-950" />
-                <span>Sign In</span>
-              </button>
-            )}
+            {/* Profile Avatar */}
+            <button
+              onClick={() => setActiveTab('passport')}
+              className="flex items-center gap-2 p-1 bg-blue-800 hover:bg-blue-700 rounded-xl border border-blue-700 cursor-pointer"
+            >
+              <img
+                src={profile.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80'}
+                alt={profile.name}
+                className="w-7 h-7 rounded-full object-cover border border-blue-300"
+              />
+            </button>
 
           </div>
         </div>

@@ -1,14 +1,6 @@
-@import "tailwindcss";
-
-@theme {
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --color-agri-dark: #062e1b;
-  --color-agri-primary: #15803d;
-  --color-agri-light: #f0fdf4;
-  --color-earth-amber: #d97706;
-  --color-earth-cream: #fef3c7;
-  --color-surface-bg: #f8fafc;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer base {
   html,
@@ -27,19 +19,19 @@
     --card-foreground: #0f172a;
     --popover: #ffffff;
     --popover-foreground: #0f172a;
-    --primary: #15803d;
+    --primary: #2563eb;
     --primary-foreground: #ffffff;
-    --secondary: #f0fdf4;
-    --secondary-foreground: #14532d;
+    --secondary: #eff6ff;
+    --secondary-foreground: #1e40af;
     --muted: #f1f5f9;
-    --muted-foreground: #475569;
-    --accent: #fef3c7;
-    --accent-foreground: #92400e;
+    --muted-foreground: #64748b;
+    --accent: #dbeafe;
+    --accent-foreground: #1e40af;
     --destructive: #dc2626;
     --destructive-foreground: #ffffff;
     --border: #e2e8f0;
     --input: #e2e8f0;
-    --ring: #166534;
+    --ring: #2563eb;
     --radius: 1rem;
   }
 }
@@ -75,25 +67,5 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(21, 128, 61, 0.6);
-}
-
-/* MapLibre GL Popup container overrides */
-.maplibregl-popup {
-  z-index: 50 !important;
-}
-
-.maplibregl-popup-content {
-  background: transparent !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  border-radius: 1rem !important;
-}
-
-.maplibregl-popup-tip {
-  display: none !important;
-}
-
-.maplibregl-popup-close-button {
-  display: none !important;
+  background: rgba(37, 99, 235, 0.6);
 }

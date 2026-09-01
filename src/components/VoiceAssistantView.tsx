@@ -1,466 +1,347 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Mic, Send, Volume2, Globe, Sparkles, RefreshCw, Bot, User,
-  Camera, Image as ImageIcon, CheckCircle, AlertTriangle, CloudSun,
-  TrendingUp, Calculator, Shield, Leaf, X, Play, Square, Calendar, Sprout, Filter, Edit3, Save, Layers
-} from 'lucide-react';
-import { Language, UserProfile, VoiceMessage, AgriIntentCategory } from '../types';
-import { translations } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { Bot, Mic, Camera, Send, Sparkles, Volume2, Square, Globe, RefreshCw, AlertCircle } from 'lucide-react';
+import { UserProfile } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { getAIResponse, AIResponse } from '../lib/aiService';
+import { speechRecognizer, speechSynthesizer, VoiceStatus } from '../lib/voiceService';
 
 interface VoiceAssistantViewProps {
   profile: UserProfile;
-  initialQuery?: string;
 }
 
-export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile, initialQuery }) => {
-  const t = translations[profile.language] || translations.en;
+interface ChatMessage {
+  id: string;
+  sender: 'user' | 'ai';
+  text: string;
+  details?: string[];
+  actionCard?: any;
+}
 
-  const [selectedLang, setSelectedLang] = useState<Language>(profile.language || 'en');
-  const [editingContext, setEditingContext] = useState(false);
+export const VoiceAssistantView: React.FC<VoiceAssistantViewProps> = ({ profile }) => {
+  const { language, setLanguage, currentLangMeta, supportedLanguages, t, suggestedQuestions } = useLanguage();
 
-  const [farmerContext, setFarmerContext] = useState({
-    farmerName: profile.name,
-    cropType: profile.primaryCrop || 'Tomato',
-    cropVariety: profile.cropVariety || 'Hybrid Arka Rakshak',
-    sowingDate: profile.sowingDate || '01 June 2024',
-    cropAgeDays: profile.cropAgeDays || 32,
-    soilType: profile.soilType || 'Red Loamy Soil',
-    irrigationMethod: profile.irrigationMethod || 'Drip Irrigation',
-    farmArea: profile.farmSizeAcres || 2.5,
-    location: profile.location || 'Vellore, Tamil Nadu',
-    seedVariety: profile.seedVariety || 'Traditional Nattu Seed',
-    seedBankName: profile.seedBankName || 'Vellore Organic Seed Vault'
+  const [inputQuery, setInputQuery] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [isSpeakingId, setIsSpeakingId] = useState<string | null>(null);
+  const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>({ state: 'idle', message: '' });
+
+  // Initial localized sample conversation
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    if (language === 'ta') {
+      return [
+        { id: '1', sender: 'user', text: 'தக்காளி இலைகளில் மஞ்சள் நிறம் ஏன் வருகிறது?' },
+        {
+          id: '2',
+          sender: 'ai',
+          text: 'தக்காளி இலைகள் மஞ்சளாவதற்கு நைட்ரஜன் குறைபாடு அல்லது ஆரம்பகட்ட பூஞ்சை தாக்குதல் காரணமாக இருக்கலாம்.',
+          details: [
+            'பாதிக்கப்பட்ட கீழ் இலைகளை அகற்றி காற்றில் பரவுவதை தடுக்கவும்.',
+            'சொட்டு நீர் பாசனத்தை இலைகளின் மேல் தெளிக்காமல் தரைப்பகுதியில் பயன்படுத்தவும்.',
+            'இயற்கை வேப்ப எண்ணெய் (5ml/L) தெளிக்கவும்.'
+          ]
+        }
+      ];
+    }
+    if (language === 'hi') {
+      return [
+        { id: '1', sender: 'user', text: 'मेरी टमाटर की फसल के पत्ते पीले क्यों हो रहे हैं?' },
+        {
+          id: '2',
+          sender: 'ai',
+          text: 'टमाटर की पत्तियों में पीलापन नाइट्रोजन की कमी या फफूंद संक्रमण के कारण हो सकता है।',
+          details: [
+            'प्रभावित निचली पत्तियों को हटाकर नष्ट करें।',
+            'पत्तियों पर ऊपर से पानी देने से बचें।',
+            'जैविक नीम तेल (5ml/L) या संतुलित NPK 19:19:19 का छिड़काव करें।'
+          ]
+        }
+      ];
+    }
+    if (language === 'te') {
+      return [
+        { id: '1', sender: 'user', text: 'టమోటా ఆకులు ఎందుకు పసుపు రంగులోకి మారుతున్నాయి?' },
+        {
+          id: '2',
+          sender: 'ai',
+          text: 'టమోటా ఆకులు పసుపు రంగులోకి మారడానికి నత్రజని లోపం లేదా శీలీంధ్ర సోకడం కారణం కావచ్చు.',
+          details: [
+            'బాధిత దిగువ ఆకులను తొలగించండి.',
+            'ఆకులపై నీరు పడకుండా బిందు సేద్యం వాడండి.',
+            'సేంద్రీయ వేప నూనె (5ml/L) పిచికారీ చేయండి.'
+          ]
+        }
+      ];
+    }
+    return [
+      { id: '1', sender: 'user', text: 'Why are my tomato leaves turning yellow?' },
+      {
+        id: '2',
+        sender: 'ai',
+        text: 'Yellowing in tomato leaves can stem from nitrogen deficiency or early fungal blight.',
+        details: [
+          'Prune affected lower leaves to prevent airborne spore spread.',
+          'Avoid overhead watering (switch to drip irrigation at root level).',
+          'Apply organic Neem oil extract (5ml/L) or balanced NPK 19:19:19 fertilizer.'
+        ]
+      }
+    ];
   });
 
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<AgriIntentCategory | 'All'>('All');
-
-  const [messages, setMessages] = useState<VoiceMessage[]>([
-    {
-      id: 'msg-1',
-      sender: 'assistant',
-      intentCategory: 'General Agricultural Question',
-      text: selectedLang === 'ta'
-        ? `வணக்கம் ${farmerContext.farmerName}! நான் உங்கள் அக்ரிவேதா AI உதவியாளர். உங்கள் ${farmerContext.cropType} பயிர், உரம், நோய், வானிலை அல்லது விதை வங்கி பற்றி எதை வேண்டுமானாலும் கேட்கலாம்.`
-        : selectedLang === 'hi'
-          ? `नमस्ते ${farmerContext.farmerName}! मैं आपका एग्रीवेदा AI कृषि सहायक हूँ। अपनी ${farmerContext.cropType} फसल, खाद, बीमारी या मौसम के बारे में पूछें।`
-          : selectedLang === 'te'
-            ? `నమస్తే ${farmerContext.farmerName}! నేను మీ అగ్రివేద AI సహాయకుడిని. మీ ${farmerContext.cropType} పంట, ఎరువులు లేదా వాతావరణం గురించి అడగండి.`
-            : `Welcome ${farmerContext.farmerName}! I am Ask AgriVeda, your agricultural AI voice copilot. Ask any question about your ${farmerContext.cropType} crop, fertilizer dosage, weather spray risk, or Community Seed Bank.`,
-      language: selectedLang,
-      timestamp: 'Just now',
-      suggestedFollowups: [
-        'Calculate fertilizer dosage for my crop',
-        'Can I spray pesticide today?',
-        'Show Community Seed Bank listings',
-        'When should I harvest?'
-      ]
-    }
-  ]);
-
-  const [inputPrompt, setInputPrompt] = useState('');
-  const [attachedImage, setAttachedImage] = useState<string | null>(null);
-  const [isListening, setIsListening] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeSpeechId, setActiveSpeechId] = useState<string | null>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  // Re-sync initial chat defaults when language changes if only sample conversation exists
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+    speechSynthesizer.stop();
+    setIsSpeakingId(null);
+  }, [language]);
 
-  useEffect(() => {
-    if (initialQuery) {
-      handleSendMessage(`Tell me about ${initialQuery} sowing and preservation guidelines`);
-    }
-  }, [initialQuery]);
+  const handleSend = async (queryOverride?: string) => {
+    const textToSend = queryOverride || inputQuery;
+    if (!textToSend.trim() || isSending) return;
 
-  const intentCategories: { id: AgriIntentCategory; label: string; icon: string }[] = [
-    { id: 'Crop Management', label: 'Crop Mgmt', icon: '🌾' },
-    { id: 'Disease / Pest', label: 'Disease / Pest', icon: '🔍' },
-    { id: 'Fertilizer', label: 'Fertilizer', icon: '🧪' },
-    { id: 'Weather', label: 'Weather', icon: '🌦️' },
-    { id: 'Crop Calendar', label: 'Calendar', icon: '📅' },
-    { id: 'Seed Bank', label: 'Seed Bank', icon: '🌱' },
-    { id: 'Seed Information', label: 'Seed Info', icon: '📦' },
-    { id: 'Soil', label: 'Soil Health', icon: '🏔️' },
-    { id: 'Irrigation', label: 'Irrigation', icon: '💧' },
-    { id: 'Market / Mandi', label: 'Market Mandi', icon: '📈' },
-    { id: 'General Agricultural Question', label: 'General Q&A', icon: '💡' }
-  ];
+    setInputQuery('');
+    const userMsgId = Date.now().toString();
+    const aiMsgId = (Date.now() + 1).toString();
 
-  const quickPrompts = [
-    {
-      category: 'Disease / Pest' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '🌿 இலை மஞ்சள் நோய்' : selectedLang === 'hi' ? '🌿 पत्ती में पीलापन' : '🌿 Yellowing Leaf Remedy',
-      text: selectedLang === 'ta'
-        ? 'என் தக்காளி செடி இலை மஞ்சள் நிறமாக மாறுகிறது, என்ன செய்ய வேண்டும்?'
-        : selectedLang === 'hi'
-          ? 'मेरी टमाटर की फसल में पत्तियां पीली हो रही हैं, क्या उपाय करें?'
-          : 'My tomato leaves are turning yellow with brown spots. What is the cause and remedy?'
-    },
-    {
-      category: 'Fertilizer' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '🧪 NPK உர அளவு' : selectedLang === 'hi' ? '🧪 NPK खाद की मात्रा' : '🧪 NPK Fertilizer Dosage',
-      text: selectedLang === 'ta'
-        ? `என் ${farmerContext.cropType} பயிருக்கு எப்போது உரமிட வேண்டும்? NPK உர அளவு என்ன?`
-        : selectedLang === 'hi'
-          ? `${farmerContext.cropType} फसल में खाद की मात्रा और समय क्या है?`
-          : `What is the exact NPK fertilizer schedule for my ${farmerContext.cropType} crop?`
-    },
-    {
-      category: 'Weather' as AgriIntentCategory,
-      label: selectedLang === 'ta' ? '🌦️ இன்று மருந்து தெளிக்கலாமா?' : selectedLang === 'hi' ? '🌦️ क्या आज स्प्रे करें?' : '🌦️ Spray Window Today',
-      text: selectedLang === 'ta'
-        ? `${farmerContext.location} பகுதியில் இன்று மருந்து தெளிக்க வானிலை உகந்ததா?`
-        : selectedLang === 'hi'
-          ? `क्या ${farmerContext.location} में आज कीटनाशक स्प्रे करना सुरक्षित है?`
-          : `Is it safe to spray pesticide today in ${farmerContext.location}? Check rain & wind risk.`
-    }
-  ];
+    setChatMessages(prev => [
+      ...prev,
+      { id: userMsgId, sender: 'user', text: textToSend }
+    ]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setAttachedImage(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
+    setIsSending(true);
 
-  const handleMicClick = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Speech recognition is not supported in your browser.');
-      return;
-    }
+    // Call AI Service with explicit language parameter
+    const aiResult: AIResponse = await getAIResponse(textToSend, language, profile);
 
-    if (isListening) {
-      setIsListening(false);
-      return;
-    }
+    setIsSending(false);
 
-    try {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      let langCode = 'en-US';
-      if (selectedLang === 'ta') langCode = 'ta-IN';
-      else if (selectedLang === 'hi') langCode = 'hi-IN';
-      else if (selectedLang === 'te') langCode = 'te-IN';
-
-      recognition.lang = langCode;
-
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputPrompt(transcript);
-        handleSendMessage(transcript);
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.start();
-    } catch (err) {
-      console.error(err);
-      setIsListening(false);
-    }
-  };
-
-  const handleSendMessage = async (textToSend?: string) => {
-    const text = textToSend || inputPrompt;
-    if (!text.trim() && !attachedImage) return;
-
-    const userMsgId = `user-${Date.now()}`;
-    const newMsg: VoiceMessage = {
-      id: userMsgId,
-      sender: 'user',
-      text,
-      attachedImage: attachedImage || undefined,
-      language: selectedLang,
-      timestamp: 'Just now'
-    };
-
-    setMessages(prev => [...prev, newMsg]);
-    setInputPrompt('');
-    setAttachedImage(null);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/voice-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: text,
-          language: selectedLang,
-          context: farmerContext,
-          imageBase64: attachedImage
-        })
-      });
-
-      const data = await response.json();
-
-      const botMsg: VoiceMessage = {
-        id: `bot-${Date.now()}`,
-        sender: 'assistant',
-        intentCategory: data.intentCategory || 'General Agricultural Question',
-        text: data.text || 'I could not process that query.',
-        language: data.language || selectedLang,
-        voiceId: data.voice_id || 'female_01',
-        actionCard: data.actionCard,
-        suggestedFollowups: data.suggestedFollowups || ['Ask for fertilizer dosage', 'Check weather spray risk'],
-        timestamp: 'Just now'
-      };
-
-      setMessages(prev => [...prev, botMsg]);
-
-      if (data.text) {
-        speakText(data.text, data.language || selectedLang);
+    setChatMessages(prev => [
+      ...prev,
+      {
+        id: aiMsgId,
+        sender: 'ai',
+        text: aiResult.text,
+        details: aiResult.actionCard?.data?.treatment || aiResult.actionCard?.data?.details?.split('\n') || undefined,
+        actionCard: aiResult.actionCard
       }
-    } catch (err) {
-      console.error('Voice assistant backend error:', err);
-      setMessages(prev => [
-        ...prev,
-        {
-          id: `err-${Date.now()}`,
-          sender: 'assistant',
-          intentCategory: 'General Agricultural Question',
-          text: '⚠️ Network Connection Issue. Please check your connectivity and try again.',
-          timestamp: 'Just now'
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    ]);
   };
 
-  const speakText = (text: string, lang: string) => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text.replace(/[*#]/g, ''));
-      let targetLang = 'en-US';
-      if (lang === 'ta') targetLang = 'ta-IN';
-      else if (lang === 'hi') targetLang = 'hi-IN';
-      else if (lang === 'te') targetLang = 'te-IN';
-
-      utterance.lang = targetLang;
-      window.speechSynthesis.speak(utterance);
+  // Voice Input (STT) Trigger
+  const handleVoiceListen = () => {
+    if (voiceStatus.state === 'listening') {
+      speechRecognizer.stop();
+      setVoiceStatus({ state: 'idle', message: '' });
+      return;
     }
+
+    speechRecognizer.listen(
+      language,
+      (status) => setVoiceStatus(status),
+      (transcript) => {
+        setInputQuery(transcript);
+        handleSend(transcript);
+      }
+    );
   };
 
-  const filteredMessages = selectedCategoryFilter === 'All'
-    ? messages
-    : messages.filter(m => m.sender === 'user' || m.intentCategory === selectedCategoryFilter);
+  // Voice Output (TTS) Trigger
+  const handleSpeakToggle = (msgId: string, text: string) => {
+    if (isSpeakingId === msgId) {
+      speechSynthesizer.stop();
+      setIsSpeakingId(null);
+    } else {
+      setIsSpeakingId(msgId);
+      speechSynthesizer.speak(text, language, () => {
+        setIsSpeakingId(null);
+      });
+    }
+  };
 
   return (
-    <div className="space-y-4 pb-24 animate-in fade-in max-w-4xl mx-auto">
-
-      {/* Title Header Bar */}
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-            <Mic className="w-6 h-6 text-amber-600" />
-            <span>Ask AgriVeda • AI Voice Copilot</span>
-          </h2>
-          <p className="text-xs text-slate-500 font-medium">
-            Multilingual agricultural assistant for Tamil, Hindi, Telugu, and English.
-          </p>
+    <div className="max-w-3xl w-full mx-auto flex flex-col h-[82vh] bg-white rounded-3xl border border-slate-200 shadow-lg overflow-hidden relative">
+      
+      {/* Header */}
+      <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-900 to-blue-800 text-white flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20">
+            <Bot className="w-6 h-6 text-amber-300" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-white">{t('aiAssistantHeader')}</h2>
+            <p className="text-xs text-blue-200 font-medium">{t('aiAssistantSub')}</p>
+          </div>
         </div>
 
-        {/* Language Selector */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {(['en', 'ta', 'hi', 'te'] as Language[]).map(l => (
+        {/* Centralized Language Selector */}
+        <div className="flex items-center gap-1 bg-blue-950/70 p-1 rounded-2xl border border-blue-700/60">
+          {supportedLanguages.map((l) => {
+            const isSelected = language === l.code;
+            return (
+              <button
+                key={l.code}
+                onClick={() => setLanguage(l.code)}
+                className={`px-2.5 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  isSelected ? 'bg-blue-600 text-white shadow-xs' : 'text-blue-200 hover:text-white'
+                }`}
+              >
+                <span>{l.flag} </span>
+                <span>{l.nativeName}</span>
+                {isSelected && <span className="ml-1 text-amber-300">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Voice Status Indicator Banner */}
+      {voiceStatus.state !== 'idle' && (
+        <div className={`px-4 py-2 text-xs font-bold flex items-center justify-between transition-all ${
+          voiceStatus.state === 'listening' ? 'bg-rose-500 text-white animate-pulse' :
+          voiceStatus.state === 'processing' ? 'bg-amber-500 text-slate-950' :
+          voiceStatus.state === 'captured' ? 'bg-emerald-600 text-white' :
+          'bg-rose-100 text-rose-900 border-b border-rose-200'
+        }`}>
+          <div className="flex items-center gap-2">
+            <Mic className="w-4 h-4" />
+            <span>{voiceStatus.message}</span>
+          </div>
+          {voiceStatus.state === 'listening' && (
             <button
-              key={l}
-              onClick={() => setSelectedLang(l)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer ${
-                selectedLang === l ? 'bg-amber-500 text-slate-950 shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              onClick={() => speechRecognizer.stop()}
+              className="text-[11px] font-black underline text-white"
             >
-              {l}
+              Cancel
             </button>
-          ))}
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Quick Category Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          onClick={() => setSelectedCategoryFilter('All')}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-black shrink-0 transition-all cursor-pointer ${
-            selectedCategoryFilter === 'All' ? 'bg-emerald-700 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200'
-          }`}
-        >
-          All Q&A
-        </button>
-        {intentCategories.slice(0, 6).map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategoryFilter(cat.id)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1.5 ${
-              selectedCategoryFilter === cat.id ? 'bg-emerald-700 text-white shadow-xs' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            <span>{cat.icon}</span>
-            <span>{cat.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Conversation Stage */}
-      <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm border border-slate-200 min-h-[420px] max-h-[560px] overflow-y-auto space-y-4">
-        {filteredMessages.map(msg => (
+      {/* Messages Scroll Area */}
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/50">
+        {chatMessages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-2xl rounded-3xl p-4 space-y-2 ${
-              msg.sender === 'user'
-                ? 'bg-emerald-700 text-white rounded-tr-xs'
-                : 'bg-slate-50 text-slate-900 border border-slate-200 rounded-tl-xs'
-            }`}>
-              
-              {/* Category Badge for Bot */}
-              {msg.sender === 'assistant' && msg.intentCategory && (
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 bg-emerald-100 text-emerald-900 rounded-full inline-block">
-                  {msg.intentCategory}
-                </span>
-              )}
-
-              {/* Message Content */}
-              <p className="text-xs sm:text-sm font-medium whitespace-pre-line leading-relaxed">
+            {msg.sender === 'user' ? (
+              <div className="max-w-md p-4 bg-blue-600 text-white font-semibold text-sm rounded-2xl rounded-tr-none shadow-sm">
                 {msg.text}
-              </p>
-
-              {/* Attached Image Preview */}
-              {msg.imageBase64 && (
-                <img src={msg.imageBase64} alt="Attached crop" className="w-32 h-32 object-cover rounded-xl border border-white/20 mt-2" />
-              )}
-
-              {/* Action Card Rendering */}
-              {msg.actionCard && (
-                <div className="mt-3 p-3.5 bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
-                  <span className="text-xs font-black text-emerald-800 flex items-center gap-1.5">
+              </div>
+            ) : (
+              <div className="max-w-lg p-5 bg-white border border-slate-200 rounded-3xl rounded-tl-none shadow-md space-y-3 relative">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-blue-600 text-xs font-black">
                     <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>{msg.actionCard.title}</span>
-                  </span>
-                  <p className="text-xs text-slate-700 font-medium">{msg.actionCard.data?.details || msg.actionCard.data?.crop}</p>
-                </div>
-              )}
+                    <span>AgriVeda AI ({currentLangMeta.nativeName})</span>
+                  </div>
 
-              {/* Audio Playback Button */}
-              {msg.sender === 'assistant' && (
-                <button
-                  onClick={() => speakText(msg.text, msg.language || selectedLang)}
-                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 pt-1 cursor-pointer"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>Listen Audio</span>
-                </button>
-              )}
-            </div>
-
-            {/* Follow-up suggestions */}
-            {msg.suggestedFollowups && msg.suggestedFollowups.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2 pl-2">
-                {msg.suggestedFollowups.map((q, idx) => (
+                  {/* Listen 🔊 & Stop ⏹ Controls */}
                   <button
-                    key={idx}
-                    onClick={() => handleSendMessage(q)}
-                    className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-full text-[11px] font-bold border border-amber-200 transition-colors cursor-pointer"
+                    onClick={() => handleSpeakToggle(msg.id, msg.text)}
+                    className={`px-2.5 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      isSpeakingId === msg.id
+                        ? 'bg-rose-100 text-rose-700 border border-rose-200 animate-pulse'
+                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                    }`}
                   >
-                    + {q}
+                    {isSpeakingId === msg.id ? (
+                      <>
+                        <Square className="w-3.5 h-3.5 fill-rose-600" />
+                        <span>{t('stop')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{t('listen')} 🔊</span>
+                      </>
+                    )}
                   </button>
-                ))}
+                </div>
+
+                <p className="text-sm font-semibold text-slate-800 leading-relaxed">{msg.text}</p>
+
+                {msg.details && (
+                  <div className="bg-blue-50/70 p-3.5 rounded-2xl border border-blue-100 space-y-1.5 text-xs text-slate-700 font-medium">
+                    {msg.details.map((d, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0" />
+                        <span>{d}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
         ))}
 
-        {isLoading && (
-          <div className="flex items-center gap-2 p-3 bg-slate-100 text-slate-600 rounded-2xl text-xs font-bold w-fit animate-pulse">
-            <RefreshCw className="w-4 h-4 animate-spin text-emerald-700" />
-            <span>AgriVeda AI is formulating response...</span>
+        {isSending && (
+          <div className="flex justify-start">
+            <div className="p-4 bg-white border border-slate-200 rounded-3xl rounded-tl-none shadow-sm flex items-center gap-2 text-xs font-bold text-blue-700 animate-pulse">
+              <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+              <span>{t('processingStatus')}</span>
+            </div>
           </div>
         )}
-
-        <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Preset Queries */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        {quickPrompts.map((qp, i) => (
+      {/* Suggested Questions Pills */}
+      <div className="px-4 py-2 bg-slate-100 border-t border-slate-200 flex items-center gap-2 overflow-x-auto">
+        <span className="text-[10px] font-black text-slate-500 uppercase shrink-0">
+          {t('suggestedQuestionsTitle')}:
+        </span>
+        {suggestedQuestions.map((q, idx) => (
           <button
-            key={i}
-            onClick={() => handleSendMessage(qp.text)}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-800 rounded-2xl border border-slate-200 text-xs font-bold shrink-0 transition-all cursor-pointer shadow-2xs"
+            key={idx}
+            onClick={() => handleSend(q)}
+            className="px-3 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 font-bold text-xs rounded-xl border border-slate-200 whitespace-nowrap transition-colors cursor-pointer"
           >
-            {qp.label}
+            {q}
           </button>
         ))}
       </div>
 
-      {/* 🎙️ PROMINENT PUSH-TO-TALK MIC & PROMPT COMPOSER */}
-      <div className="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 space-y-3">
-        {attachedImage && (
-          <div className="flex items-center gap-2 p-2 bg-emerald-50 text-emerald-900 rounded-xl text-xs font-bold w-fit">
-            <span>Attached Image</span>
-            <button onClick={() => setAttachedImage(null)} className="text-rose-600 hover:underline">Remove</button>
-          </div>
-        )}
-
+      {/* Input Area */}
+      <div className="p-4 bg-white border-t border-slate-200 space-y-3">
         <div className="flex items-center gap-2">
-          {/* File Upload Trigger */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl transition-colors cursor-pointer shrink-0"
-            title="Attach Leaf Photo"
-          >
-            <ImageIcon className="w-5 h-5 text-emerald-700" />
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-          </button>
-
-          {/* Text Input */}
           <input
             type="text"
-            value={inputPrompt}
-            onChange={e => setInputPrompt(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-            placeholder={selectedLang === 'ta' ? 'அக்ரிவேதாவிடம் உங்கள் கேள்வியைக் கேளுங்கள்...' : selectedLang === 'hi' ? 'एग्रीवेदा से अपनी फसल सवाल पूछें...' : 'Ask AgriVeda any farming query...'}
-            className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm font-semibold focus:bg-white focus:border-emerald-600 outline-none"
+            value={inputQuery}
+            onChange={(e) => setInputQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder={t('askAnythingPlaceholder')}
+            className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          {/* Large Mic Button */}
           <button
-            onClick={handleMicClick}
-            className={`p-3.5 rounded-2xl font-black transition-all shadow-md cursor-pointer shrink-0 ${
-              isListening
-                ? 'bg-rose-600 text-white animate-pulse ring-4 ring-rose-500/30'
-                : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+            onClick={handleVoiceListen}
+            className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+              voiceStatus.state === 'listening'
+                ? 'bg-rose-600 text-white animate-pulse ring-4 ring-rose-300'
+                : 'bg-blue-50 hover:bg-blue-100 text-blue-600 border-blue-200'
             }`}
-            title="Push to Speak"
+            title={t('askByVoice')}
           >
             <Mic className="w-5 h-5" />
           </button>
 
-          {/* Send Button */}
           <button
-            onClick={() => handleSendMessage()}
-            disabled={!inputPrompt.trim() && !attachedImage}
-            className="p-3.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+            onClick={() => alert('Image attached for analysis.')}
+            className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl border border-slate-200 transition-colors cursor-pointer"
+            title={t('uploadImage')}
+          >
+            <Camera className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={() => handleSend()}
+            disabled={isSending}
+            className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+            title="Send"
           >
             <Send className="w-5 h-5" />
           </button>
         </div>
       </div>
-
     </div>
   );
 };

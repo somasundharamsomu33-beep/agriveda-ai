@@ -1,4 +1,4 @@
-export type Language = 'en' | 'ta' | 'hi' | 'te' | 'auto';
+export type Language = 'en' | 'ta' | 'hi' | 'te' | 'kn' | 'ml' | 'mr' | 'bn' | 'auto';
 export type AIModelType = 'openai/gpt-4o' | 'anthropic/claude-3.5-sonnet' | 'meta-llama/llama-3.1-70b-instruct' | 'google/gemini-flash-1.5' | string;
 
 export interface LandPhotoSnap {
@@ -195,6 +195,13 @@ export interface UserProfile {
 
 export type UserRole =
   | 'farmer'
+  | 'b2b_vendor'
+  | 'b2c_vendor'
+  | 'agronomist'
+  | 'research_scholar'
+  | 'equipment_vendor'
+  | 'technician'
+  | 'spare_parts_retailer'
   | 'loan-officer'
   | 'researcher'
   | 'institute'
@@ -202,10 +209,8 @@ export type UserRole =
   | 'retail_vendor'
   | 'wholesale_vendor'
   | 'input_vendor'
-  | 'agronomist'
   | 'business'
   | 'student'
-  | 'research_scholar'
   | 'institution'
   | 'bank'
   | 'financial_institution'
@@ -918,15 +923,126 @@ export interface CommunityPost {
 }
 
 export type ActiveTab =
+  | 'splash'
+  | 'onboarding'
+  | 'login'
+  | 'signup'
+  | 'auth_hub'
+  | 'profile_setup'
+  | 'kyc'
   | 'home'
-  | 'calendar'
+  | 'assistant'
   | 'scan'
+  | 'calendar'
+  | 'weather'
   | 'market'
+  | 'passport'
+  | 'my_farm'
+  | 'my_land'
+  | 'nearby'
+  | 'orders'
+  | 'cart'
+  | 'notifications'
+  | 'settings'
+  | 'help'
   | 'marketplace'
   | 'mapcn'
   | 'maps'
   | 'seedbank'
-  | 'assistant'
-  | 'weather'
   | 'community'
-  | 'profile';
+  | 'profile'
+  | 'b2b_vendor_dashboard'
+  | 'b2c_vendor_dashboard'
+  | 'agronomist_dashboard'
+  | 'research_scholar_dashboard'
+  | 'equipment_vendor_dashboard'
+  | 'technician_dashboard'
+  | 'spare_parts_dashboard'
+  | 'vendor_dashboard';
+
+export interface LandParcel {
+  id: string;
+  parcelName: string;
+  surveyNumber: string;
+  subdivisionNumber: string;
+  village: string;
+  taluk: string;
+  district: string;
+  state: string;
+  pattaNumber: string;
+  chittaNotes?: string;
+  areaAcres: number;
+  ownershipType: 'Self-Owned' | 'Leased' | 'Joint Family' | 'Tenant';
+  currentCrop: string;
+  soilType: string;
+  irrigationSource: 'Borewell' | 'Canal Irrigation' | 'Rainfed' | 'Drip System' | 'Well';
+  documentUrls?: string[];
+  boundaryCoords: [number, number][]; // GeoJSON [lng, lat] vertices
+  createdAt: string;
+}
+
+export interface AgriMarketItem {
+  id: string;
+  sku?: string;
+  title: string;
+  category: 'equipment' | 'seeds' | 'fertilizers' | 'spare_parts' | 'machinery' | 'irrigation' | 'farm_tools';
+  subCategory: string;
+  brand: string;
+  modelNumber?: string;
+  modelYear?: number;
+  horsepower?: number;
+  engineType?: string;
+  fuelType?: string;
+  transmission?: string;
+  driveType?: '2WD' | '4WD';
+  price: number;
+  originalPrice?: number;
+  discountPercentage?: number;
+  rating: number;
+  reviewCount: number;
+  sellerName: string;
+  sellerPhone: string;
+  sellerLocation: string;
+  distanceKm: number;
+  isVerifiedSeller: boolean;
+  isAdminVerified?: boolean;
+  condition: 'NEW' | 'USED' | 'REFURBISHED';
+  isRentAvailable?: boolean;
+  rentRateText?: string;
+  
+  // Exact Image System
+  imageUrl: string;
+  galleryImages?: string[];
+  imageSourceType?: 'VENDOR_UPLOADED' | 'ADMIN_VERIFIED' | 'MANUFACTURER_OFFICIAL' | 'APPROVED_DATABASE' | 'DEMO_IMAGE';
+  imageSourceBadge?: 'Verified Image' | 'Vendor Image' | 'Demo Image';
+  isImageUnavailable?: boolean;
+  
+  specifications: Record<string, string>;
+  description: string;
+  stockCount: number;
+  suitableCrops?: string[];
+  germinationRate?: string; // Seeds
+  packSize?: string;
+  compatibleTractorModels?: string[]; // Spare parts
+  partNumber?: string;
+  isOem?: boolean;
+}
+
+export interface CartItem {
+  product: AgriMarketItem;
+  quantity: number;
+  selectedOption?: 'buy' | 'rent';
+}
+
+export interface OrderRecord {
+  id: string;
+  orderNumber: string;
+  items: CartItem[];
+  totalAmount: number;
+  status: 'PLACED' | 'CONFIRMED' | 'DISPATCHED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  paymentMethod: 'Cash on Delivery' | 'UPI / NetBanking' | 'Kisan Credit Line';
+  deliveryAddress: string;
+  estimatedDeliveryDate: string;
+  createdAt: string;
+}
+

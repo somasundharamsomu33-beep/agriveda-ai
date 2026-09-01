@@ -1,377 +1,327 @@
-import React, { useState } from 'react';
-import { Camera, Upload, CheckCircle, ArrowLeft, Download, Volume2, Share2, AlertTriangle, Sparkles, Sprout, RefreshCw, FileText, FileDown, Check, ShieldAlert, Zap, Calculator } from 'lucide-react';
-import { CropDiagnosisReport, UserProfile } from '../types';
-import { translations, sampleCropImages } from '../data/mockData';
-import { generateCropReportPDF } from '../utils/pdfExport';
-import { supabase } from '../lib/supabase';
-import { FertilizerCalculator } from './FertilizerCalculator';
+import React, { useState, useRef } from 'react';
+import { 
+  Camera, 
+  Upload, 
+  AlertCircle, 
+  CheckCircle2, 
+  Sparkles, 
+  RefreshCw, 
+  ShoppingBag, 
+  Wrench, 
+  FileText,
+  ShieldAlert,
+  ArrowRight,
+  Leaf
+} from 'lucide-react';
+import { UserProfile, ActiveTab } from '../types';
+import { useLanguage } from '../context/LanguageContext';
+import { detectCropDisease, CropAnalysisResponse } from '../lib/aiService';
 
 interface CropScanViewProps {
   profile: UserProfile;
-  onDiagnosisComplete: (report: CropDiagnosisReport) => void;
-  activeReport: CropDiagnosisReport | null;
-  setActiveReport: React.Dispatch<React.SetStateAction<CropDiagnosisReport | null>>;
+  activeReport?: any;
+  onNavigateTab?: (tab: ActiveTab) => void;
 }
+
+const SAMPLE_LEAF_PHOTOS = [
+  {
+    id: 'sample-tomato',
+    title: 'Tomato Leaf (Blight Sample)',
+    crop: 'Tomato',
+    imageUrl: 'https://images.unsplash.com/photo-1592417817098-8f3d6eb197a5?auto=format&fit=crop&w=600&q=80',
+    description: 'Concentric brown rings & yellow halo'
+  },
+  {
+    id: 'sample-rice',
+    title: 'Paddy Rice (Blast Sample)',
+    crop: 'Rice',
+    imageUrl: 'https://images.unsplash.com/photo-1586771107445-d3ca888129ff?auto=format&fit=crop&w=600&q=80',
+    description: 'Spindle-shaped necrotic lesions'
+  },
+  {
+    id: 'sample-cotton',
+    title: 'Cotton Leaf (Curl Sample)',
+    crop: 'Cotton',
+    imageUrl: 'https://images.unsplash.com/photo-1595974482597-4b8da8879bc5?auto=format&fit=crop&w=600&q=80',
+    description: 'Upward curling & thickening'
+  }
+];
 
 export const CropScanView: React.FC<CropScanViewProps> = ({
   profile,
-  onDiagnosisComplete,
-  activeReport,
-  setActiveReport
+  onNavigateTab
 }) => {
-  const t = translations[profile.language] || translations.en;
+  const { language, t } = useLanguage();
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<CropAnalysisResponse | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedCrop, setSelectedCrop] = useState<string>(profile.primaryCrop || 'Tomato');
 
-  const [cropType, setCropType] = useState(profile.primaryCrop || 'Tomato');
-  const [soilType, setSoilType] = useState('Red Soil');
-  const [farmArea, setFarmArea] = useState(profile.farmSizeAcres || 2.5);
-  const [location, setLocation] = useState(profile.location || 'Vellore, Tamil Nadu');
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(sampleCropImages[0].url);
-  const [selectedSampleId, setSelectedSampleId] = useState<string | null>(sampleCropImages[0].id);
-  const [isScanning, setIsScanning] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isExportingPDF, setIsExportingPDF] = useState(false);
-  const [pdfSuccess, setPdfSuccess] = useState(false);
-  const [showFertilizerCalc, setShowFertilizerCalc] = useState(false);
-
-  const handleExportPDF = async () => {
-    if (!activeReport) return;
-    setIsExportingPDF(true);
-    try {
-      await generateCropReportPDF(activeReport, profile);
-      setPdfSuccess(true);
-      setTimeout(() => setPdfSuccess(false), 3000);
-    } catch (err) {
-      console.error('PDF export failed:', err);
-      alert('Could not export PDF. Please try again.');
-    } finally {
-      setIsExportingPDF(false);
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // File Upload Handler
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result as string);
-        setSelectedSampleId(null);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setPreviewImage(base64);
+      runAnalysis(base64);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleAnalyzeCrop = async () => {
-    setIsScanning(true);
-    setActiveReport(null);
+  // Sample Leaf Photo Selector
+  const handleSelectSample = (sample: typeof SAMPLE_LEAF_PHOTOS[0]) => {
+    setSelectedCrop(sample.crop);
+    setPreviewImage(sample.imageUrl);
+    runAnalysis(sample.imageUrl, sample.id);
+  };
 
+  const runAnalysis = async (imgUrlOrBase64?: string, sampleId?: string) => {
+    setIsAnalyzing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      const res = await fetch('/api/analyze-crop', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {})
-        },
-        body: JSON.stringify({
-          cropType,
-          soilType,
-          farmArea,
-          location,
-          imageBase64: selectedSampleId ? null : selectedImage,
-          sampleImageId: selectedSampleId
-        })
-      });
-
-      const report = await res.json();
-
-      if (!res.ok) {
-        if (report.error) {
-          throw new Error(report.error);
-        }
-        throw new Error('Failed to analyze crop.');
-      }
-
-      setActiveReport(report);
-      onDiagnosisComplete(report);
-    } catch (err: any) {
-      console.error('Error analyzing crop:', err);
-      alert(err.message || 'Error occurred while scanning crop.');
-      setActiveReport(null);
+      const result = await detectCropDisease(
+        selectedCrop,
+        language,
+        imgUrlOrBase64,
+        sampleId
+      );
+      setAnalysisResult(result);
+    } catch (err) {
+      console.error('Crop scan error:', err);
     } finally {
-      setIsScanning(false);
-    }
-  };
-
-  const handleReadAloud = (text: string) => {
-    if ('speechSynthesis' in window) {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
-        setIsSpeaking(false);
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      let targetLang = 'en-US';
-      if (profile.language === 'ta') targetLang = 'ta-IN';
-      else if (profile.language === 'hi') targetLang = 'hi-IN';
-      else if (profile.language === 'te') targetLang = 'te-IN';
-
-      utterance.lang = targetLang;
-
-      const voices = window.speechSynthesis.getVoices();
-      const regionalVoice = voices.find(v => v.lang === targetLang || v.lang.startsWith(targetLang.split('-')[0]));
-      if (regionalVoice) {
-        utterance.voice = regionalVoice;
-      }
-
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      setIsSpeaking(true);
-      window.speechSynthesis.speak(utterance);
-    } else {
-      alert('Speech synthesis is not supported on this browser.');
+      setIsAnalyzing(false);
     }
   };
 
   return (
-    <div className="space-y-6 pb-24 animate-in fade-in">
+    <div className="max-w-3xl w-full mx-auto space-y-6 font-sans">
+      
+      {/* Hidden Native File Inputs */}
+      <input
+        type="file"
+        ref={cameraInputRef}
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <input
+        type="file"
+        ref={galleryInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-            <Camera className="w-6 h-6 text-emerald-700" />
-            <span>Crop Doctor • Scan My Crop</span>
-          </h2>
-          <p className="text-xs text-slate-500 font-medium">
-            Instantly diagnose leaf diseases, fungal spot, pests, and nutrient deficiencies.
-          </p>
+      <div className="bg-gradient-to-r from-blue-900 via-blue-950 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl space-y-2">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 bg-blue-800/70 border border-blue-400/30 rounded-full text-xs font-bold text-blue-200">
+          <Sparkles className="w-3.5 h-3.5 text-blue-300" />
+          <span>AgriVeda AI Vision Pathology Diagnostics</span>
         </div>
-
-        <button
-          onClick={() => setShowFertilizerCalc(prev => !prev)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 rounded-2xl border border-emerald-300 font-bold text-xs transition-colors self-start sm:self-auto cursor-pointer"
-        >
-          <Calculator className="w-4 h-4 text-emerald-700" />
-          <span>{showFertilizerCalc ? 'Hide Fertilizer Calculator' : 'Fertilizer Dosage Calculator'}</span>
-        </button>
+        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          {t('cropScanHeader')}
+        </h2>
+        <p className="text-xs sm:text-sm text-blue-200 font-medium max-w-xl">
+          Upload or take a photo of an affected leaf to identify plant diseases, get organic/chemical remedies, and order treatment inputs.
+        </p>
       </div>
 
-      {/* Fertilizer Calculator Tab Toggle */}
-      {showFertilizerCalc && (
-        <div className="p-4 bg-emerald-50/60 rounded-3xl border border-emerald-200">
-          <FertilizerCalculator profile={profile} />
+      {/* Crop Selector Dropdown */}
+      <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Leaf className="w-5 h-5 text-emerald-600" />
+          <span className="text-xs font-bold text-slate-700">Select Crop Being Diagnosed:</span>
+        </div>
+
+        <select
+          value={selectedCrop}
+          onChange={(e) => setSelectedCrop(e.target.value)}
+          className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        >
+          {['Tomato', 'Rice', 'Cotton', 'Sugarcane', 'Maize', 'Groundnut', 'Chilli', 'Brinjal', 'Onion'].map(c => (
+            <option key={c} value={c}>{c} Crop</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Upload Dropzone */}
+      <div className="p-6 sm:p-8 bg-white rounded-3xl border-2 border-dashed border-blue-300 hover:border-blue-500 shadow-sm text-center space-y-4 transition-all">
+        {previewImage ? (
+          <div className="relative max-w-md mx-auto overflow-hidden rounded-2xl border border-slate-200 shadow-md">
+            <img src={previewImage} alt="Crop Leaf Scan" className="w-full h-48 object-cover" />
+            <span className="absolute bottom-2 right-2 px-2.5 py-1 bg-slate-900/80 text-white text-[10px] font-bold rounded-lg backdrop-blur-xs">
+              Preview Ready
+            </span>
+          </div>
+        ) : (
+          <div className="mx-auto w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border border-blue-100 shadow-inner">
+            <Camera className="w-8 h-8" />
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <h3 className="text-base font-black text-slate-900">{t('uploadCropImage')}</h3>
+          <p className="text-xs text-slate-500 font-medium">Take a photo of affected leaf or upload from device gallery</p>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <button
+            onClick={() => cameraInputRef.current?.click()}
+            className="px-5 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Open Camera</span>
+          </button>
+
+          <button
+            onClick={() => galleryInputRef.current?.click()}
+            className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-blue-600" />
+            <span>Upload Photo</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Interactive Sample Leaf Photos */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black uppercase text-slate-500 tracking-wider">
+            Or Click a Sample Leaf Photo for Instant Test Scan:
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {SAMPLE_LEAF_PHOTOS.map(sample => (
+            <button
+              key={sample.id}
+              onClick={() => handleSelectSample(sample)}
+              className="p-3 bg-white hover:bg-blue-50/50 rounded-2xl border border-slate-200 hover:border-blue-400 text-left transition-all space-y-2 cursor-pointer group shadow-xs"
+            >
+              <img src={sample.imageUrl} alt={sample.title} className="w-full h-24 object-cover rounded-xl border border-slate-100" />
+              <div>
+                <h4 className="font-extrabold text-slate-900 text-xs group-hover:text-blue-700">{sample.title}</h4>
+                <p className="text-[11px] text-slate-500 line-clamp-1">{sample.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Loading Animation */}
+      {isAnalyzing && (
+        <div className="p-8 bg-blue-50 rounded-3xl border border-blue-200 text-center space-y-3 animate-pulse">
+          <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+          <h3 className="text-sm font-black text-blue-950">Analyzing Plant Pathology Data...</h3>
+          <p className="text-xs text-blue-800 font-medium">Matching against AgriVeda ICAR & TNAU crop disease database</p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        {/* 📸 LEFT COLUMN: PHOTO UPLOAD & SAMPLE SELECTOR (5 Cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 space-y-4">
-            <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-              <Upload className="w-4 h-4 text-emerald-700" />
-              <span>Step 1: Upload or Capture Crop Photo</span>
-            </h3>
-
-            {/* Selected Image Preview Area */}
-            <div className="relative aspect-4/3 rounded-2xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center group">
-              {selectedImage ? (
-                <>
-                  <img
-                    src={selectedImage}
-                    alt="Crop Scan Preview"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <label className="px-4 py-2 bg-white text-slate-900 font-bold text-xs rounded-xl shadow-md cursor-pointer hover:bg-slate-100">
-                      Change Photo
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    </label>
-                  </div>
-                </>
-              ) : (
-                <label className="flex flex-col items-center justify-center p-6 text-center cursor-pointer">
-                  <Camera className="w-10 h-10 text-emerald-600 mb-2" />
-                  <span className="text-xs font-bold text-slate-800">Take Photo or Upload Image</span>
-                  <span className="text-[10px] text-slate-400 mt-1">Supports JPG, PNG up to 10MB</span>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
-              )}
+      {/* AI Analysis Result Card */}
+      {analysisResult && !isAnalyzing && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xl space-y-6 animate-in fade-in">
+          
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-black text-slate-900">AgriVeda Diagnostic Pathology Report</h3>
             </div>
 
-            {/* Sample Pathology Images Selector */}
+            <span className={`px-3 py-1 text-xs font-black rounded-full border ${
+              analysisResult.riskLevel === 'High' || analysisResult.riskLevel === 'Critical'
+                ? 'bg-rose-100 text-rose-800 border-rose-200'
+                : 'bg-amber-100 text-amber-900 border-amber-200'
+            }`}>
+              Severity: {analysisResult.riskLevel}
+            </span>
+          </div>
+
+          {/* Disease Name & Confidence Score */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Detected Pathology Issue</span>
+              <p className="text-base font-black text-slate-900">{analysisResult.detectedIssue}</p>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">AI Match Confidence</span>
+              <p className="text-xl font-black text-emerald-600">{analysisResult.confidence}% Confidence Score</p>
+            </div>
+          </div>
+
+          {/* Cause */}
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Pathology Cause & Environmental Trigger</span>
+            <p className="text-xs text-slate-700 font-semibold bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+              {analysisResult.cause}
+            </p>
+          </div>
+
+          {/* Recommended Treatments */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Recommended Treatment Plan</h4>
+            <div className="bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200 space-y-2.5">
+              {analysisResult.treatment.map((action: string, idx: number) => (
+                <div key={idx} className="flex items-start gap-2.5 text-xs text-emerald-950 font-bold">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>{action}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Prevention Measures */}
+          {analysisResult.prevention && (
             <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700 block">Or Select Sample Leaf Image:</span>
-              <div className="grid grid-cols-3 gap-2">
-                {sampleCropImages.map(sample => (
-                  <button
-                    key={sample.id}
-                    onClick={() => {
-                      setSelectedImage(sample.url);
-                      setSelectedSampleId(sample.id);
-                    }}
-                    className={`relative rounded-xl overflow-hidden border-2 transition-all aspect-square cursor-pointer ${
-                      selectedSampleId === sample.id ? 'border-emerald-600 ring-2 ring-emerald-500/20 scale-95' : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <img src={sample.url} alt={sample.crop} className="w-full h-full object-cover" />
-                    <span className="absolute bottom-0 inset-x-0 bg-slate-950/70 text-white text-[9px] font-extrabold px-1 py-0.5 truncate text-center">
-                      {sample.crop}
-                    </span>
-                  </button>
+              <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Prevention & Best Practices</h4>
+              <div className="bg-blue-50/80 p-4 rounded-2xl border border-blue-200 space-y-2 text-xs text-blue-950 font-semibold">
+                {analysisResult.prevention.map((prev, idx) => (
+                  <p key={idx}>• {prev}</p>
                 ))}
               </div>
             </div>
-
-            {/* Farm Context Inputs */}
-            <div className="space-y-3 pt-2 border-t border-slate-100">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Crop Type</label>
-                  <input
-                    type="text"
-                    value={cropType}
-                    onChange={e => setCropType(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-600 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Soil Type</label>
-                  <input
-                    type="text"
-                    value={soilType}
-                    onChange={e => setSoilType(e.target.value)}
-                    className="w-full px-3 py-2 text-xs font-semibold rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-emerald-600 outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Scan Button */}
-            <button
-              onClick={handleAnalyzeCrop}
-              disabled={isScanning}
-              className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 active:scale-98 text-white font-black text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {isScanning ? (
-                <>
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Analyzing Pathology with AI...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5 text-amber-300" />
-                  <span>Run Crop Doctor Diagnosis</span>
-                </>
-              )}
-            </button>
-
-          </div>
-        </div>
-
-        {/* 📑 RIGHT COLUMN: STRUCTURED DIAGNOSIS REPORT (7 Cols) */}
-        <div className="lg:col-span-7 space-y-4">
-          {activeReport ? (
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-5">
-              
-              {/* Report Title Header */}
-              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-                <div>
-                  <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 bg-rose-100 text-rose-800 rounded-full">
-                    {activeReport.riskLevel} Risk • {activeReport.confidence}% AI Confidence
-                  </span>
-                  <h3 className="text-xl font-black text-slate-900 mt-2">
-                    {activeReport.detectedIssue}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-medium mt-0.5">
-                    Diagnosis for {activeReport.cropType} ({activeReport.location})
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleReadAloud(`${activeReport.detectedIssue}. Cause: ${activeReport.cause}. Treatment: ${activeReport.treatment?.join(' ')}`)}
-                    className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
-                      isSpeaking ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                    }`}
-                    title="Read Aloud Diagnosis"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={handleExportPDF}
-                    disabled={isExportingPDF}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs rounded-xl border border-emerald-300 transition-colors cursor-pointer"
-                  >
-                    <Download className="w-4 h-4 text-emerald-700" />
-                    <span>{pdfSuccess ? 'Exported!' : 'Download PDF'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* 🎯 STRUCTURED AI ADVISORY: Problem -> Cause -> Action -> Next Step */}
-              <div className="space-y-4">
-                
-                {/* 1. PROBLEM */}
-                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-1">
-                  <span className="text-[11px] font-black text-rose-900 uppercase tracking-wider block">1. Identified Problem</span>
-                  <p className="text-xs font-bold text-rose-950">{activeReport.detectedIssue}</p>
-                </div>
-
-                {/* 2. CAUSE */}
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-1">
-                  <span className="text-[11px] font-black text-amber-900 uppercase tracking-wider block">2. Root Cause & Conditions</span>
-                  <p className="text-xs text-amber-950 font-medium">{activeReport.cause}</p>
-                </div>
-
-                {/* 3. ACTION (Treatment Steps) */}
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2">
-                  <span className="text-[11px] font-black text-emerald-900 uppercase tracking-wider block">3. Immediate Action & Treatment</span>
-                  <ul className="space-y-1.5 text-xs text-emerald-950 font-medium">
-                    {activeReport.treatment?.map((step, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                        <span>{step}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* 4. NEXT STEP (Prevention & Fertilizer) */}
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <span className="text-[11px] font-black text-slate-900 uppercase tracking-wider block">4. Next Steps & Prevention</span>
-                  <p className="text-xs text-slate-800 font-medium">
-                    <strong>Fertilizer Advice:</strong> {activeReport.fertilizerSuggestion}
-                  </p>
-                  <ul className="space-y-1 text-xs text-slate-700 font-medium pt-1">
-                    {activeReport.prevention?.map((prev, idx) => (
-                      <li key={idx}>• {prev}</li>
-                    ))}
-                  </ul>
-                </div>
-
-              </div>
-
-            </div>
-          ) : (
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 text-center space-y-4 min-h-[400px] flex flex-col items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-200">
-                <Sparkles className="w-8 h-8 text-emerald-700" />
-              </div>
-              <div>
-                <h3 className="text-base font-black text-slate-900">Ready to Scan Your Crop</h3>
-                <p className="text-xs text-slate-500 font-medium max-w-sm mt-1">
-                  Select or upload a leaf photo on the left and tap "Run Crop Doctor Diagnosis" to get an instant pathology report.
-                </p>
-              </div>
-            </div>
           )}
-        </div>
 
-      </div>
+          {/* Direct Action Hub */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            {onNavigateTab && (
+              <button
+                onClick={() => onNavigateTab('marketplace')}
+                className="p-3.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                <span>Find Remedy Pesticides in Store</span>
+              </button>
+            )}
+
+            {onNavigateTab && (
+              <button
+                onClick={() => onNavigateTab('nearby')}
+                className="p-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+              >
+                <Wrench className="w-4 h-4 text-emerald-400" />
+                <span>Request Nearby Agronomist Visit</span>
+              </button>
+            )}
+          </div>
+
+          {/* Disclaimer */}
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-900 font-medium leading-relaxed">
+              {analysisResult.disclaimer}
+            </p>
+          </div>
+
+        </div>
+      )}
 
     </div>
   );

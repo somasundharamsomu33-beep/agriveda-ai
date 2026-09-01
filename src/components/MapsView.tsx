@@ -672,10 +672,28 @@ export const MapsView: React.FC<MapsViewProps> = ({
   ];
 
   return (
-    <div className="relative w-full h-[calc(100vh-8.5rem)] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col bg-slate-950 font-sans">
-      
-      {/* Top Header Bar with Nominatim Search, Role Switcher & Basemap Presets */}
-      <header className="z-40 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shrink-0">
+    <div className="space-y-4 font-sans">
+      {/* Top Experience Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-0.5 bg-blue-100 text-blue-800 text-[10px] font-black rounded-full border border-blue-200 uppercase tracking-wider">
+              AgriVeda Map
+            </span>
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-1">
+            Explore Agriculture Near You
+          </h2>
+          <p className="text-xs text-slate-500 font-medium">
+            Find farms, agricultural services, vendors and experts around you.
+          </p>
+        </div>
+      </div>
+
+      <div className="relative w-full h-[calc(100vh-11rem)] rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col bg-slate-950">
+        
+        {/* Top Header Bar with Nominatim Search, Role Switcher & Basemap Presets */}
+        <header className="z-40 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shrink-0">
         
         {/* Brand & Nominatim Search Component */}
         <div className="flex items-center gap-3 flex-1 min-w-[280px] max-w-xl">
@@ -1560,7 +1578,7 @@ export const MapsView: React.FC<MapsViewProps> = ({
         defaultCrop={selectedFarmer.primaryCrop}
         defaultAmount={selectedFarmer.requestedLoanAmount || 200000}
       />
-
+    </div>
     </div>
   );
 };
